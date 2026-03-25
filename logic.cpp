@@ -354,14 +354,8 @@ void SpawnEnemy(Game& G) {
         case WaveEvent::SIEGE:
             et = (G.spawned == 0) ? EType::ARMORED : EType::BASIC; break;
         default: {
-            int r = typeR(G.rng);
-            if (G.wave < 3) r %= 2;
-            switch (r) {
-                case 0: case 1: et = EType::BASIC;   break;
-                case 2:         et = EType::FAST;    break;
-                case 3:         et = EType::ARMORED; break;
-                default:        et = EType::ELITE;   break;
-            }
+            int picked = G.enemyLearner.Pick(G.rng, G.wave);
+            et = (EType)picked;
         }
     }
 
@@ -431,6 +425,7 @@ void SpawnEnemy(Game& G) {
     }
 
     G.enemies.push_back(e);
+    G.enemyLearner.RecordSpawn((int)et);  // 記錄本波生成類型
     if (G.dualPath && !PATH_CELLS2.empty())
         G.enemies.back().pathIdx = (G.spawned % 2 == 1) ? 1 : 0;
 }
@@ -809,6 +804,7 @@ void Update(Game& G, float dt) {
             G.AddFloat(G.CC(CPU_GX, CPU_GY), "-" + std::to_string(liveDmg) + " 命", RED);
             G.Shake(12.f, 0.4f);
             G.waveEscaped++;
+            G.enemyLearner.RecordEscape((int)e.type);  // 記錄逃脫類型
             e.hp = 0.f;
         }
     }
@@ -852,6 +848,7 @@ void Update(Game& G, float dt) {
         G.trainingTimer = Game::TRAIN_TIME;
         G.threatMap.Decay(0.85f);
         G.TrainPerceptrons();
+        G.TrainEnemyLearner();
         G.GenerateAIHints();
     }
 

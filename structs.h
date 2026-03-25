@@ -8,6 +8,7 @@
 #include <string>
 #include <algorithm>
 #include <cmath>
+#include <random>
 
 // ══════════════════════════════════════════════════════════════════
 //  PerceptronLearner（Delta Rule 梯度更新）
@@ -54,6 +55,77 @@ struct PerceptronLearner {
         lastLoss  = error * error;
         lrDecay  *= 0.92f;
         Reset();
+    }
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  EnemyLearner（敵人強化學習器）
+//  每波結算後，根據各類型敵人的逃脫率調整生成權重
+//  逃脫率高 → 下波多生成該類型；逃脫率低 → 減少該類型
+// ══════════════════════════════════════════════════════════════════
+struct EnemyLearner {
+    // 對應 EType: 0=BASIC, 1=FAST, 2=ARMORED, 3=ELITE（BOSS 固定波次，不參與）
+    static constexpr int N = 4;
+    float weight[N]  = {1.f, 1.f, 1.f, 1.f};  // 生成權重
+    int   sent[N]    = {};                       // 本波生成數
+    int   escaped[N] = {};                       // 本波逃脫數
+
+    void ResetWave() {
+        for (int i = 0; i < N; i++) { sent[i] = escaped[i] = 0; }
+    }
+
+    void RecordSpawn(int typeIdx) {
+        if (typeIdx >= 0 && typeIdx < N) sent[typeIdx]++;
+    }
+
+    void RecordEscape(int typeIdx) {
+        if (typeIdx >= 0 && typeIdx < N) escaped[typeIdx]++;
+    }
+
+    // 波次結束後呼叫，更新權重
+    void Update() {
+        for (int i = 0; i < N; i++) {
+            if (sent[i] == 0) continue;
+            float escapeRate = (float)escaped[i] / sent[i];
+            // 逃脫率超過 30% 就增強，低於 30% 就減弱
+            float delta = (escapeRate - 0.3f) * 0.6f;
+            weight[i] = std::max(0.2f, std::min(6.f, weight[i] + delta));
+        }
+        ResetWave();
+    }
+
+    // 加權隨機選出敵人類型（wave >= 3 才開放 ARMORED/ELITE）
+    int Pick(std::mt19937& rng, int wave) {
+        float w[N];
+        for (int i = 0; i < N; i++) w[i] = weight[i];
+        if (wave < 3) { w[2] = 0.f; w[3] = 0.f; }      // 前 3 波不生 ARMORED/ELITE
+        else if (wave < 5) { w[3] *= 0.3f; }             // 5 波前 ELITE 很少
+
+        float total = 0.f;
+        for (int i = 0; i < N; i++) total += w[i];
+        if (total <= 0.f) return 0;
+
+        std::uniform_real_distribution<float> d(0.f, total);
+        float r = d(rng);
+        for (int i = 0; i < N; i++) {
+            r -= w[i];
+            if (r <= 0.f) return i;
+        }
+        return 0;
+    }
+
+    // 取得各類型名稱
+    static const char* TypeName(int i) {
+        static const char* names[] = {"基本型", "快速型", "裝甲型", "精英型"};
+        return (i >= 0 && i < N) ? names[i] : "?";
+    }
+
+    // 取得權重最高的類型索引
+    int StrongestType() const {
+        int best = 0;
+        for (int i = 1; i < N; i++)
+            if (weight[i] > weight[best]) best = i;
+        return best;
     }
 };
 

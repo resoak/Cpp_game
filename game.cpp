@@ -101,7 +101,7 @@ void Game::ApplyTowerStats(Tower& t) {
         float ranges[] = { 4.5f, 6.0f, 8.0f };
         t.range = ranges[t.level - 1];
     } else if (t.type == TType::CANNON) {
-        float dmgs[]   = { 36.f, 60.f, 100.f };
+        float dmgs[]   = { 22.f, 36.f,  60.f };
         float ranges[] = {  7.f,  9.f,  11.f };
         int   frs[]    = { 18,   12,     8   };
         t.damage        = dmgs[t.level - 1];

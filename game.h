@@ -27,6 +27,7 @@ struct Game {
 
     ThreatMap           threatMap;
     std::vector<AIHint> aiHints;
+    EnemyLearner        enemyLearner;
 
     // ── 波次突發事件 ───────────────────────────────────────────────
     enum class WaveEvent {
@@ -171,6 +172,7 @@ struct Game {
     void InitStars();
     void GenerateAIHints();
     void TrainPerceptrons();
+    void TrainEnemyLearner();
     void Reset();
 };
 
