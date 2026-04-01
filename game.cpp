@@ -101,7 +101,7 @@ void Game::ApplyTowerStats(Tower& t) {
         float ranges[] = { 4.5f, 6.0f, 8.0f };
         t.range = ranges[t.level - 1];
     } else if (t.type == TType::CANNON) {
-        float dmgs[]   = { 22.f, 36.f,  60.f };
+        float dmgs[]   = { 36.f, 60.f, 100.f };
         float ranges[] = {  7.f,  9.f,  11.f };
         int   frs[]    = { 18,   12,     8   };
         t.damage        = dmgs[t.level - 1];
@@ -169,86 +169,239 @@ void Game::InitStars() {
 }
 
 // ══════════════════════════════════════════════════════════════════
-//  GenerateAIHints
+//  GenerateAIHints  —  防禦建議 AI（讀 EnemyIntel + ThreatMap）
 // ══════════════════════════════════════════════════════════════════
 void Game::GenerateAIHints() {
     aiHints.clear();
 
-    for (auto& pc : PATH_CELLS) {
-        float minDist = 999.f;
+    // ── 計算各路段覆蓋率（供 defNN 輸入）────────────────────────
+    float cov[3] = { 0.f, 0.f, 0.f };
+    int   n      = (int)PATH_CELLS.size();
+    for (int seg = 0; seg < 3; seg++) {
+        int from = n * seg / 3, to = n * (seg + 1) / 3;
+        if (from >= to) continue;
+        int covered = 0;
+        for (int pi = from; pi < to; pi++) {
+            for (auto& t : towers) {
+                if (Dist({(float)t.gx,(float)t.gy},
+                         {(float)PATH_CELLS[pi].gx,(float)PATH_CELLS[pi].gy}) <= t.range) {
+                    covered++; break;
+                }
+            }
+        }
+        cov[seg] = (float)covered / (to - from);
+    }
+
+    // ── 讓 DefenseAdvisorNN 推薦塔種 ────────────────────────────
+    float in[6] = {
+        intel.typeSurvRate[2],   // 裝甲兵存活率
+        intel.typeSurvRate[1],   // 快速兵存活率
+        intel.typeSurvRate[3],   // 精英兵存活率
+        cov[0], cov[1], cov[2]
+    };
+    static const TType NN_TO_TTYPE[] = {
+        TType::SENSOR, TType::AND, TType::XOR, TType::CANNON
+    };
+    static const char* NN_REASON[] = {
+        "NN建議：覆蓋率不足，補感測器",
+        "NN建議：裝甲兵突破率高，補AND閘",
+        "NN建議：快速兵突破率高，補XOR閘",
+        "NN建議：後段火力不足，補砲塔"
+    };
+    int   nnClass   = defNN.Recommend(in);
+    TType nnSuggest = NN_TO_TTYPE[nnClass];
+
+    // ── 輔助：找最薄弱路段中心的可放格 ─────────────────────────
+    auto findSlot = [&](int px, int py, int& outX, int& outY) -> bool {
+        for (int r = 1; r <= 3; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dy = -r; dy <= r; dy++) {
+                    if (abs(dx) != r && abs(dy) != r) continue;
+                    int hx = px+dx, hy = py+dy;
+                    if (hx<0||hx>=COLS||hy<0||hy>=ROWS) continue;
+                    if (IS_PATH[hx][hy]||IS_PATH2[hx][hy]) continue;
+                    if (TowerAt(hx, hy)) continue;
+                    outX = hx; outY = hy; return true;
+                }
+            }
+        }
+        return false;
+    };
+
+    // ── 提示 1：NN 推薦放置（覆蓋最弱的路段）───────────────────
+    {
+        int worstSeg = 0;
+        for (int i = 1; i < 3; i++) if (cov[i] < cov[worstSeg]) worstSeg = i;
+        int midIdx = n * (worstSeg * 2 + 1) / 6;
+        midIdx = std::max(0, std::min(midIdx, n - 1));
+        int sx = -1, sy = -1;
+        if (findSlot(PATH_CELLS[midIdx].gx, PATH_CELLS[midIdx].gy, sx, sy)) {
+            char buf[80];
+            snprintf(buf, 80, "%s（信心%.0f%%）",
+                NN_REASON[nnClass], defNN.lastProb[nnClass] * 100.f);
+            AIHint h;
+            h.gx = sx; h.gy = sy; h.suggest = nnSuggest;
+            h.score = defNN.lastProb[nnClass]; h.reason = buf;
+            aiHints.push_back(h);
+        }
+    }
+
+    // ── 提示 2：威脅熱點補強 ────────────────────────────────────
+    if ((int)aiHints.size() < 3) {
+        float maxT = threatMap.GetMax();
+        if (maxT > 0.5f) {
+            int bx = -1, by = -1; float best = 0.f;
+            for (int x = 0; x < COLS; x++) {
+                for (int y = 0; y < ROWS; y++) {
+                    if (!IS_PATH[x][y] && !IS_PATH2[x][y]) continue;
+                    float th = threatMap.Get(x,y) / maxT;
+                    if (th < 0.4f) continue;
+                    float nearCov = 0.f;
+                    for (auto& t : towers)
+                        if (Dist({(float)t.gx,(float)t.gy},{(float)x,(float)y}) <= 5.f)
+                            nearCov += 1.f;
+                    float score = th - nearCov * 0.15f;
+                    if (score > best) { best = score; bx = x; by = y; }
+                }
+            }
+            if (bx >= 0) {
+                int sx = -1, sy = -1;
+                if (findSlot(bx, by, sx, sy)) {
+                    AIHint h;
+                    h.gx = sx; h.gy = sy;
+                    h.suggest = TType::CANNON;
+                    h.score   = best;
+                    h.reason  = "熱點防線薄弱，建議砲塔";
+                    aiHints.push_back(h);
+                }
+            }
+        }
+    }
+
+    // ── 提示 3：網路結構缺口 ────────────────────────────────────
+    if ((int)aiHints.size() < 3) {
+        int nSensor=0, nCannon=0, nPct=0;
         for (auto& t : towers) {
-            float d = Dist({(float)t.gx, (float)t.gy}, {(float)pc.gx, (float)pc.gy});
-            if (d < minDist) minDist = d;
+            if (t.type==TType::SENSOR)     nSensor++;
+            if (t.type==TType::CANNON)     nCannon++;
+            if (t.type==TType::PERCEPTRON) nPct++;
         }
-        if (minDist < 4.5f) continue;
+        const char* reason = nullptr;
+        TType suggest = TType::SENSOR;
+        int tgx = -1, tgy = -1;
 
-        int pathIdx = 0;
-        for (int pi = 0; pi < (int)PATH_CELLS.size(); pi++) {
-            if (PATH_CELLS[pi].gx == pc.gx && PATH_CELLS[pi].gy == pc.gy) {
-                pathIdx = pi;
-                break;
+        if (nCannon > 0 && nSensor == 0) {
+            reason = "砲塔沒有感測器！訊號無法傳遞";
+            suggest = TType::SENSOR;
+            int mid = n / 4;
+            tgx = PATH_CELLS[mid].gx; tgy = PATH_CELLS[mid].gy;
+        } else if (nCannon >= 1 && nPct == 0 && wave >= 2) {
+            reason = "加入感知器讓AI自動學習射擊時機";
+            suggest = TType::PERCEPTRON;
+            for (auto& t : towers)
+                if (t.type==TType::CANNON) { tgx=t.gx; tgy=t.gy; break; }
+        } else if (dualPath && intel.pathSurvRate[1] > 0.5f) {
+            reason = "副路突破率高！副路需要砲塔";
+            suggest = TType::CANNON;
+            if (!PATH_CELLS2.empty()) {
+                int mid2 = (int)PATH_CELLS2.size() / 2;
+                tgx = PATH_CELLS2[mid2].gx; tgy = PATH_CELLS2[mid2].gy;
             }
         }
-        float progress = (float)pathIdx / PATH_CELLS.size();
-        float score    = (minDist - 4.5f) / 8.f;
 
-        TType       bestSuggest;
-        std::string reason;
-        if (progress < 0.3f) {
-            bestSuggest = TType::SENSOR;
-            reason      = "前段覆蓋不足，建議感測器";
-        } else if (progress < 0.6f) {
-            bestSuggest = TType::OR;
-            reason      = "中段需要訊號中繼，建議OR閘";
-        } else {
-            bestSuggest = TType::CANNON;
-            reason      = "CPU防線薄弱，建議砲塔";
-        }
-
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                int hx = pc.gx + dx, hy = pc.gy + dy;
-                if (hx < 0 || hx >= COLS || hy < 0 || hy >= ROWS) continue;
-                if (IS_PATH[hx][hy]) continue;
-                if (TowerAt(hx, hy))  continue;
-
-                AIHint hint;
-                hint.gx      = hx;
-                hint.gy      = hy;
-                hint.suggest = bestSuggest;
-                hint.score   = std::min(1.f, score);
-                hint.reason  = reason;
-                hint.flashT  = 0.f;
-                aiHints.push_back(hint);
-                goto next_cell;
+        if (reason && tgx >= 0) {
+            int sx = -1, sy = -1;
+            if (findSlot(tgx, tgy, sx, sy)) {
+                AIHint h;
+                h.gx = sx; h.gy = sy; h.suggest = suggest;
+                h.score = 0.6f; h.reason = reason;
+                aiHints.push_back(h);
             }
         }
-        next_cell:;
-        if ((int)aiHints.size() >= 3) break;
     }
 }
 
-// ══════════════════════════════════════════════════════════════════
-//  TrainPerceptrons
-// ══════════════════════════════════════════════════════════════════
 void Game::TrainPerceptrons() {
-    if (waveKills + waveEscaped == 0) return;
-
-    float killRate = (float)waveKills / (waveKills + waveEscaped);
+    // ── 訓練目標：下游砲塔射程內有敵人的幀佔比 ──────────────────
+    //    這讓感知器學會「當敵人逼近砲塔時輸出高訊號」
+    //    而不是無意義的波次擊殺率
     for (auto& t : towers) {
         if (t.type != TType::PERCEPTRON) continue;
 
+        float target = (t.pctTargetSamples > 0)
+                       ? t.pctTargetAcc / t.pctTargetSamples
+                       : 0.5f;
+
         t.FlushSample();
-        t.learner.Update(killRate, t.w1, t.w2, t.bias);
+        t.learner.Update(target, t.w1, t.w2, t.bias);
 
         t.lossHistory.push_back(t.learner.lastLoss);
         if ((int)t.lossHistory.size() > 14)
             t.lossHistory.erase(t.lossHistory.begin());
 
+        // 重置累積器
+        t.pctTargetAcc     = 0.f;
+        t.pctTargetSamples = 0;
+
         char buf[80];
-        snprintf(buf, 80, "PCT[%d] loss=%.3f", t.id, t.learner.lastLoss);
+        snprintf(buf, 80, "PCT[%d] target=%.2f loss=%.3f", t.id, target, t.learner.lastLoss);
         AddFloat(CC(t.gx, t.gy), buf, COL_AI);
     }
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  TrainDefenseNN  —  訓練防禦建議神經網路
+//
+//  以當前敵情（兵種存活率）和路線覆蓋率為輸入，
+//  以「最危險的兵種對應的剋制塔」為訓練目標，
+//  執行一步反向傳播更新 DefenseAdvisorNN 的權重。
+// ══════════════════════════════════════════════════════════════════
+void Game::TrainDefenseNN() {
+    // ── 計算各路段覆蓋率 ─────────────────────────────────────────
+    float cov[3] = { 0.f, 0.f, 0.f };
+    int   n      = (int)PATH_CELLS.size();
+    for (int seg = 0; seg < 3; seg++) {
+        int from = n * seg / 3, to = n * (seg + 1) / 3;
+        if (from >= to) continue;
+        int covered = 0;
+        for (int pi = from; pi < to; pi++) {
+            for (auto& t : towers) {
+                if (Dist({(float)t.gx,(float)t.gy},
+                         {(float)PATH_CELLS[pi].gx,(float)PATH_CELLS[pi].gy}) <= t.range) {
+                    covered++; break;
+                }
+            }
+        }
+        cov[seg] = (float)covered / (to - from);
+    }
+
+    float in[6] = {
+        intel.typeSurvRate[2],   // 裝甲兵存活率
+        intel.typeSurvRate[1],   // 快速兵存活率
+        intel.typeSurvRate[3],   // 精英兵存活率
+        cov[0], cov[1], cov[2]
+    };
+
+    // ── 決定訓練目標（最危險的兵種→對應剋制塔）─────────────────
+    //    0=SENSOR  1=AND  2=XOR  3=CANNON
+    static const int COUNTER[] = { 3, 2, 1, 3 };
+    //  basic → CANNON(3), fast → XOR(2), armor → AND(1), elite → CANNON(3)
+
+    int   targetClass = 3;
+    float maxSurv     = -1.f;
+    for (int i = 0; i < 4; i++) {
+        if (intel.typeSurvRate[i] > maxSurv) {
+            maxSurv = intel.typeSurvRate[i];
+            targetClass = COUNTER[i];
+        }
+    }
+
+    // 覆蓋率低於 30% 時優先推薦感測器（偵測先於射擊）
+    for (int seg = 0; seg < 3; seg++) {
+        if (cov[seg] < 0.30f) { targetClass = 0; break; }
+    }
+
+    defNN.Learn(in, targetClass);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -293,6 +446,8 @@ void Game::Reset() {
     eventName        = "";
     eventBannerTimer = 0.f;
     aiHints.clear();
+    intel = EnemyIntel{};
+    defNN = DefenseAdvisorNN{};
 
     dualPath        = false;
     blackoutActive  = false;

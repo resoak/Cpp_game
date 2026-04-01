@@ -211,6 +211,21 @@ void PropagateSignals(Game& G, float dt) {
                 newSig = Sigmoid((s1 * t.w1 + s2 * t.w2 + t.bias) * 3.f) * boost;
                 newSig = std::min(1.f, newSig);
                 t.SampleSignal(s1, s2, newSig);
+
+                // ── 採樣訓練目標：下游砲塔射程內有敵人 → 目標=1 ─
+                float targetVal = 0.f;
+                for (int cid : t.conns) {
+                    Tower* dn = G.FindTower(cid);
+                    if (!dn || dn->type != TType::CANNON) continue;
+                    for (auto& e : G.enemies) {
+                        if (Dist({(float)dn->gx,(float)dn->gy}, G.EnemyGrid(e)) <= dn->range) {
+                            targetVal = 1.f; break;
+                        }
+                    }
+                    if (targetVal > 0.f) break;
+                }
+                t.pctTargetAcc     += targetVal;
+                t.pctTargetSamples += 1;
                 break;
             }
             case TType::AND: {
@@ -354,8 +369,20 @@ void SpawnEnemy(Game& G) {
         case WaveEvent::SIEGE:
             et = (G.spawned == 0) ? EType::ARMORED : EType::BASIC; break;
         default: {
-            int picked = G.enemyLearner.Pick(G.rng, G.wave);
-            et = (EType)picked;
+            // ── 敵情學習：依存活率加權選兵種 ───────────────────
+            if (G.intel.adapted) {
+                std::uniform_real_distribution<float> rd(0.f, 1.f);
+                et = G.intel.WeightedType(rd(G.rng), G.wave);
+            } else {
+                int r = typeR(G.rng);
+                if (G.wave < 3) r %= 2;
+                switch (r) {
+                    case 0: case 1: et = EType::BASIC;   break;
+                    case 2:         et = EType::FAST;    break;
+                    case 3:         et = EType::ARMORED; break;
+                    default:        et = EType::ELITE;   break;
+                }
+            }
         }
     }
 
@@ -425,16 +452,45 @@ void SpawnEnemy(Game& G) {
     }
 
     G.enemies.push_back(e);
-    G.enemyLearner.RecordSpawn((int)et);  // 記錄本波生成類型
-    if (G.dualPath && !PATH_CELLS2.empty())
-        G.enemies.back().pathIdx = (G.spawned % 2 == 1) ? 1 : 0;
+    if (G.dualPath && !PATH_CELLS2.empty()) {
+        // ── 敵方神經網路評估兩條路線的威脅 ─────────────────────
+        auto pathThreat = [&](const std::vector<PathCell>& cells) -> float {
+            float sum = 0.f;
+            int   n   = std::min((int)cells.size(), 10);
+            for (int k = 0; k < n; k++)
+                sum += G.threatMap.Get(cells[k].gx, cells[k].gy);
+            float maxT = G.threatMap.GetMax();
+            return (maxT > 0.f) ? (sum / n) / maxT : 0.f;
+        };
+
+        float t0 = pathThreat(PATH_CELLS);
+        float t1 = pathThreat(PATH_CELLS2);
+
+        // 存入用於波末訓練
+        G.intel.pathAvgThreat[0] = t0;
+        G.intel.pathAvgThreat[1] = t1;
+
+        // 腦選路或隨機（學習前）
+        if (G.intel.adapted) {
+            G.enemies.back().pathIdx = G.intel.BrainPickPath(t0, t1);
+        } else {
+            std::uniform_real_distribution<float> rd(0.f, 1.f);
+            G.enemies.back().pathIdx = G.intel.PickPath(rd(G.rng), true);
+        }
+    }
+
+    // ── 追蹤本波生成統計 ─────────────────────────────────────────
+    int ti = (int)G.enemies.back().type;
+    if (ti >= 0 && ti < 5) G.intel.typeSpawned[ti]++;
+    int pi = G.enemies.back().pathIdx;
+    if (pi >= 0 && pi < 2) G.intel.pathSpawned[pi]++;
 }
 
 // ══════════════════════════════════════════════════════════════════
 //  StartWave
 // ══════════════════════════════════════════════════════════════════
 void StartWave(Game& G) {
-    if (G.phase == Game::FIGHT || G.phase == Game::TRAINING) return;
+    if (G.phase == Game::FIGHT) return;
 
     G.wave++;
 
@@ -546,13 +602,6 @@ void Update(Game& G, float dt) {
     if (G.buffArmorBreak > 0) G.buffArmorBreak -= dt;
     if (G.buffGlobalMark > 0) G.buffGlobalMark -= dt;
     for (auto& t : G.towers) if (t.activeCd > 0) t.activeCd = std::max(0.f, t.activeCd - dt);
-
-    // ── 訓練階段 ─────────────────────────────────────────────────
-    if (G.phase == Game::TRAINING) {
-        G.trainingTimer -= dt;
-        if (G.trainingTimer <= 0) { G.phase = Game::BUILD; G.SetMsg("訓練完成！準備下一波。"); }
-        return;
-    }
 
     // ── 生成敵人 ─────────────────────────────────────────────────
     if (G.phase == Game::FIGHT && G.spawned < G.waveCount) {
@@ -804,7 +853,13 @@ void Update(Game& G, float dt) {
             G.AddFloat(G.CC(CPU_GX, CPU_GY), "-" + std::to_string(liveDmg) + " 命", RED);
             G.Shake(12.f, 0.4f);
             G.waveEscaped++;
-            G.enemyLearner.RecordEscape((int)e.type);  // 記錄逃脫類型
+
+            // ── 敵情學習：記錄突破（存活）的兵種和路徑 ──────────
+            int ti = (int)e.type;
+            if (ti >= 0 && ti < 5) G.intel.typeSurvived[ti]++;
+            int pi = e.pathIdx;
+            if (pi >= 0 && pi < 2) G.intel.pathSurvived[pi]++;
+
             e.hp = 0.f;
         }
     }
@@ -844,12 +899,19 @@ void Update(Game& G, float dt) {
             G.SetMsg(buf);
         }
         G.credits      += bonus;
-        G.phase         = Game::TRAINING;
-        G.trainingTimer = Game::TRAIN_TIME;
         G.threatMap.Decay(0.85f);
+        G.intel.LearnFromWave();
+        G.TrainDefenseNN();
         G.TrainPerceptrons();
-        G.TrainEnemyLearner();
         G.GenerateAIHints();
+        G.phase = Game::BUILD;
+
+        char buf[96];
+        if (G.waveEscaped == 0)
+            snprintf(buf, 96, "完美防守！+%d CR！準備下一波。", bonus);
+        else
+            snprintf(buf, 96, "第%d波結束！+%d CR。%d個病毒突破。", G.wave, bonus, G.waveEscaped);
+        G.SetMsg(buf);
     }
 
     // ── 遊戲結束 ─────────────────────────────────────────────────
