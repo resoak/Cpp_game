@@ -55,16 +55,11 @@ void DrawLeftPanel(Game& G) {
 
     // ── 發動波次按鈕 ─────────────────────────────────────────────
     G.waveBtnY = G.btnY0 + 7 * (BTN_H_SM + BTN_GAP_SM) + 12;
-    if (G.phase == Game::BUILD || G.phase == Game::TRAINING) {
+    if (G.phase == Game::BUILD) {
         float p2   = 0.7f + 0.3f * sinf(t * 3.f);
-        Color wbc  = (G.phase == Game::BUILD) ? COL_PERC : AlphaOf(COL_PERC, 120);
+        Color wbc  = COL_PERC;
         DrawRoundBox(10, (float)G.waveBtnY, PANEL_L - 20, 54, 10, AlphaOf(wbc, 25), wbc, 2.5f);
-        const char* wbTxt = (G.phase == Game::BUILD) ? "▶ 發動下一波" : "訓練中...";
-        DTC(wbTxt, PANEL_L / 2, G.waveBtnY + 27, FS_MED, AlphaOf(wbc, (int)(220 * p2)));
-        if (G.phase == Game::TRAINING) {
-            char tb[32]; snprintf(tb, 32, "%.1f 秒", G.trainingTimer);
-            DTC(tb, PANEL_L / 2, G.waveBtnY + 46, FS_TINY, AlphaOf(COL_AND, 180));
-        }
+        DTC("▶ 發動下一波", PANEL_L / 2, G.waveBtnY + 27, FS_MED, AlphaOf(wbc, (int)(220 * p2)));
     }
 
     // ── 金幣 + 訊息 ──────────────────────────────────────────────
@@ -103,7 +98,119 @@ void DrawRightPanel(Game& G) {
     DTC("元件資訊", cx, 38, FS_MED, AlphaOf(COL_CPU, 220));
 
     Tower* sel = G.FindTower(G.selectedId);
-    if (!sel) { DTC("點擊元件查看", cx, VIRT_H/2, FS_SMALL, AlphaOf(WHITE, 80)); return; }
+    if (!sel) {
+        // ── 無選取時：顯示敵情分析 ───────────────────────────────
+        EnemyIntel& I = G.intel;
+        int iy = 70;
+
+        DTC("敵情分析", cx, iy, FS_MED, AlphaOf({255, 100, 100, 255}, 220)); iy += 38;
+
+        if (!I.adapted) {
+            DTC("收集中...", cx, iy, FS_SMALL, AlphaOf(WHITE, 80)); iy += 24;
+            char wl[32]; snprintf(wl, 32, "已學習 %d / 2 波", I.wavesLearned);
+            DTC(wl, cx, iy, FS_TINY, AlphaOf(WHITE, 100));
+            return;
+        }
+
+        // ── 兵種存活率長條圖 ─────────────────────────────────────
+        static const char* TYPE_NAMES[] = { "基礎", "快速", "裝甲", "精英", "BOSS" };
+        static const Color TYPE_COLS[]  = {
+            COL_VIRUS, COL_FAST, COL_ARMORED, COL_ELITE, COL_BOSS
+        };
+
+        DrawRoundBox((float)rx+8, (float)iy, (float)PANEL_R-16, 120, 6,
+                     AlphaOf({255,80,80,255}, 8), AlphaOf({255,80,80,255}, 60), 1.5f);
+        DTC("兵種適應度", cx, iy+14, FS_TINY, AlphaOf({255,120,120,255}, 200)); iy += 28;
+
+        for (int i = 0; i < 4; i++) {
+            float surv = I.typeSurvRate[i];
+            int   barW = (int)((PANEL_R - 60) * surv);
+            Color bc   = TYPE_COLS[i];
+
+            DTX(TYPE_NAMES[i], (float)rx+12, (float)iy, FS_TINY, AlphaOf(WHITE, 160));
+            DrawRectangle(rx+44, iy, PANEL_R-56, 12, AlphaOf(BLACK, 120));
+            if (barW > 0) DrawRectangle(rx+44, iy, barW, 12, AlphaOf(bc, 180));
+
+            char pct[12]; snprintf(pct, 12, "%2.0f%%", surv * 100.f);
+            DTX(pct, (float)(rx + PANEL_R - 28), (float)iy, FS_TINY, AlphaOf(bc, 220));
+            iy += 18;
+        }
+        iy += 6;
+
+        // ── 路徑存活率（雙路徑才顯示）───────────────────────────
+        if (G.dualPath) {
+            DrawRoundBox((float)rx+8, (float)iy, (float)PANEL_R-16, 54, 6,
+                         AlphaOf({255,180,60,255}, 8), AlphaOf({255,180,60,255}, 50), 1.5f);
+            DTC("路線威脅", cx, iy+14, FS_TINY, AlphaOf({255,200,80,255}, 200)); iy += 28;
+
+            for (int i = 0; i < 2; i++) {
+                float surv = I.pathSurvRate[i];
+                int   barW = (int)((PANEL_R - 56) * surv);
+                bool  pref = (I.PreferredPath() == i);
+                Color pc   = pref ? Color{255, 160, 40, 255} : AlphaOf({255,160,40,255}, 120);
+
+                char label[16]; snprintf(label, 16, "%s路%s", (i==0)?"主":"副", pref?"▶":"");
+                DTX(label, (float)rx+12, (float)iy, FS_TINY, pc);
+                DrawRectangle(rx+52, iy, PANEL_R-64, 12, AlphaOf(BLACK, 120));
+                if (barW > 0) DrawRectangle(rx+52, iy, barW, 12, AlphaOf(pc, 200));
+                iy += 18;
+            }
+            iy += 6;
+        }
+
+        // ── 學習狀態摘要 ─────────────────────────────────────────
+        char wlb[32]; snprintf(wlb, 32, "已學習 %d 波", I.wavesLearned);
+        DTC(wlb, cx, iy, FS_TINY, AlphaOf(WHITE, 120)); iy += 22;
+
+        char topb[48];
+        snprintf(topb, 48, "主攻兵種：%s", I.TopTypeName());
+        DTC(topb, cx, iy, FS_TINY, AlphaOf({255, 100, 100, 255}, 200)); iy += 22;
+
+        if (G.dualPath) {
+            char pathb[32];
+            snprintf(pathb, 32, "主攻路線：%s路", I.PreferredPath() == 0 ? "主" : "副");
+            DTC(pathb, cx, iy, FS_TINY, AlphaOf({255, 180, 60, 255}, 200)); iy += 22;
+        }
+
+        // ── 防禦建議神經網路輸出機率 ─────────────────────────────
+        if (G.defNN.trainCount > 0) {
+            DrawRoundBox((float)rx+8, (float)iy, (float)PANEL_R-16, 88, 6,
+                         AlphaOf({60,180,255,255}, 8), AlphaOf({60,180,255,255}, 50), 1.f);
+            DTC("防禦建議NN", cx, iy+13, FS_TINY, AlphaOf({100,200,255,255}, 220)); iy += 26;
+
+            static const char* NN_LABELS[] = { "感測器", "AND閘", "XOR閘", "砲塔" };
+            static const Color NN_COLS[]   = { COL_SENSOR, COL_AND, COL_XOR, COL_CANNON };
+            for (int k = 0; k < 4; k++) {
+                float p   = G.defNN.lastProb[k];
+                int   bw  = (int)((PANEL_R - 56) * p);
+                Color bc  = NN_COLS[k];
+                DTX(NN_LABELS[k], (float)rx+12, (float)iy, FS_TINY, AlphaOf(WHITE,160));
+                DrawRectangle(rx+52, iy, PANEL_R-64, 11, AlphaOf(BLACK,120));
+                if (bw > 0) DrawRectangle(rx+52, iy, bw, 11, AlphaOf(bc, 200));
+                char pb[8]; snprintf(pb, 8, "%2.0f%%", p*100.f);
+                DTX(pb, (float)(rx+PANEL_R-26), (float)iy, FS_TINY, AlphaOf(bc,220));
+                iy += 15;
+            }
+            char tlb[32]; snprintf(tlb, 32, "loss=%.3f 訓練%d次", G.defNN.lastLoss, G.defNN.trainCount);
+            DTX(tlb, (float)rx+12, (float)iy, FS_TINY, AlphaOf(WHITE, 110)); iy += 14;
+        }
+
+        // ── 敵方神經網路權重 ─────────────────────────────────────
+        if (I.brain.trainCount > 0) {
+            DrawRoundBox((float)rx+8, (float)iy, (float)PANEL_R-16, 72, 6,
+                         AlphaOf({200,60,60,255}, 8), AlphaOf({200,60,60,255}, 50), 1.f);
+            DTC("敵方神經網路", cx, iy+13, FS_TINY, AlphaOf({255,80,80,255}, 200)); iy += 26;
+
+            char w0[40], w1[40], lossb[40];
+            snprintf(w0,   40, "路線w: [%.2f, %.2f]", I.brain.wHO[0], I.brain.wHO[1]);
+            snprintf(w1,   40, "隱藏b: [%.2f, %.2f]", I.brain.bH[0],  I.brain.bH[1]);
+            snprintf(lossb,40, "loss=%.3f  訓練%d次", I.brain.lastLoss, I.brain.trainCount);
+            DTX(w0,    (float)rx+12, (float)iy, FS_TINY, AlphaOf({255,120,120,255}, 180)); iy += 16;
+            DTX(w1,    (float)rx+12, (float)iy, FS_TINY, AlphaOf({255,120,120,255}, 160)); iy += 16;
+            DTX(lossb, (float)rx+12, (float)iy, FS_TINY, AlphaOf(WHITE, 130));
+        }
+        return;
+    }
 
     TowerDef& def = TDef(sel->type);
     int y = 70;
@@ -258,12 +365,10 @@ void DrawTopBar(Game& G) {
     }
 
     const char* phaseStr=
-        (G.phase==Game::FIGHT)    ?"戰鬥中":
-        (G.phase==Game::TRAINING) ?"訓練中":
-        (G.phase==Game::BUILD)    ?"建置":"";
+        (G.phase==Game::FIGHT) ? "戰鬥中" :
+        (G.phase==Game::BUILD) ? "建置" : "";
     Color phaseCol=
-        (G.phase==Game::FIGHT)?COL_VIRUS:
-        (G.phase==Game::TRAINING)?COL_AI:COL_PERC;
+        (G.phase==Game::FIGHT) ? COL_VIRUS : COL_PERC;
     DTC(phaseStr,VIRT_W-PANEL_R-60,TOPBAR_H/2,FS_MED,phaseCol);
 
     if (G.eventBannerTimer>0 && G.currentEvent!=WaveEvent::NONE) {
