@@ -10,18 +10,20 @@
 //  DrawLeftPanel
 // ══════════════════════════════════════════════════════════════════
 void DrawLeftPanel(Game& G) {
-    DrawRectangle(0, 0, PANEL_L, VIRT_H, PANEL_BG);
-    DrawRectangleLines(0, 0, PANEL_L, VIRT_H, PANEL_BD);
+    const int py0 = TOPBAR_H;
+    const int ph  = VIRT_H - TOPBAR_H - BOTBAR_H;
+    DrawRectangle(0, py0, PANEL_L, ph, PANEL_BG);
+    DrawRectangleLines(0, py0, PANEL_L, ph, PANEL_BD);
 
     float t = (float)GetTime();
-    DTC("元件選擇", PANEL_L / 2, 38, FS_MED, AlphaOf(COL_CPU, 220));
+    DTC("元件選擇", PANEL_L / 2, py0 + 38, FS_MED, AlphaOf(COL_CPU, 220));
 
     static TType ORDER[] = {
         TType::SENSOR, TType::PERCEPTRON, TType::AND, TType::OR,
         TType::XOR,    TType::NAND,       TType::CANNON
     };
 
-    G.btnY0 = 68;
+    G.btnY0 = py0 + 68;
     constexpr int BTN_H_SM  = 56;
     constexpr int BTN_GAP_SM = 3;
 
@@ -93,15 +95,17 @@ void DrawRightPanel(Game& G) {
     int rx = VIRT_W - PANEL_R;
     int cx = rx + PANEL_R / 2;
 
-    DrawRectangle(rx, 0, PANEL_R, VIRT_H, PANEL_BG);
-    DrawRectangleLines(rx, 0, PANEL_R, VIRT_H, PANEL_BD);
-    DTC("元件資訊", cx, 38, FS_MED, AlphaOf(COL_CPU, 220));
+    const int py0 = TOPBAR_H;
+    const int ph  = VIRT_H - TOPBAR_H - BOTBAR_H;
+    DrawRectangle(rx, py0, PANEL_R, ph, PANEL_BG);
+    DrawRectangleLines(rx, py0, PANEL_R, ph, PANEL_BD);
+    DTC("元件資訊", cx, py0 + 38, FS_MED, AlphaOf(COL_CPU, 220));
 
     Tower* sel = G.FindTower(G.selectedId);
     if (!sel) {
         // ── 無選取時：顯示敵情分析 ───────────────────────────────
         EnemyIntel& I = G.intel;
-        int iy = 70;
+        int iy = py0 + 70;
 
         DTC("敵情分析", cx, iy, FS_MED, AlphaOf({255, 100, 100, 255}, 220)); iy += 38;
 
@@ -213,7 +217,7 @@ void DrawRightPanel(Game& G) {
     }
 
     TowerDef& def = TDef(sel->type);
-    int y = 70;
+        int y = py0 + 70;
 
     DTC(def.label, cx, y, FS_LARGE, def.col); y += 44;
     for (int lv=0;lv<sel->level;lv++) DrawPoly({(float)(rx+30+lv*22),(float)y},5,9.f,0.f,COL_STAR);
