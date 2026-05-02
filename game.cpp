@@ -49,6 +49,59 @@ const char* Game::EventName(WaveEvent e) {
     }
 }
 
+static float SegmentCoverage(const Game& G, const std::vector<PathCell>& cells, int seg) {
+    int n = (int)cells.size();
+    if (n <= 0) return 0.f;
+
+    int from = n * seg / 3;
+    int to   = n * (seg + 1) / 3;
+    if (from >= to) return 0.f;
+
+    int covered = 0;
+    for (int pi = from; pi < to; pi++) {
+        for (auto& t : G.towers) {
+            if (Dist({(float)t.gx, (float)t.gy},
+                     {(float)cells[pi].gx, (float)cells[pi].gy}) <= t.range) {
+                covered++;
+                break;
+            }
+        }
+    }
+    return (float)covered / (to - from);
+}
+
+static void ComputeCoverageSegments(const Game& G, float cov[3]) {
+    for (int seg = 0; seg < 3; seg++) cov[seg] = 0.f;
+
+    int laneCount = G.ActiveLaneCount();
+    for (int lane = 0; lane < laneCount; lane++) {
+        const auto& cells = G.LaneCells(lane);
+        for (int seg = 0; seg < 3; seg++) {
+            cov[seg] += SegmentCoverage(G, cells, seg);
+        }
+    }
+
+    for (int seg = 0; seg < 3; seg++) cov[seg] /= (float)laneCount;
+}
+
+static bool FindNearbyBuildSlot(Game& G, int px, int py, int& outX, int& outY) {
+    for (int r = 1; r <= 3; r++) {
+        for (int dx = -r; dx <= r; dx++) {
+            for (int dy = -r; dy <= r; dy++) {
+                if (abs(dx) != r && abs(dy) != r) continue;
+                int hx = px + dx, hy = py + dy;
+                if (hx < 0 || hx >= COLS || hy < 0 || hy >= ROWS) continue;
+                if (G.IsPath(hx, hy)) continue;
+                if (G.TowerAt(hx, hy)) continue;
+                outX = hx;
+                outY = hy;
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  ScreenToGrid
 // ══════════════════════════════════════════════════════════════════
@@ -176,21 +229,7 @@ void Game::GenerateAIHints() {
 
     // ── 計算各路段覆蓋率（供 defNN 輸入）────────────────────────
     float cov[3] = { 0.f, 0.f, 0.f };
-    int   n      = (int)PATH_CELLS.size();
-    for (int seg = 0; seg < 3; seg++) {
-        int from = n * seg / 3, to = n * (seg + 1) / 3;
-        if (from >= to) continue;
-        int covered = 0;
-        for (int pi = from; pi < to; pi++) {
-            for (auto& t : towers) {
-                if (Dist({(float)t.gx,(float)t.gy},
-                         {(float)PATH_CELLS[pi].gx,(float)PATH_CELLS[pi].gy}) <= t.range) {
-                    covered++; break;
-                }
-            }
-        }
-        cov[seg] = (float)covered / (to - from);
-    }
+    ComputeCoverageSegments(*this, cov);
 
     // ── 讓 DefenseAdvisorNN 推薦塔種 ────────────────────────────
     float in[6] = {
@@ -212,30 +251,16 @@ void Game::GenerateAIHints() {
     TType nnSuggest = NN_TO_TTYPE[nnClass];
 
     // ── 輔助：找最薄弱路段中心的可放格 ─────────────────────────
-    auto findSlot = [&](int px, int py, int& outX, int& outY) -> bool {
-        for (int r = 1; r <= 3; r++) {
-            for (int dx = -r; dx <= r; dx++) {
-                for (int dy = -r; dy <= r; dy++) {
-                    if (abs(dx) != r && abs(dy) != r) continue;
-                    int hx = px+dx, hy = py+dy;
-                    if (hx<0||hx>=COLS||hy<0||hy>=ROWS) continue;
-                    if (IS_PATH[hx][hy]||IS_PATH2[hx][hy]) continue;
-                    if (TowerAt(hx, hy)) continue;
-                    outX = hx; outY = hy; return true;
-                }
-            }
-        }
-        return false;
-    };
-
     // ── 提示 1：NN 推薦放置（覆蓋最弱的路段）───────────────────
     {
         int worstSeg = 0;
         for (int i = 1; i < 3; i++) if (cov[i] < cov[worstSeg]) worstSeg = i;
+        const auto& primaryLane = LaneCells(0);
+        int n = (int)primaryLane.size();
         int midIdx = n * (worstSeg * 2 + 1) / 6;
         midIdx = std::max(0, std::min(midIdx, n - 1));
         int sx = -1, sy = -1;
-        if (findSlot(PATH_CELLS[midIdx].gx, PATH_CELLS[midIdx].gy, sx, sy)) {
+        if (!primaryLane.empty() && FindNearbyBuildSlot(*this, primaryLane[midIdx].gx, primaryLane[midIdx].gy, sx, sy)) {
             char buf[80];
             snprintf(buf, 80, "%s（信心%.0f%%）",
                 NN_REASON[nnClass], defNN.lastProb[nnClass] * 100.f);
@@ -253,7 +278,7 @@ void Game::GenerateAIHints() {
             int bx = -1, by = -1; float best = 0.f;
             for (int x = 0; x < COLS; x++) {
                 for (int y = 0; y < ROWS; y++) {
-                    if (!IS_PATH[x][y] && !IS_PATH2[x][y]) continue;
+                    if (!IsPath(x, y)) continue;
                     float th = threatMap.Get(x,y) / maxT;
                     if (th < 0.4f) continue;
                     float nearCov = 0.f;
@@ -266,7 +291,7 @@ void Game::GenerateAIHints() {
             }
             if (bx >= 0) {
                 int sx = -1, sy = -1;
-                if (findSlot(bx, by, sx, sy)) {
+                if (FindNearbyBuildSlot(*this, bx, by, sx, sy)) {
                     AIHint h;
                     h.gx = sx; h.gy = sy;
                     h.suggest = TType::CANNON;
@@ -293,8 +318,12 @@ void Game::GenerateAIHints() {
         if (nCannon > 0 && nSensor == 0) {
             reason = "砲塔沒有感測器！訊號無法傳遞";
             suggest = TType::SENSOR;
-            int mid = n / 4;
-            tgx = PATH_CELLS[mid].gx; tgy = PATH_CELLS[mid].gy;
+            const auto& primaryLane = LaneCells(0);
+            if (!primaryLane.empty()) {
+                int mid = (int)primaryLane.size() / 4;
+                tgx = primaryLane[mid].gx;
+                tgy = primaryLane[mid].gy;
+            }
         } else if (nCannon >= 1 && nPct == 0 && wave >= 2) {
             reason = "加入感知器讓AI自動學習射擊時機";
             suggest = TType::PERCEPTRON;
@@ -303,15 +332,17 @@ void Game::GenerateAIHints() {
         } else if (dualPath && intel.pathSurvRate[1] > 0.5f) {
             reason = "副路突破率高！副路需要砲塔";
             suggest = TType::CANNON;
-            if (!PATH_CELLS2.empty()) {
-                int mid2 = (int)PATH_CELLS2.size() / 2;
-                tgx = PATH_CELLS2[mid2].gx; tgy = PATH_CELLS2[mid2].gy;
+            const auto& lane1 = LaneCells(1);
+            if (!lane1.empty()) {
+                int mid2 = (int)lane1.size() / 2;
+                tgx = lane1[mid2].gx;
+                tgy = lane1[mid2].gy;
             }
         }
 
         if (reason && tgx >= 0) {
             int sx = -1, sy = -1;
-            if (findSlot(tgx, tgy, sx, sy)) {
+            if (FindNearbyBuildSlot(*this, tgx, tgy, sx, sy)) {
                 AIHint h;
                 h.gx = sx; h.gy = sy; h.suggest = suggest;
                 h.score = 0.6f; h.reason = reason;
@@ -359,21 +390,7 @@ void Game::TrainPerceptrons() {
 void Game::TrainDefenseNN() {
     // ── 計算各路段覆蓋率 ─────────────────────────────────────────
     float cov[3] = { 0.f, 0.f, 0.f };
-    int   n      = (int)PATH_CELLS.size();
-    for (int seg = 0; seg < 3; seg++) {
-        int from = n * seg / 3, to = n * (seg + 1) / 3;
-        if (from >= to) continue;
-        int covered = 0;
-        for (int pi = from; pi < to; pi++) {
-            for (auto& t : towers) {
-                if (Dist({(float)t.gx,(float)t.gy},
-                         {(float)PATH_CELLS[pi].gx,(float)PATH_CELLS[pi].gy}) <= t.range) {
-                    covered++; break;
-                }
-            }
-        }
-        cov[seg] = (float)covered / (to - from);
-    }
+    ComputeCoverageSegments(*this, cov);
 
     float in[6] = {
         intel.typeSurvRate[2],   // 裝甲兵存活率
@@ -434,8 +451,13 @@ void Game::Reset() {
     spawnTimer    = 0.f;
     waveCount     = 0;
     trainingTimer = 0.f;
+    trainingChoiceCount = 0;
     combo         = 0;
     comboTimer    = 0.f;
+    comboSurgeTimer = 0.f;
+    waveTelegraphTimer = 0.f;
+    spawnPulseTimer = 0.f;
+    spawnPulsePath = 0;
     shakeT        = 0.f;
 
     waveKills   = 0;
@@ -451,7 +473,9 @@ void Game::Reset() {
 
     dualPath        = false;
     blackoutActive  = false;
-    nextPreviewPath = 1;
+    nextPreviewPaths = {{1, -1}};
+    nextPreviewLaneCount = 1;
+    hasPlannedRouteChange = false;
 
     buffOverfreq  = 0.f;
     buffArmorBreak= 0.f;

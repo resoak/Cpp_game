@@ -6,6 +6,81 @@
 #include <algorithm>
 #include <cmath>
 
+static float LanePressureScreen(const Game& G, int laneSlot) {
+    const auto& cells = G.LaneCells(laneSlot);
+    if (cells.empty()) return 0.f;
+
+    float furthest = 0.f;
+    for (auto& e : G.enemies) {
+        if (e.pathIdx != laneSlot) continue;
+        furthest = std::max(furthest, e.pathPos / (float)std::max(1, (int)cells.size()));
+    }
+    return Clamp(furthest, 0.f, 1.f);
+}
+
+static void DrawHudFrame(float x, float y, float w, float h, float r,
+                         Color fill, Color border, Color glow) {
+    DrawRoundBox(x, y, w, h, r, fill, border, 1.8f);
+    DrawRoundBox(x + 8.f, y + 8.f, w - 16.f, h - 16.f, std::max(4.f, r - 4.f),
+                 AlphaOf(fill, 0), AlphaOf(glow, 30), 1.f);
+
+    DrawLineV({x + 18.f, y + 16.f}, {x + 84.f, y + 16.f}, AlphaOf(glow, 170));
+    DrawLineV({x + 16.f, y + 18.f}, {x + 16.f, y + 60.f}, AlphaOf(glow, 140));
+    DrawLineV({x + w - 84.f, y + 16.f}, {x + w - 18.f, y + 16.f}, AlphaOf(glow, 170));
+    DrawLineV({x + w - 16.f, y + 18.f}, {x + w - 16.f, y + 60.f}, AlphaOf(glow, 140));
+    DrawLineV({x + 18.f, y + h - 16.f}, {x + 84.f, y + h - 16.f}, AlphaOf(glow, 120));
+    DrawLineV({x + w - 84.f, y + h - 16.f}, {x + w - 18.f, y + h - 16.f}, AlphaOf(glow, 120));
+}
+
+static void DrawScreenGrid(int x, int y, int w, int h, float t, Color accent) {
+    for (int gx = x; gx <= x + w; gx += 64) {
+        int alpha = ((gx - x) % 192 == 0) ? 18 : 10;
+        DrawLine(gx, y, gx, y + h, AlphaOf(accent, alpha));
+    }
+    for (int gy = y; gy <= y + h; gy += 64) {
+        int alpha = ((gy - y) % 192 == 0) ? 16 : 9;
+        DrawLine(x, gy, x + w, gy, AlphaOf(accent, alpha));
+    }
+
+    for (int i = 0; i < 4; i++) {
+        float sweep = fmodf(t * (120.f + i * 28.f), (float)(w + 280)) - 140.f;
+        float ly = (float)y + 28.f + i * 18.f;
+        DrawLineEx({(float)x + sweep, ly}, {(float)x + sweep + 180.f, ly}, 1.2f,
+                   AlphaOf(COL_SENSOR, 70 - i * 12));
+    }
+}
+
+static void DrawRouteSummaryCard(int x, int y, int w, const char* header, const PathPreset& preset,
+                                 int laneSlot, float metric, bool showMetric, bool highlight) {
+    RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
+    float pulse = 0.65f + 0.35f * sinf((float)GetTime() * 2.4f + laneSlot * 0.7f + preset.family * 0.35f);
+    Color accent = highlight ? theme.accent : AlphaOf(theme.accent, 170);
+
+    DrawRoundBox((float)x, (float)y, (float)w, 82.f, 10.f,
+                 AlphaOf(theme.fillSoft, 226),
+                 AlphaOf(accent, (int)(100 + pulse * (highlight ? 110.f : 70.f))), 1.5f);
+    DTX(header, (float)x + 12, (float)y + 8, FS_TINY, AlphaOf(accent, 230));
+    DTX(theme.shortLabel, (float)x + 12, (float)y + 26, FS_TINY, AlphaOf(theme.glow, 190));
+    DTX(preset.name, (float)x + 90, (float)y + 8, FS_SMALL, theme.text);
+    DTX(theme.sideLabel, (float)x + 90, (float)y + 34, FS_TINY, AlphaOf(theme.glow, 165));
+
+    if (showMetric) {
+        float clamped = Clamp(metric, 0.f, 1.f);
+        char mb[24];
+        snprintf(mb, 24, "存活 %2.0f%%", clamped * 100.f);
+        DTX(mb, (float)(x + w - 112), (float)y + 8, FS_TINY, AlphaOf(accent, 220));
+        DrawRectangle(x + 90, y + 58, w - 112, 6, AlphaOf(theme.fill, 185));
+        DrawRectangle(x + 90, y + 58, (int)((w - 112) * clamped), 6, AlphaOf(accent, 230));
+    } else {
+        DTX("採樣中", (float)(x + w - 72), (float)y + 8, FS_TINY, AlphaOf(WHITE, 120));
+        DrawRectangle(x + 90, y + 58, w - 112, 6, AlphaOf(theme.fill, 120));
+    }
+
+    if (highlight) {
+        DTX("HIGH", (float)(x + w - 58), (float)y + 34, FS_TINY, AlphaOf(theme.glow, 220));
+    }
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  DrawMenu
 // ══════════════════════════════════════════════════════════════════
@@ -15,15 +90,35 @@ void DrawMenu(Game& G) {
 
     DrawRectangleGradientV(0,0,VIRT_W,VIRT_H,Color{3,7,14,255},Color{8,18,35,255});
     DrawStars(G);
+    DrawScreenGrid(0, 0, VIRT_W, VIRT_H, t, COL_SENSOR);
+
+    int frameW = 1120, frameH = 390;
+    int fx = cx - frameW / 2;
+    int fy = cy - 250;
+
+    DrawLine(96, fy - 28, VIRT_W - 96, fy - 28, AlphaOf(COL_SENSOR, 28));
+    DrawLine(96, fy + frameH + 28, VIRT_W - 96, fy + frameH + 28, AlphaOf(COL_SENSOR, 20));
+    DrawHudFrame((float)fx, (float)fy, (float)frameW, (float)frameH, 16.f,
+                 AlphaOf(BG, 212), AlphaOf(COL_CPU, 82), COL_SENSOR);
+
+    DrawRoundBox((float)fx + 22, (float)fy + 92, (float)frameW - 44, 150.f, 10.f,
+                 AlphaOf(COL_SENSOR, 10), AlphaOf(COL_SENSOR, 36), 1.1f);
+    DrawRoundBox((float)fx + 22, (float)fy + 264, (float)frameW - 44, 72.f, 12.f,
+                 AlphaOf(COL_PERC, 14), AlphaOf(COL_PERC, 96), 1.7f);
+
+    DTX("SYSTEM BOOT", (float)fx + 28, (float)fy + 18, FS_TINY, AlphaOf(COL_SENSOR, 180));
+    DTX("NEURAL FORTRESS // MENU", (float)fx + frameW - 324, (float)fy + 18, FS_TINY, AlphaOf(COL_AI, 180));
+    DrawHex({(float)fx + 74.f, (float)fy + 56.f}, 18.f, AlphaOf(COL_SENSOR, 24), AlphaOf(COL_SENSOR, 160));
+    DrawHex({(float)fx + frameW - 74.f, (float)fy + 56.f}, 18.f, AlphaOf(COL_AI, 22), AlphaOf(COL_AI, 150));
 
     for (int i=4;i>=1;i--) {
         float glow=30.f*i*(0.8f+0.2f*sinf(t*1.5f));
-        DrawCircleV({(float)cx,(float)(cy-120)},glow,AlphaOf(COL_CPU,6/i));
+        DrawCircleV({(float)cx,(float)(fy+64)},glow,AlphaOf(COL_CPU,6/i));
     }
 
-    float tp=0.85f+0.15f*sinf(t*2.f);
-    DTC("邏輯閘防禦戰",                          cx,cy-140,FS_BIG, AlphaOf(COL_CPU,   (int)(240*tp)));
-    DTC("Logic Gate Defense  v3.0 + AI Edition", cx,cy- 82,FS_MED, AlphaOf(COL_SENSOR,180));
+    float tp=0.90f+0.10f*sinf(t*1.8f);
+    DTC("邏輯閘防禦戰",                          cx,fy+54,FS_BIG, AlphaOf(COL_CPU,   (int)(244*tp)));
+    DTC("Logic Gate Defense  v3.0 + AI Edition", cx,fy+114,FS_MED, AlphaOf(COL_SENSOR,156));
 
     const char* feats[] = {
         "★ 神經網路訊號傳播","★ 感知器多層學習+loss圖","★ Boss 狀態機 AI",
@@ -31,18 +126,21 @@ void DrawMenu(Game& G) {
     };
     for (int i=0;i<6;i++) {
         int   col=i%3,row=i/3;
-        int   fx=cx-460+col*320, fy=cy-30+row*28;
-        float fp=0.6f+0.4f*sinf(t*1.8f+i*0.6f);
-        DTC(feats[i],fx,fy,FS_SMALL,AlphaOf(COL_AI,(int)(180*fp)));
+        int   bx=fx+54+col*344, by=fy+120+row*54;
+        float fp=0.72f+0.28f*sinf(t*1.6f+i*0.6f);
+        Color fc = (row == 0) ? COL_AI : COL_SENSOR;
+        DrawLineEx({(float)bx, (float)by + 13.f}, {(float)bx + 22.f, (float)by + 13.f}, 1.8f, AlphaOf(fc, 128));
+        DrawCircleV({(float)bx + 28.f, (float)by + 13.f}, 2.5f, AlphaOf(fc, (int)(138 * fp)));
+        DTX(feats[i], (float)bx + 42, (float)by, FS_SMALL, AlphaOf(fc, (int)(148 * fp)));
     }
 
-    float sp=0.7f+0.3f*sinf(t*3.5f);
-    DTC("按 ENTER 或 空白鍵 開始",cx,cy+60, FS_LARGE,AlphaOf(COL_PERC,(int)(230*sp)));
-    DTC("[H] 查看說明",             cx,cy+96, FS_MED,  AlphaOf(WHITE,120));
+    float sp=0.82f+0.18f*sinf(t*3.2f);
+    DTC("按 ENTER 或 空白鍵 開始",cx,fy+300, FS_LARGE,AlphaOf(COL_PERC,(int)(240*sp)));
+    DTC("[H] 查看說明",             cx,fy+338, FS_MED,  AlphaOf(WHITE,98));
 
     if (G.highScore > 0) {
         char hs[40]; snprintf(hs,40,"歷史最高分：%d",G.highScore);
-        DTC(hs,cx,cy+138,FS_MED,AlphaOf(COL_STAR,200));
+        DTC(hs,cx,fy+372,FS_MED,AlphaOf(COL_STAR,172));
     }
 
     DTX("v3.0+AI  Powered by Raylib",16,(float)(VIRT_H-28),FS_TINY,AlphaOf(WHITE,50));
@@ -74,14 +172,20 @@ void DrawMenu(Game& G) {
 //  DrawHelp
 // ══════════════════════════════════════════════════════════════════
 void DrawHelp() {
-    DrawRectangle(PANEL_L+80,TOPBAR_H+40,MAP_W-160,MAP_H-80,Color{4,9,18,240});
+    int boxX = PANEL_L + 80;
+    int boxY = TOPBAR_H + 40;
+    int boxW = MAP_W - 160;
+    int boxH = MAP_H - 80;
+
+    DrawRectangle(boxX, boxY, boxW, boxH, Color{4,9,18,240});
     DrawRectangleLinesEx(
-        {(float)(PANEL_L+80),(float)(TOPBAR_H+40),(float)(MAP_W-160),(float)(MAP_H-80)},
+        {(float)boxX,(float)boxY,(float)boxW,(float)boxH},
         2.f,COL_SENSOR
     );
 
-    int cx=PANEL_L+MAP_W/2, y=TOPBAR_H+70;
-    DTC("── 操作說明 ──",cx,y,FS_LARGE,COL_CPU); y+=46;
+    int cx=PANEL_L+MAP_W/2, y=TOPBAR_H+72;
+    DTC("── 操作說明 ──",cx,y,FS_LARGE,COL_CPU); y+=40;
+    DrawLine(boxX + 42, y - 10, boxX + boxW - 42, y - 10, AlphaOf(COL_SENSOR, 44));
 
     struct HelpRow { const char* key; const char* desc; Color col; };
     HelpRow rows[] = {
@@ -100,14 +204,15 @@ void DrawHelp() {
     };
     for (auto& r : rows) {
         float kw=MCN(r.key,FS_SMALL);
-        int kx=PANEL_L+200, dx=kx+80;
+        int kx=PANEL_L+196, dx=kx+80;
         DTX(r.key, (float)(kx-(int)kw/2-30),(float)y,FS_SMALL,AlphaOf(COL_AND,220));
-        DTX(r.desc,(float)dx,               (float)y,FS_SMALL,AlphaOf(r.col, 190));
-        y+=28;
+        DTX(r.desc,(float)dx,               (float)y+2.f,FS_TINY,AlphaOf(r.col, 174));
+        y+=26;
     }
 
-    y+=10;
-    DTC("── AI 與關卡說明 ──",cx,y,FS_MED,COL_AI); y+=34;
+    y+=8;
+    DTC("── AI 與關卡說明 ──",cx,y,FS_MED,COL_AI); y+=30;
+    DrawLine(boxX + 42, y - 8, boxX + boxW - 42, y - 8, AlphaOf(COL_AI, 38));
 
     struct AIRow { const char* title; const char* desc; };
     AIRow aiRows[] = {
@@ -121,55 +226,144 @@ void DrawHelp() {
         {"通訊中斷",    "感測器範圍縮減至 30%，必須依賴感知器網路辨識目標"},
         {"變異體",      "HP x2、速度 x1.3、無裝甲、帶再生，爆發傷害才能壓制"},
         {"圍城艦",      "單隻 HP x8、裝甲 0.8 的超重坦，需集中全火力穿甲"},
-        {"路線輪換",    "每 3 波自動換路線（共 5 條），訓練期間顯示下波路線預告"},
+        {"路線輪換",    "每 3 波自動換路線（共 11 條），訓練期間顯示下波路線預告"},
         {"雙路進攻",    "Wave 8 起開通第二條路徑，敵人交替從兩路進攻"},
         {"主動技能",    "選取元件後按 [Q]：SENSOR=EMP暫停，OR=超頻，CANNON=超砲等"},
         {"NAND閘",      "非AND閘：後期反制裝甲利器，配合主動技能可破甲歸零"},
     };
-    for (auto& r : aiRows) {
-        DTX(r.title,(float)(PANEL_L+100),(float)y,FS_SMALL,AlphaOf(COL_AI,230)); y+=22;
-        DTX(r.desc, (float)(PANEL_L+120),(float)y,FS_TINY,  AlphaOf(WHITE, 160)); y+=26;
+    int leftColX = PANEL_L + 100;
+    int rightColX = PANEL_L + MAP_W / 2 + 26;
+    for (int i = 0; i < (int)(sizeof(aiRows) / sizeof(aiRows[0])); i++) {
+        int col = (i < 7) ? 0 : 1;
+        int row = (i < 7) ? i : (i - 7);
+        int ax = (col == 0) ? leftColX : rightColX;
+        int ay = y + row * 42;
+        DTX(aiRows[i].title, (float)ax, (float)ay, FS_TINY, AlphaOf(COL_AI, 220));
+        DTX(aiRows[i].desc,  (float)(ax + 18), (float)(ay + 18), FS_TINY, AlphaOf(WHITE, 148));
     }
 
-    DTC("點擊任意處或按 [H]/[ESC] 關閉",cx,TOPBAR_H+MAP_H-60,FS_MED,AlphaOf(WHITE,140));
+    DTC("點擊任意處或按 [H]/[ESC] 關閉",cx,TOPBAR_H+MAP_H-60,FS_MED,AlphaOf(WHITE,118));
 }
 
 // ══════════════════════════════════════════════════════════════════
 //  DrawGameOver
 // ══════════════════════════════════════════════════════════════════
 void DrawGameOver(Game& G) {
-    DrawRectangle(PANEL_L,TOPBAR_H,MAP_W,MAP_H,Color{5,0,0,200});
-    int   cx=PANEL_L+MAP_W/2, cy=VIRT_H/2;
+    int   cx=PANEL_L+MAP_W/2;
     float t=(float)GetTime();
+    int   ox=PANEL_L, oy=TOPBAR_H;
+
+    DrawRectangleGradientV(ox, oy, MAP_W, MAP_H, Color{5, 8, 16, 220}, Color{28, 3, 6, 238});
+    DrawRectangle(ox, oy, MAP_W, MAP_H, AlphaOf(RED, 24));
+    DrawScreenGrid(ox, oy, MAP_W, MAP_H, t, RED);
+
+    int panelW = 760, panelH = 540;
+    int px = cx - panelW / 2;
+    int py = oy + 118;
+    DrawHudFrame((float)px, (float)py, (float)panelW, (float)panelH, 16.f,
+                 AlphaOf(BG, 224), AlphaOf(RED, 108), Color{255, 168, 148, 255});
+    DTX("SYSTEM FAILURE", (float)px + 28, (float)py + 18, FS_TINY, AlphaOf(RED, 210));
+    DTX("CORE BREACHED // DEFENSE GRID LOST", (float)px + panelW - 418, (float)py + 18, FS_TINY, AlphaOf(COL_SENSOR, 150));
 
     float rp=0.75f+0.25f*sinf(t*4.f);
-    DTC("防線崩潰",cx,cy-110,FS_BIG,AlphaOf(RED,(int)(240*rp)));
+    DTC("防線崩潰",cx,py+68,FS_BIG,AlphaOf(RED,(int)(240*rp)));
+    DTC("核心節點失守，戰術網路離線",cx,py+116,FS_SMALL,AlphaOf(COL_SENSOR,150));
 
-    char sbuf[64]; snprintf(sbuf,64,"最終分數：%d",G.score);
-    DTC(sbuf,cx,cy-38,FS_TITLE,COL_AND);
+    int statY = py + 148;
+    int statW = 214;
+    DrawRoundBox((float)px + 28, (float)statY, (float)statW, 90.f, 10.f,
+                 AlphaOf(COL_AND, 10), AlphaOf(COL_AND, 72), 1.5f);
+    DrawRoundBox((float)px + 273, (float)statY, (float)statW, 90.f, 10.f,
+                 AlphaOf(COL_PERC, 10), AlphaOf(COL_PERC, 72), 1.5f);
+    DrawRoundBox((float)px + 518, (float)statY, (float)statW, 90.f, 10.f,
+                 AlphaOf(COL_STAR, 10), AlphaOf(COL_STAR, 72), 1.5f);
 
-    if (G.score>=G.highScore && G.highScore>0) DTC("新紀錄！",cx,cy+10,FS_LARGE,COL_STAR);
-    else { char hs[48]; snprintf(hs,48,"最高分：%d",G.highScore); DTC(hs,cx,cy+10,FS_LARGE,AlphaOf(COL_STAR,180)); }
+    char sbuf[64]; snprintf(sbuf,64,"%d",G.score);
+    DTX("最終分數", (float)px + 44, (float)statY + 12, FS_TINY, AlphaOf(COL_AND, 220));
+    DTX(sbuf,       (float)px + 44, (float)statY + 38, FS_TITLE, COL_AND);
 
-    char wb[48]; snprintf(wb,48,"撐過 %d 波次",G.wave);
-    DTC(wb,cx,cy+50,FS_LARGE,AlphaOf(WHITE,180));
+    char wb[48]; snprintf(wb,48,"%d 波",G.wave);
+    DTX("撐過波次", (float)px + 289, (float)statY + 12, FS_TINY, AlphaOf(COL_PERC, 220));
+    DTX(wb,        (float)px + 289, (float)statY + 38, FS_TITLE, AlphaOf(COL_PERC, 230));
+
+    DTX("紀錄狀態", (float)px + 534, (float)statY + 12, FS_TINY, AlphaOf(COL_STAR, 220));
+    if (G.score>=G.highScore && G.highScore>0) {
+        DTX("新紀錄！", (float)px + 534, (float)statY + 40, FS_LARGE, COL_STAR);
+    } else {
+        char hs[48]; snprintf(hs,48,"最高 %d",G.highScore);
+        DTX(hs, (float)px + 534, (float)statY + 40, FS_LARGE, AlphaOf(COL_STAR,180));
+    }
+
+    int routeY = py + 268;
+    DTC("路線威脅摘要", cx, routeY, FS_MED, AlphaOf(COL_CPU, 220));
+    routeY += 30;
+
+    bool showRouteMetric = G.intel.adapted;
+    int preferredLane = G.dualPath ? G.intel.PreferredPath() : 0;
+    if (G.dualPath) {
+        int cardW = (panelW - 72) / 2;
+        DrawRouteSummaryCard(px + 28, routeY, cardW, "主線", G.LanePreset(0), 0,
+                             G.intel.pathSurvRate[0], showRouteMetric, showRouteMetric && preferredLane == 0);
+        DrawRouteSummaryCard(px + 44 + cardW, routeY, cardW, "副線", G.LanePreset(1), 1,
+                             G.intel.pathSurvRate[1], showRouteMetric, showRouteMetric && preferredLane == 1);
+    } else {
+        float livePressure = LanePressureScreen(G, 0);
+        float routeMetric = showRouteMetric ? G.intel.pathSurvRate[0] : livePressure;
+        DrawRouteSummaryCard(px + 28, routeY, panelW - 56, "當前路線", G.LanePreset(0), 0,
+                             routeMetric, showRouteMetric, true);
+    }
+    routeY += 96;
+
+    if (showRouteMetric) {
+        const PathPreset& prefPreset = G.LanePreset(preferredLane);
+        RouteVisualTheme prefTheme = GetRouteTheme(prefPreset, preferredLane);
+        char rb[128];
+        if (G.dualPath) {
+            snprintf(rb, 128, "高壓入口：%s%s / %s  ·  學習 %d 波",
+                     preferredLane == 0 ? "主線 " : "副線 ", prefTheme.sideLabel,
+                     prefPreset.name, G.intel.wavesLearned);
+        } else {
+            snprintf(rb, 128, "單線資料完成：%s / %s  ·  學習 %d 波",
+                     prefTheme.sideLabel, prefPreset.name, G.intel.wavesLearned);
+        }
+        DTC(rb, cx, routeY, FS_TINY, AlphaOf(prefTheme.accent, 202));
+    } else {
+        char rb[96];
+        if (G.dualPath) {
+            snprintf(rb, 96, "路線資料採樣中 · 主線 %.0f%% / 副線 %.0f%%",
+                     LanePressureScreen(G, 0) * 100.f,
+                     LanePressureScreen(G, 1) * 100.f);
+        } else {
+            snprintf(rb, 96, "路線資料採樣中 · 目前壓力 %.0f%%",
+                     LanePressureScreen(G, 0) * 100.f);
+        }
+        DTC(rb, cx, routeY, FS_TINY, AlphaOf(WHITE, 108));
+    }
 
     int   pctCount=0;
     float avgLoss=0.f;
     for (auto& tw : G.towers) {
         if (tw.type==TType::PERCEPTRON) { pctCount++; avgLoss+=tw.learner.lastLoss; }
     }
+    int aiY = py + 404;
+    DrawRoundBox((float)px + 28, (float)aiY, (float)panelW - 56, 78.f, 10.f,
+                 AlphaOf(COL_AI, 10), AlphaOf(COL_AI, 70), 1.3f);
+    DTX("AI 收斂摘要", (float)px + 44, (float)aiY + 12, FS_TINY, AlphaOf(COL_AI, 210));
     if (pctCount > 0) {
         avgLoss /= pctCount;
         char aib[64]; snprintf(aib,64,"感知器 %d 個 | 平均 loss %.4f",pctCount,avgLoss);
-        DTC(aib,cx,cy+86,FS_MED,AlphaOf(COL_AI,200));
+        DTX(aib,(float)px + 44,(float)aiY + 34,FS_SMALL,AlphaOf(COL_AI,188));
         const char* grade=
             (avgLoss<0.05f)?"神經網路已收斂":
             (avgLoss<0.15f)?"學習中，再多幾波":
                             "需要更多感知器或連線";
-        DTC(grade,cx,cy+114,FS_SMALL,AlphaOf(COL_AI,170));
+        DTX(grade,(float)px + 44,(float)aiY + 58,FS_TINY,AlphaOf(COL_AI,158));
+    } else {
+        DTC("未部署感知器節點",cx,aiY+39,FS_SMALL,AlphaOf(COL_AI,150));
     }
 
-    float pp=0.8f+0.2f*sinf(t*4.f);
-    DTC("[R] 重新開始    [ENTER] 主選單",cx,cy+152,FS_LARGE,AlphaOf(Color{210,210,210,255},(int)(210*pp)));
+    float pp=0.86f+0.14f*sinf(t*4.f);
+    DrawRoundBox((float)cx - 278.f, (float)py + panelH - 60.f, 556.f, 44.f, 10.f,
+                 AlphaOf(WHITE, 10), AlphaOf(WHITE, 92), 1.5f);
+    DTC("[R] 重新開始    [ENTER] 主選單",cx,py+panelH-38,FS_LARGE,AlphaOf(Color{220,220,220,255},(int)(228*pp)));
 }

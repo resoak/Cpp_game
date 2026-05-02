@@ -70,6 +70,24 @@ void HandleInput(Game& G) {
     }
     if (G.paused) return;
 
+    if (G.phase == Game::TRAINING) {
+        if (IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_KP_1)) { ApplyTrainingChoice(G, 0); return; }
+        if (IsKeyPressed(KEY_TWO) || IsKeyPressed(KEY_KP_2)) { ApplyTrainingChoice(G, 1); return; }
+        if (IsKeyPressed(KEY_THREE) || IsKeyPressed(KEY_KP_3)) { ApplyTrainingChoice(G, 2); return; }
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && mp.x < PANEL_L) {
+            int startY = TOPBAR_H + 76;
+            for (int i = 0; i < G.trainingChoiceCount; i++) {
+                int by = startY + i * 86;
+                if (mp.y >= by && mp.y < by + 72) {
+                    ApplyTrainingChoice(G, i);
+                    return;
+                }
+            }
+        }
+        return;
+    }
+
     // ── 技能觸發 [Q] ─────────────────────────────────────────────
     if (IsKeyPressed(KEY_Q) && G.selectedId >= 0) {
         Tower* st = G.FindTower(G.selectedId);

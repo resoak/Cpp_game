@@ -433,6 +433,13 @@ struct Tower {
     }
 };
 
+enum class EnemyTag {
+    NONE,
+    BRUTE,
+    SWIFT,
+    BOUNTY
+};
+
 // ══════════════════════════════════════════════════════════════════
 //  Enemy（敵人）
 // ══════════════════════════════════════════════════════════════════
@@ -461,6 +468,9 @@ struct Enemy {
     float shieldHp{0.f};
 
     bool  hasSplit{false};
+
+    EnemyTag tag{EnemyTag::NONE};
+    float    spawnFx{0.f};
 
     BossState bossState{BossState::CHARGE};
     float     bossStateTimer{0.f};
@@ -503,6 +513,7 @@ struct Bullet {
     int     targetId;
     int     sourceId{-1};
     float   dmg;
+    bool    crit{false};
     bool    splash{false};
     float   splashR{0.f};
     Color   col;
