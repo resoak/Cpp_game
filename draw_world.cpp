@@ -108,10 +108,21 @@ RouteVisualTheme GetRouteTheme(const PathPreset& preset, int laneSlot) {
     theme.sideLabel = RouteSideLabel(preset.entrySide);
     theme.shortLabel= RouteShortLabel(preset.entrySide);
 
-    if (laneSlot == 1) {
-        theme.accent   = LerpColor(theme.accent, WHITE, 0.10f);
-        theme.fill     = LerpColor(theme.fill, BG, 0.16f);
-        theme.fillSoft = AlphaOf(LerpColor(theme.fillSoft, BG, 0.12f), 255);
+    static const Color LANE_TINTS[MAX_LANES] = {
+        Color{ 70, 220, 255, 255},
+        Color{255, 230, 120, 255},
+        Color{255, 125, 190, 255},
+        Color{125, 255, 165, 255},
+        Color{170, 145, 255, 255},
+        Color{255, 155,  90, 255}
+    };
+    int lane = std::max(0, std::min(MAX_LANES - 1, laneSlot));
+    if (lane > 0) {
+        float tintMix = 0.08f + 0.03f * (float)(lane % 3);
+        theme.accent   = LerpColor(theme.accent, LANE_TINTS[lane], tintMix);
+        theme.glow     = LerpColor(theme.glow, LANE_TINTS[lane], tintMix * 0.6f);
+        theme.fill     = LerpColor(theme.fill, BG, 0.08f + 0.03f * (float)lane);
+        theme.fillSoft = AlphaOf(LerpColor(theme.fillSoft, BG, 0.08f + 0.02f * (float)lane), 255);
     }
 
     return theme;
@@ -124,7 +135,7 @@ void DrawRoundBox(float x, float y, float w, float h, float r,
                   Color fill, Color border, float bw) {
     float rr = r / std::min(w, h) * 2;
     DrawRectangleRounded({x, y, w, h}, rr, 8, fill);
-    DrawRectangleRoundedLinesEx({x, y, w, h}, rr, 8, bw, border);
+    DrawRectangleRoundedLines({x, y, w, h}, rr, 8, bw, border);
 }
 
 void DrawHex(Vector2 c, float r, Color fill, Color border) {
@@ -211,26 +222,28 @@ void DrawPath(Game& G) {
             }
         };
 
-        drawPreviewLane(G.nextPreviewPaths[0], 0);
-        if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
-            drawPreviewLane(G.nextPreviewPaths[1], 1);
+        int previewCount = std::max(1, std::min(MAX_LANES, G.nextPreviewLaneCount));
+        for (int lane = 0; lane < previewCount; lane++) {
+            if (G.nextPreviewPaths[lane] >= 0) drawPreviewLane(G.nextPreviewPaths[lane], lane);
         }
 
-        DTC("下波輪換預告", (int)(o.x + MAP_W * 0.5f), (int)(o.y + MAP_H - 58), FS_SMALL,
+        int cols = (previewCount <= 2) ? previewCount : 3;
+        int rows = (previewCount + cols - 1) / cols;
+        float gridW = cols * 210.f + (cols - 1) * 12.f;
+        float cardY = o.y + MAP_H - 42.f - (rows - 1) * 38.f;
+        DTC("下波輪換預告", (int)(o.x + MAP_W * 0.5f), (int)(cardY - 16.f), FS_SMALL,
             AlphaOf({255, 220, 150, 255}, (int)(200 + pulse * 40)));
 
-        float cardY = o.y + MAP_H - 42.f;
-        if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
-            drawRouteCard(o.x + MAP_W * 0.5f - 220.f, cardY, "下波主線",
-                GetPathPreset(G.nextPreviewPaths[0]), 0, pulse,
-                GetRouteTheme(GetPathPreset(G.nextPreviewPaths[0]), 0).sideLabel);
-            drawRouteCard(o.x + MAP_W * 0.5f + 10.f, cardY, "下波副線",
-                GetPathPreset(G.nextPreviewPaths[1]), 1, pulse,
-                GetRouteTheme(GetPathPreset(G.nextPreviewPaths[1]), 1).sideLabel);
-        } else {
-            drawRouteCard(o.x + MAP_W * 0.5f - 105.f, cardY, "下波路線",
-                GetPathPreset(G.nextPreviewPaths[0]), 0, pulse,
-                GetRouteTheme(GetPathPreset(G.nextPreviewPaths[0]), 0).sideLabel);
+        for (int lane = 0; lane < previewCount; lane++) {
+            if (G.nextPreviewPaths[lane] < 0) continue;
+            char header[24];
+            snprintf(header, 24, "下波路線%d", lane + 1);
+            int col = lane % cols;
+            int row = lane / cols;
+            const PathPreset& preset = GetPathPreset(G.nextPreviewPaths[lane]);
+            drawRouteCard(o.x + MAP_W * 0.5f - gridW * 0.5f + col * 222.f,
+                cardY + row * 38.f, header, preset, lane, pulse,
+                GetRouteTheme(preset, lane).sideLabel);
         }
     }
 
@@ -334,8 +347,7 @@ void DrawPath(Game& G) {
         }
     };
 
-    drawLane(0);
-    if (G.dualPath) drawLane(1);
+    for (int lane = 0; lane < G.ActiveLaneCount(); lane++) drawLane(lane);
 
     if (G.phase == Game::FIGHT && (G.waveTelegraphTimer > 0.f || G.spawnPulseTimer > 0.f)) {
         auto drawSpawnLane = [&](int laneSlot, float strength) {
@@ -358,10 +370,12 @@ void DrawPath(Game& G) {
         float wavePulse = std::max(0.f, G.waveTelegraphTimer) * 0.5f + std::max(0.f, G.spawnPulseTimer) * 2.5f;
         float strength = std::min(1.f, telegraphPulse * wavePulse);
         if (G.waveTelegraphTimer > 0.f) {
-            drawSpawnLane(0, strength);
-            if (G.dualPath) drawSpawnLane(1, strength * 0.88f);
+            for (int lane = 0; lane < G.ActiveLaneCount(); lane++) {
+                drawSpawnLane(lane, strength * std::max(0.60f, 1.f - lane * 0.06f));
+            }
         } else {
-            drawSpawnLane((G.spawnPulsePath == 1 && G.dualPath) ? 1 : 0, strength);
+            int lane = std::max(0, std::min(G.ActiveLaneCount() - 1, G.spawnPulsePath));
+            drawSpawnLane(lane, strength);
         }
     }
 
@@ -370,7 +384,10 @@ void DrawPath(Game& G) {
         float flicker=0.5f+0.5f*sinf(t*9.f);
         DrawRectangleLinesEx({(float)PANEL_L,(float)TOPBAR_H,(float)MAP_W,(float)MAP_H},
             4.f,{255,60,60,(unsigned char)(120*flicker)});
-        DTC("通訊中斷！感測器失效 30%",PANEL_L+MAP_W/2,TOPBAR_H+24,FS_SMALL,
+        int sensorLoss = (G.ActiveLaneCount() >= 6) ? 45 : (G.ActiveLaneCount() >= 4 ? 55 : 70);
+        char blackoutMsg[64];
+        snprintf(blackoutMsg, 64, "通訊中斷！感測器效能 -%d%%", sensorLoss);
+        DTC(blackoutMsg,PANEL_L+MAP_W/2,TOPBAR_H+24,FS_SMALL,
             AlphaOf({255,100,100,255},(int)(220*flicker)));
     }
 
@@ -385,11 +402,16 @@ void DrawPath(Game& G) {
     }
 
     float routeCardY = o.y + 8.f;
-    drawRouteCard(o.x + 8.f, routeCardY, "主線路由", G.LanePreset(0), 0,
-        0.6f + 0.4f * sinf(t * 2.2f), GetRouteTheme(G.LanePreset(0), 0).sideLabel);
-    if (G.dualPath) {
-        drawRouteCard(o.x + 8.f, routeCardY + 40.f, "副線路由", G.LanePreset(1), 1,
-            0.6f + 0.4f * sinf(t * 2.2f + 1.1f), GetRouteTheme(G.LanePreset(1), 1).sideLabel);
+    int laneCount = G.ActiveLaneCount();
+    int cols = (laneCount <= 3) ? 1 : 2;
+    for (int lane = 0; lane < laneCount; lane++) {
+        char header[24];
+        snprintf(header, 24, "路線%d路由", lane + 1);
+        int col = lane % cols;
+        int row = lane / cols;
+        drawRouteCard(o.x + 8.f + col * 222.f, routeCardY + row * 40.f, header,
+            G.LanePreset(lane), lane, 0.6f + 0.4f * sinf(t * 2.2f + lane * 0.7f),
+            GetRouteTheme(G.LanePreset(lane), lane).sideLabel);
     }
 }
 
@@ -519,7 +541,7 @@ void DrawTower(Game& G, Tower& t, bool sel) {
             DrawRectangleRounded({px+3.f-ext,py+3.f-ext,(float)CELL-6+ext*2,(float)CELL-6+ext*2},0.25f,8,gc);
         }
         DrawRectangleRounded({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,Color{6,20,35,255});
-        DrawRectangleRoundedLines({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,cpuCol);
+        DrawRectangleRoundedLines({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,1.f,cpuCol);
         DTC("CPU",(int)ctr.x,(int)ctr.y-8,FS_MED,cpuCol);
         char buf[8]; snprintf(buf,8,"%.0f%%",G.cpuHp);
         DTC(buf,(int)ctr.x,(int)ctr.y+14,FS_SMALL,cpuCol);

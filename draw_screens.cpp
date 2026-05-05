@@ -299,28 +299,38 @@ void DrawGameOver(Game& G) {
     routeY += 30;
 
     bool showRouteMetric = G.intel.adapted;
-    int preferredLane = G.dualPath ? G.intel.PreferredPath() : 0;
-    if (G.dualPath) {
-        int cardW = (panelW - 72) / 2;
-        DrawRouteSummaryCard(px + 28, routeY, cardW, "主線", G.LanePreset(0), 0,
-                             G.intel.pathSurvRate[0], showRouteMetric, showRouteMetric && preferredLane == 0);
-        DrawRouteSummaryCard(px + 44 + cardW, routeY, cardW, "副線", G.LanePreset(1), 1,
-                             G.intel.pathSurvRate[1], showRouteMetric, showRouteMetric && preferredLane == 1);
+    int laneCount = G.ActiveLaneCount();
+    int preferredLane = (laneCount > 1) ? G.intel.PreferredPath(laneCount) : 0;
+    if (laneCount > 1) {
+        int cols = (laneCount <= 2) ? laneCount : 3;
+        int rows = (laneCount + cols - 1) / cols;
+        int gap = 12;
+        int cardW = (panelW - 56 - gap * (cols - 1)) / cols;
+        for (int lane = 0; lane < laneCount; lane++) {
+            char header[16];
+            snprintf(header, 16, "路線%d", lane + 1);
+            int col = lane % cols;
+            int row = lane / cols;
+            DrawRouteSummaryCard(px + 28 + col * (cardW + gap), routeY + row * 92, cardW, header,
+                                 G.LanePreset(lane), lane, G.intel.pathSurvRate[lane],
+                                 showRouteMetric, showRouteMetric && preferredLane == lane);
+        }
+        routeY += rows * 92;
     } else {
         float livePressure = LanePressureScreen(G, 0);
         float routeMetric = showRouteMetric ? G.intel.pathSurvRate[0] : livePressure;
         DrawRouteSummaryCard(px + 28, routeY, panelW - 56, "當前路線", G.LanePreset(0), 0,
                              routeMetric, showRouteMetric, true);
+        routeY += 96;
     }
-    routeY += 96;
 
     if (showRouteMetric) {
         const PathPreset& prefPreset = G.LanePreset(preferredLane);
         RouteVisualTheme prefTheme = GetRouteTheme(prefPreset, preferredLane);
         char rb[128];
-        if (G.dualPath) {
-            snprintf(rb, 128, "高壓入口：%s%s / %s  ·  學習 %d 波",
-                     preferredLane == 0 ? "主線 " : "副線 ", prefTheme.sideLabel,
+        if (laneCount > 1) {
+            snprintf(rb, 128, "高壓入口：路線%d %s / %s  ·  學習 %d 波",
+                     preferredLane + 1, prefTheme.sideLabel,
                      prefPreset.name, G.intel.wavesLearned);
         } else {
             snprintf(rb, 128, "單線資料完成：%s / %s  ·  學習 %d 波",
@@ -329,10 +339,13 @@ void DrawGameOver(Game& G) {
         DTC(rb, cx, routeY, FS_TINY, AlphaOf(prefTheme.accent, 202));
     } else {
         char rb[96];
-        if (G.dualPath) {
-            snprintf(rb, 96, "路線資料採樣中 · 主線 %.0f%% / 副線 %.0f%%",
-                     LanePressureScreen(G, 0) * 100.f,
-                     LanePressureScreen(G, 1) * 100.f);
+        if (laneCount > 1) {
+            float maxPressure = 0.f;
+            for (int lane = 0; lane < laneCount; lane++) {
+                maxPressure = std::max(maxPressure, LanePressureScreen(G, lane));
+            }
+            snprintf(rb, 96, "路線資料採樣中 · 最高壓力 %.0f%% / %d 路線",
+                     maxPressure * 100.f, laneCount);
         } else {
             snprintf(rb, 96, "路線資料採樣中 · 目前壓力 %.0f%%",
                      LanePressureScreen(G, 0) * 100.f);

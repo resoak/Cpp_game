@@ -5,9 +5,12 @@
 #include "draw.h"
 #include <cstdio>
 #include <algorithm>
+#include <cstring>
 
 static const char* LaneLabel(int laneSlot) {
-    return laneSlot == 0 ? "主線" : "副線";
+    static const char* LABELS[] = { "主線", "路線2", "路線3", "路線4", "路線5", "路線6" };
+    if (laneSlot >= 0 && laneSlot < MAX_LANES) return LABELS[laneSlot];
+    return "路線";
 }
 
 static int CountLaneEnemiesUi(const Game& G, int laneSlot) {
@@ -180,29 +183,31 @@ void DrawRightPanel(Game& G) {
     Tower* sel = G.FindTower(G.selectedId);
     if (!sel) {
         EnemyIntel& I = G.intel;
+        int laneCount = G.ActiveLaneCount();
         int iy = py0 + 70;
 
         DTC("入口態勢", cx, iy, FS_MED, AlphaOf(COL_CPU, 220)); iy += 28;
-        DrawRouteUiCard(rx + 10, iy, PANEL_R - 20, "當前主線", G.LanePreset(0), 0,
-            CountLaneEnemiesUi(G, 0), LanePressureUi(G, 0), false);
-        iy += 54;
-
-        if (G.dualPath) {
-            DrawRouteUiCard(rx + 10, iy, PANEL_R - 20, "當前副線", G.LanePreset(1), 1,
-                CountLaneEnemiesUi(G, 1), LanePressureUi(G, 1), false);
+        for (int lane = 0; lane < laneCount; lane++) {
+            char header[24];
+            snprintf(header, 24, "當前%s", LaneLabel(lane));
+            DrawRouteUiCard(rx + 10, iy, PANEL_R - 20, header, G.LanePreset(lane), lane,
+                CountLaneEnemiesUi(G, lane), LanePressureUi(G, lane), false);
             iy += 54;
         }
 
         if (G.hasPlannedRouteChange) {
-            int previewH = (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) ? 126 : 72;
+            int previewCount = std::max(1, std::min(MAX_LANES, G.nextPreviewLaneCount));
+            int previewH = 28 + previewCount * 54 + 8;
             DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, (float)previewH, 8,
                 AlphaOf({255, 205, 120, 255}, 9), AlphaOf({255, 205, 120, 255}, 56), 1.3f);
             DTC("下次輪換", cx, iy + 14, FS_TINY, AlphaOf({255, 220, 160, 255}, 220));
             iy += 26;
-            DrawRouteUiCard(rx + 14, iy, PANEL_R - 28, "下波主線", GetPathPreset(G.nextPreviewPaths[0]), 0, 0, 0.f, true);
-            iy += 54;
-            if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
-                DrawRouteUiCard(rx + 14, iy, PANEL_R - 28, "下波副線", GetPathPreset(G.nextPreviewPaths[1]), 1, 0, 0.f, true);
+            for (int lane = 0; lane < previewCount; lane++) {
+                if (G.nextPreviewPaths[lane] < 0) continue;
+                char header[24];
+                snprintf(header, 24, "下波%s", LaneLabel(lane));
+                DrawRouteUiCard(rx + 14, iy, PANEL_R - 28, header,
+                    GetPathPreset(G.nextPreviewPaths[lane]), lane, 0, 0.f, true);
                 iy += 54;
             }
             iy += 6;
@@ -242,17 +247,19 @@ void DrawRightPanel(Game& G) {
         }
         iy += 6;
 
-        if (G.dualPath) {
-            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, 86, 6,
+        if (laneCount > 1) {
+            int routeBoxH = 34 + laneCount * 28;
+            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, (float)routeBoxH, 6,
                          AlphaOf({255,180,60,255}, 8), AlphaOf({255,180,60,255}, 50), 1.5f);
             DTC("路線威脅", cx, iy + 14, FS_TINY, AlphaOf({255,200,80,255}, 200)); iy += 28;
 
-            for (int i = 0; i < 2; i++) {
+            int preferredLane = I.PreferredPath(laneCount);
+            for (int i = 0; i < laneCount; i++) {
                 const PathPreset& preset = G.LanePreset(i);
                 RouteVisualTheme theme = GetRouteTheme(preset, i);
                 float surv = I.pathSurvRate[i];
                 int   barW = (int)((PANEL_R - 138) * surv);
-                bool  pref = (I.PreferredPath() == i);
+                bool  pref = (preferredLane == i);
                 Color pc   = pref ? theme.accent : AlphaOf(theme.accent, 150);
 
                 char label[24]; snprintf(label, 24, "%s%s", LaneLabel(i), pref ? " ▶" : "");
@@ -277,11 +284,12 @@ void DrawRightPanel(Game& G) {
         snprintf(topb, 48, "主攻兵種：%s", I.TopTypeName());
         DTC(topb, cx, iy, FS_TINY, AlphaOf({255, 100, 100, 255}, 200)); iy += 22;
 
-        if (G.dualPath) {
-            const PathPreset& prefPreset = G.LanePreset(I.PreferredPath());
+        if (laneCount > 1) {
+            int prefLane = I.PreferredPath(laneCount);
+            const PathPreset& prefPreset = G.LanePreset(prefLane);
             char pathb[80];
-            snprintf(pathb, 80, "偏好路線：%s / %s", GetRouteTheme(prefPreset, I.PreferredPath()).sideLabel, prefPreset.name);
-            DTC(pathb, cx, iy, FS_TINY, AlphaOf(GetRouteTheme(prefPreset, I.PreferredPath()).accent, 210)); iy += 22;
+            snprintf(pathb, 80, "偏好路線：%s / %s", GetRouteTheme(prefPreset, prefLane).sideLabel, prefPreset.name);
+            DTC(pathb, cx, iy, FS_TINY, AlphaOf(GetRouteTheme(prefPreset, prefLane).accent, 210)); iy += 22;
         }
 
         // ── 防禦建議神經網路輸出機率 ─────────────────────────────
@@ -452,40 +460,70 @@ void DrawTopBar(Game& G) {
     DTX(sc, PANEL_L + 200, 10, FS_MED, COL_AND);
     DTX(hs, PANEL_L + 200, 38, FS_TINY, AlphaOf(COL_AND, 160));
 
-    auto drawTopRouteBadge = [&](int x, const char* header, const PathPreset& preset, int laneSlot) {
+    auto drawTopRouteBadge = [&](int x, int y, int w, const char* header, const PathPreset& preset, int laneSlot) {
         RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
         int enemyCount = CountLaneEnemiesUi(G, laneSlot);
         float pressure = LanePressureUi(G, laneSlot);
 
-        DrawRoundBox((float)x, 38.f, 188.f, 24.f, 6.f,
+        DrawRoundBox((float)x, (float)y, (float)w, 24.f, 6.f,
             AlphaOf(theme.fillSoft, 220), AlphaOf(theme.accent, 150), 1.2f);
-        DTX(header, (float)x + 8, 42.f, FS_TINY, AlphaOf(theme.accent, 220));
-        DTX(preset.name, (float)x + 56, 42.f, FS_TINY, theme.text);
+        DTX(header, (float)x + 8, (float)y + 4, FS_TINY, AlphaOf(theme.accent, 220));
+        DTX(preset.name, (float)x + 58, (float)y + 4, FS_TINY, theme.text);
 
         char eb[12];
         snprintf(eb, 12, "x%d", enemyCount);
-        DTX(eb, (float)x + 154, 42.f, FS_TINY, AlphaOf(theme.text, 210));
-        DrawRectangle(x + 56, 56, 96, 3, AlphaOf(theme.fill, 170));
-        DrawRectangle(x + 56, 56, (int)(96.f * pressure), 3, AlphaOf(theme.accent, 230));
+        DTX(eb, (float)x + w - 34, (float)y + 4, FS_TINY, AlphaOf(theme.text, 210));
+        DrawRectangle(x + 58, y + 18, w - 96, 3, AlphaOf(theme.fill, 170));
+        DrawRectangle(x + 58, y + 18, (int)((w - 96) * pressure), 3, AlphaOf(theme.accent, 230));
     };
 
-    int routeCount = G.dualPath ? 2 : 1;
-    int badgeW = 188;
-    int badgeGap = 10;
-    int routeStripW = routeCount * badgeW + (routeCount - 1) * badgeGap;
-    int routeStartX = VIRT_W / 2 - routeStripW / 2;
-    drawTopRouteBadge(routeStartX, "主線", G.LanePreset(0), 0);
-    if (G.dualPath) drawTopRouteBadge(routeStartX + badgeW + badgeGap, "副線", G.LanePreset(1), 1);
+    int routeCount = G.ActiveLaneCount();
+    int badgeGap = 8;
+    if (routeCount <= 4) {
+        int badgeW = (routeCount <= 2) ? 188 : 150;
+        int routeStripW = routeCount * badgeW + (routeCount - 1) * badgeGap;
+        int routeStartX = VIRT_W / 2 - routeStripW / 2;
+        for (int lane = 0; lane < routeCount; lane++) {
+            drawTopRouteBadge(routeStartX + lane * (badgeW + badgeGap), 38, badgeW,
+                LaneLabel(lane), G.LanePreset(lane), lane);
+        }
+    } else {
+        int totalEnemies = 0;
+        float maxPressure = 0.f;
+        int prefLane = G.intel.PreferredPath(routeCount);
+        for (int lane = 0; lane < routeCount; lane++) {
+            totalEnemies += CountLaneEnemiesUi(G, lane);
+            maxPressure = std::max(maxPressure, LanePressureUi(G, lane));
+        }
+        const PathPreset& preset = G.LanePreset(prefLane);
+        RouteVisualTheme theme = GetRouteTheme(preset, prefLane);
+        int badgeW = 236;
+        int x = VIRT_W / 2 - badgeW / 2;
+        DrawRoundBox((float)x, 38.f, (float)badgeW, 24.f, 6.f,
+            AlphaOf(theme.fillSoft, 220), AlphaOf(theme.accent, 150), 1.2f);
+        char summary[64];
+        snprintf(summary, 64, "多線 x%d  敵%d  高壓%s", routeCount, totalEnemies, LaneLabel(prefLane));
+        DTX(summary, (float)x + 10, 42.f, FS_TINY, theme.text);
+        DrawRectangle(x + 10, 56, badgeW - 20, 3, AlphaOf(theme.fill, 170));
+        DrawRectangle(x + 10, 56, (int)((badgeW - 20) * maxPressure), 3, AlphaOf(theme.accent, 230));
+    }
 
     int leftInfoX = VIRT_W / 2 - 360;
     if (G.hasPlannedRouteChange) {
         char preview[96];
-        const PathPreset& next0 = GetPathPreset(G.nextPreviewPaths[0]);
-        if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
-            const PathPreset& next1 = GetPathPreset(G.nextPreviewPaths[1]);
-            snprintf(preview, 96, "下波輪換：%s / %s", next0.name, next1.name);
+        int previewCount = std::max(1, std::min(MAX_LANES, G.nextPreviewLaneCount));
+        if (previewCount >= 5) {
+            snprintf(preview, 96, "下波輪換：多線 x%d", previewCount);
+        } else if (previewCount > 1) {
+            char names[72] = "";
+            for (int lane = 0; lane < previewCount; lane++) {
+                if (G.nextPreviewPaths[lane] < 0) continue;
+                if (names[0] != '\0') strncat(names, " / ", sizeof(names) - strlen(names) - 1);
+                strncat(names, GetPathPreset(G.nextPreviewPaths[lane]).name, sizeof(names) - strlen(names) - 1);
+            }
+            snprintf(preview, 96, "下波輪換：%s", names);
         } else {
-            snprintf(preview, 96, "下波輪換：%s", next0.name);
+            snprintf(preview, 96, "下波輪換：%s", GetPathPreset(G.nextPreviewPaths[0]).name);
         }
         DTX(preview, (float)leftInfoX, 10.f, FS_TINY, AlphaOf({255, 210, 150, 255}, 210));
     }

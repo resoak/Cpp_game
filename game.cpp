@@ -249,25 +249,40 @@ void Game::GenerateAIHints() {
     };
     int   nnClass   = defNN.Recommend(in);
     TType nnSuggest = NN_TO_TTYPE[nnClass];
+    int   laneCount = ActiveLaneCount();
 
     // ── 輔助：找最薄弱路段中心的可放格 ─────────────────────────
     // ── 提示 1：NN 推薦放置（覆蓋最弱的路段）───────────────────
     {
         int worstSeg = 0;
         for (int i = 1; i < 3; i++) if (cov[i] < cov[worstSeg]) worstSeg = i;
-        const auto& primaryLane = LaneCells(0);
-        int n = (int)primaryLane.size();
-        int midIdx = n * (worstSeg * 2 + 1) / 6;
-        midIdx = std::max(0, std::min(midIdx, n - 1));
-        int sx = -1, sy = -1;
-        if (!primaryLane.empty() && FindNearbyBuildSlot(*this, primaryLane[midIdx].gx, primaryLane[midIdx].gy, sx, sy)) {
-            char buf[80];
-            snprintf(buf, 80, "%s（信心%.0f%%）",
-                NN_REASON[nnClass], defNN.lastProb[nnClass] * 100.f);
-            AIHint h;
-            h.gx = sx; h.gy = sy; h.suggest = nnSuggest;
-            h.score = defNN.lastProb[nnClass]; h.reason = buf;
-            aiHints.push_back(h);
+        int bestLane = -1;
+        float lowestCoverage = 2.f;
+        for (int lane = 0; lane < laneCount; lane++) {
+            const auto& cells = LaneCells(lane);
+            if (cells.empty()) continue;
+            float laneCov = SegmentCoverage(*this, cells, worstSeg);
+            if (laneCov < lowestCoverage) {
+                lowestCoverage = laneCov;
+                bestLane = lane;
+            }
+        }
+
+        if (bestLane >= 0) {
+            const auto& cells = LaneCells(bestLane);
+            int n = (int)cells.size();
+            int midIdx = n * (worstSeg * 2 + 1) / 6;
+            midIdx = std::max(0, std::min(midIdx, n - 1));
+            int sx = -1, sy = -1;
+            if (FindNearbyBuildSlot(*this, cells[midIdx].gx, cells[midIdx].gy, sx, sy)) {
+                char buf[80];
+                snprintf(buf, 80, "%s（信心%.0f%%）",
+                    NN_REASON[nnClass], defNN.lastProb[nnClass] * 100.f);
+                AIHint h;
+                h.gx = sx; h.gy = sy; h.suggest = nnSuggest;
+                h.score = defNN.lastProb[nnClass]; h.reason = buf;
+                aiHints.push_back(h);
+            }
         }
     }
 
@@ -318,25 +333,27 @@ void Game::GenerateAIHints() {
         if (nCannon > 0 && nSensor == 0) {
             reason = "砲塔沒有感測器！訊號無法傳遞";
             suggest = TType::SENSOR;
-            const auto& primaryLane = LaneCells(0);
-            if (!primaryLane.empty()) {
-                int mid = (int)primaryLane.size() / 4;
-                tgx = primaryLane[mid].gx;
-                tgy = primaryLane[mid].gy;
+            int lane = intel.PreferredPath(laneCount);
+            const auto& cells = LaneCells(lane);
+            if (!cells.empty()) {
+                int mid = (int)cells.size() / 4;
+                tgx = cells[mid].gx;
+                tgy = cells[mid].gy;
             }
         } else if (nCannon >= 1 && nPct == 0 && wave >= 2) {
             reason = "加入感知器讓AI自動學習射擊時機";
             suggest = TType::PERCEPTRON;
             for (auto& t : towers)
                 if (t.type==TType::CANNON) { tgx=t.gx; tgy=t.gy; break; }
-        } else if (dualPath && intel.pathSurvRate[1] > 0.5f) {
-            reason = "副路突破率高！副路需要砲塔";
+        } else if (laneCount > 1 && intel.pathSurvRate[intel.PreferredPath(laneCount)] > 0.5f) {
+            int lane = intel.PreferredPath(laneCount);
+            reason = "高壓路線需要砲塔";
             suggest = TType::CANNON;
-            const auto& lane1 = LaneCells(1);
-            if (!lane1.empty()) {
-                int mid2 = (int)lane1.size() / 2;
-                tgx = lane1[mid2].gx;
-                tgy = lane1[mid2].gy;
+            const auto& cells = LaneCells(lane);
+            if (!cells.empty()) {
+                int mid2 = (int)cells.size() / 2;
+                tgx = cells[mid2].gx;
+                tgy = cells[mid2].gy;
             }
         }
 
@@ -448,6 +465,7 @@ void Game::Reset() {
     connectSrc = -1;
 
     spawned       = 0;
+    spawnLaneCursor = 0;
     spawnTimer    = 0.f;
     waveCount     = 0;
     trainingTimer = 0.f;
@@ -472,17 +490,21 @@ void Game::Reset() {
     defNN = DefenseAdvisorNN{};
 
     dualPath        = false;
+    activeLaneCount = 1;
     blackoutActive  = false;
-    nextPreviewPaths = {{1, -1}};
+    nextPreviewPaths = {{1, -1, -1, -1, -1, -1}};
     nextPreviewLaneCount = 1;
     hasPlannedRouteChange = false;
+    lastEntrySideWave.fill(-100000);
+    lastPresetWave.assign(PATH_PRESET_COUNT, -100000);
 
     buffOverfreq  = 0.f;
     buffArmorBreak= 0.f;
     buffGlobalMark= 0.f;
 
-    BuildPath(0);
-    BuildDualPath(1);
+    for (int lane = 0; lane < MAX_LANES; lane++) {
+        SetActiveLanePreset(lane, lane);
+    }
 
     Tower cpu;
     cpu.id    = 0;

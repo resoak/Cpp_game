@@ -7,6 +7,24 @@
 #include <algorithm>
 #include <cstdio>
 
+#if defined(LGD_DEBUG_WAVE_JUMP)
+static void DebugJumpToWave(Game& G, int targetWave) {
+    targetWave = std::max(1, targetWave);
+    G.Reset();
+    G.wave = targetWave - 1;
+    G.phase = Game::BUILD;
+    G.credits = 5000;
+    G.lives = 50;
+    G.cpuHp = 100.f;
+    StartWave(G);
+
+    char msg[128];
+    snprintf(msg, 128, "DEBUG Wave %d：%d lanes / %d enemies",
+        G.wave, G.ActiveLaneCount(), G.waveCount);
+    G.SetMsg(msg);
+}
+#endif
+
 // ══════════════════════════════════════════════════════════════════
 //  HandleInput  —  鍵盤 + 滑鼠輸入處理
 // ══════════════════════════════════════════════════════════════════
@@ -14,6 +32,13 @@ void HandleInput(Game& G) {
     Vector2 mp  = VirtualMouse();
     int     hgx = -1, hgy = -1;
     bool    onMap = ScreenToGrid(G, mp, hgx, hgy);
+
+#if defined(LGD_DEBUG_WAVE_JUMP)
+    if (IsKeyPressed(KEY_F7))  { DebugJumpToWave(G, 7);  return; }
+    if (IsKeyPressed(KEY_F8))  { DebugJumpToWave(G, 10); return; }
+    if (IsKeyPressed(KEY_F9))  { DebugJumpToWave(G, 16); return; }
+    if (IsKeyPressed(KEY_F10)) { DebugJumpToWave(G, 30); return; }
+#endif
 
     // ── 主選單輸入 ───────────────────────────────────────────────
     if (G.phase == Game::MENU) {

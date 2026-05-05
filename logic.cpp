@@ -106,109 +106,319 @@ static bool WaveRotatesRoutes(int wave) {
     return wave > 1 && (wave - 1) % 3 == 0;
 }
 
-static bool IsOppositeSide(PathEntrySide a, PathEntrySide b) {
-    return (a == PathEntrySide::LEFT   && b == PathEntrySide::RIGHT) ||
-           (a == PathEntrySide::RIGHT  && b == PathEntrySide::LEFT)  ||
-           (a == PathEntrySide::TOP    && b == PathEntrySide::BOTTOM) ||
-           (a == PathEntrySide::BOTTOM && b == PathEntrySide::TOP);
+static int DynamicLaneCountForWave(int wave) {
+    (void)wave;
+    return MAX_LANES;
 }
 
-static int ScorePrimaryRouteCandidate(Game& G, int presetIdx) {
-    const auto& cand = GetPathPreset(presetIdx);
-    const auto& cur0 = G.LanePreset(0);
-
-    int score = cand.dualWeight * 8;
-    if (presetIdx != G.LanePresetIdx(0)) score += 30;
-    else                                 score -= 120;
-    if (cand.entrySide != cur0.entrySide) score += 18;
-    if (cand.family    != cur0.family)    score += 12;
-    if (G.dualPath && presetIdx != G.LanePresetIdx(1)) score += 6;
-
-    std::uniform_int_distribution<int> jitter(0, 7);
-    return score + jitter(G.rng);
+static int LaneCountForWave(int wave) {
+    if (wave >= 30) return std::max(1, std::min(MAX_LANES, DynamicLaneCountForWave(wave)));
+    if (wave >= 16) return 4;
+    if (wave >= 10) return 2;
+    return 1;
 }
 
-static int ScoreDualRoutePair(Game& G, int primaryPresetIdx, int secondaryPresetIdx) {
-    if (primaryPresetIdx == secondaryPresetIdx) return -100000;
-
-    const auto& a = GetPathPreset(primaryPresetIdx);
-    const auto& b = GetPathPreset(secondaryPresetIdx);
-
-    int score = ScorePrimaryRouteCandidate(G, primaryPresetIdx) + b.dualWeight * 8;
-    if (secondaryPresetIdx != G.LanePresetIdx(1)) score += 14;
-    else                                          score -= 28;
-    if (a.entrySide != b.entrySide) score += 42;
-    else                            score -= 45;
-    if (IsOppositeSide(a.entrySide, b.entrySide)) score += 20;
-    if (a.family != b.family) score += 18;
-    else                      score -= 22;
-
-    std::uniform_int_distribution<int> jitter(0, 9);
-    return score + jitter(G.rng);
+static int RouteReplanCreditForLaneCount(int laneCount, int wave) {
+    int credit = 200;
+    if (laneCount >= 2) credit += 80;
+    if (laneCount >= 4) credit += 170;
+    if (laneCount >= 6) credit += 250;
+    if (wave == 7 || wave == 10 || wave == 16 || wave == 30) credit += 120;
+    return credit;
 }
 
-static int PickSecondaryRouteForPrimary(Game& G, int primaryPresetIdx) {
-    int bestIdx = (primaryPresetIdx == 0) ? 1 : 0;
-    int bestScore = -100000;
+static int BalancedWaveCountForLanes(Game::WaveEvent event, int wave, int laneCount) {
+    bool boss = (wave % 5 == 0);
+    int baseCount = boss ? 1 + (wave / 5) * 2 : 6 + wave * 3;
+
+    if (laneCount >= 6)      baseCount = (int)(baseCount * 0.78f);
+    else if (laneCount >= 4) baseCount = (int)(baseCount * 0.90f);
+
+    if (event == WaveEvent::SWARM) {
+        float swarmMult = (laneCount >= 6) ? 1.75f : (laneCount >= 4 ? 1.95f : 2.20f);
+        baseCount = (int)(baseCount * swarmMult);
+    }
+    if (event == WaveEvent::BOSS_ESCORT) {
+        baseCount = std::max(laneCount, 1 + wave * 2);
+    }
+    if (event == WaveEvent::ELITE_RUSH) {
+        int minElite = std::max(4, laneCount * 2);
+        baseCount = std::max(minElite, baseCount / 2);
+    }
+    if (event == WaveEvent::BLACKOUT && laneCount >= 4) {
+        baseCount = (int)(baseCount * 0.88f);
+    }
+
+    return std::max(baseCount, laneCount);
+}
+
+static float SpawnIntervalForWave(int wave, int laneCount, Game::WaveEvent event) {
+    float interval = std::max(0.15f, 0.75f - wave * 0.035f);
+    if (laneCount >= 6)      interval *= 1.28f;
+    else if (laneCount >= 4) interval *= 1.18f;
+
+    if (event == WaveEvent::SWARM)       interval *= 0.78f;
+    if (event == WaveEvent::BOSS_ESCORT) interval *= 1.08f;
+    if (event == WaveEvent::BLACKOUT)    interval *= 1.12f;
+
+    return std::max(0.16f, interval);
+}
+
+static float BlackoutSensorRangeMultiplier(int laneCount) {
+    if (laneCount >= 6) return 0.55f;
+    if (laneCount >= 4) return 0.45f;
+    return 0.30f;
+}
+
+static std::string RouteThresholdNotice(int wave, int laneCount) {
+    switch (wave) {
+        case 7:  return "四方向入口開放：路線仍為單線，但可能從任意方向進攻。";
+        case 10: return "雙線同步進攻開始：兩條路線會同時出兵。";
+        case 16: return "四線同步進攻開始：建議補強各入口覆蓋。";
+        case 30: return "高壓多線模式啟動：最多六線同步進攻。";
+        default: break;
+    }
+    if (laneCount >= 6) return "高壓多線模式：六線壓力持續，保留補強空間。";
+    return "";
+}
+
+static bool RoutePoolSupportsAllEntrySides(int wave) {
+    return wave >= 7;
+}
+
+static bool RoutePoolOpensAtWave(int wave) {
+    return RoutePoolSupportsAllEntrySides(wave) && !RoutePoolSupportsAllEntrySides(wave - 1);
+}
+
+using RoutePlan = std::array<int, MAX_LANES>;
+
+static int EntrySideIndex(PathEntrySide side) {
+    switch (side) {
+        case PathEntrySide::LEFT:   return 0;
+        case PathEntrySide::TOP:    return 1;
+        case PathEntrySide::RIGHT:  return 2;
+        case PathEntrySide::BOTTOM: return 3;
+        default:                    return 0;
+    }
+}
+
+static PathEntrySide EntrySideFromIndex(int sideIdx) {
+    switch (sideIdx) {
+        case 1:  return PathEntrySide::TOP;
+        case 2:  return PathEntrySide::RIGHT;
+        case 3:  return PathEntrySide::BOTTOM;
+        default: return PathEntrySide::LEFT;
+    }
+}
+
+static RoutePlan CurrentRoutePlan(Game& G, int laneCount) {
+    RoutePlan plan{};
+    plan.fill(-1);
+    int count = std::max(1, std::min(MAX_LANES, laneCount));
+    for (int lane = 0; lane < count; lane++) {
+        plan[lane] = G.LanePresetIdx(lane);
+    }
+    return plan;
+}
+
+static bool RouteAllowedForWave(int presetIdx, int wave) {
+    return RoutePoolSupportsAllEntrySides(wave) ||
+           GetPathPreset(presetIdx).entrySide == PathEntrySide::LEFT;
+}
+
+static bool PlanContainsPreset(const RoutePlan& plan, int slot, int presetIdx) {
+    for (int lane = 0; lane < slot; lane++) {
+        if (plan[lane] == presetIdx) return true;
+    }
+    return false;
+}
+
+static bool PlanContainsEntrySide(const std::array<int, MAX_LANES>& sidePlan, int slot, int sideIdx) {
+    for (int lane = 0; lane < slot; lane++) {
+        if (sidePlan[lane] == sideIdx) return true;
+    }
+    return false;
+}
+
+static int PresetLastUsed(const Game& G, int presetIdx) {
+    if (presetIdx >= 0 && presetIdx < (int)G.lastPresetWave.size()) {
+        return G.lastPresetWave[presetIdx];
+    }
+    return -100000;
+}
+
+static bool HasPresetForSide(const RoutePlan& plan, int slot,
+                             int sideIdx, int targetWave, bool requireUnused) {
+    PathEntrySide side = EntrySideFromIndex(sideIdx);
     for (int idx = 0; idx < PATH_PRESET_COUNT; idx++) {
-        int score = ScoreDualRoutePair(G, primaryPresetIdx, idx);
-        if (score > bestScore) {
-            bestScore = score;
-            bestIdx = idx;
-        }
+        if (!RouteAllowedForWave(idx, targetWave)) continue;
+        if (GetPathPreset(idx).entrySide != side) continue;
+        if (requireUnused && PlanContainsPreset(plan, slot, idx)) continue;
+        return true;
     }
-    return bestIdx;
+    return false;
 }
 
-static std::array<int, 2> PlanNextRoutePair(Game& G, int laneCount) {
-    std::array<int, 2> plan = { G.LanePresetIdx(0), G.dualPath ? G.LanePresetIdx(1) : -1 };
+static int PickEntrySideForSlot(Game& G, const RoutePlan& plan,
+                                const std::array<int, MAX_LANES>& sidePlan,
+                                int slot, int laneCount, int targetWave) {
+    if (!RoutePoolSupportsAllEntrySides(targetWave)) return EntrySideIndex(PathEntrySide::LEFT);
 
-    if (laneCount <= 1) {
-        int bestIdx = G.LanePresetIdx(0);
-        int bestScore = -100000;
-        for (int idx = 0; idx < PATH_PRESET_COUNT; idx++) {
-            int score = ScorePrimaryRouteCandidate(G, idx);
-            if (score > bestScore) {
-                bestScore = score;
-                bestIdx = idx;
-            }
-        }
-        plan[0] = bestIdx;
-        plan[1] = -1;
-        return plan;
+    bool requireUniqueSide = laneCount <= ENTRY_SIDE_COUNT || slot < ENTRY_SIDE_COUNT;
+    std::vector<int> candidates;
+
+    for (int sideIdx = 0; sideIdx < ENTRY_SIDE_COUNT; sideIdx++) {
+        if (requireUniqueSide && PlanContainsEntrySide(sidePlan, slot, sideIdx)) continue;
+        if (!HasPresetForSide(plan, slot, sideIdx, targetWave, true)) continue;
+        candidates.push_back(sideIdx);
     }
 
-    int bestScore = -100000;
-    for (int a = 0; a < PATH_PRESET_COUNT; a++) {
-        for (int b = 0; b < PATH_PRESET_COUNT; b++) {
-            int score = ScoreDualRoutePair(G, a, b);
-            if (score > bestScore) {
-                bestScore = score;
-                plan[0] = a;
-                plan[1] = b;
-            }
+    if (candidates.empty()) {
+        for (int sideIdx = 0; sideIdx < ENTRY_SIDE_COUNT; sideIdx++) {
+            if (!HasPresetForSide(plan, slot, sideIdx, targetWave, true)) continue;
+            candidates.push_back(sideIdx);
         }
     }
+
+    if (candidates.empty()) {
+        for (int sideIdx = 0; sideIdx < ENTRY_SIDE_COUNT; sideIdx++) {
+            if (!HasPresetForSide(plan, slot, sideIdx, targetWave, false)) continue;
+            candidates.push_back(sideIdx);
+        }
+    }
+
+    int oldestWave = 1000000;
+    std::vector<int> oldestSides;
+    for (int sideIdx : candidates) {
+        int last = G.lastEntrySideWave[sideIdx];
+        if (last < oldestWave) {
+            oldestWave = last;
+            oldestSides.clear();
+            oldestSides.push_back(sideIdx);
+        } else if (last == oldestWave) {
+            oldestSides.push_back(sideIdx);
+        }
+    }
+
+    if (oldestSides.empty()) return EntrySideIndex(PathEntrySide::LEFT);
+    std::uniform_int_distribution<int> pick(0, (int)oldestSides.size() - 1);
+    return oldestSides[pick(G.rng)];
+}
+
+static int PickPresetForSide(Game& G, const RoutePlan& plan, int slot,
+                             int sideIdx, int targetWave, bool requireUnused) {
+    PathEntrySide side = EntrySideFromIndex(sideIdx);
+    std::vector<int> candidates;
+    for (int idx = 0; idx < PATH_PRESET_COUNT; idx++) {
+        if (!RouteAllowedForWave(idx, targetWave)) continue;
+        if (GetPathPreset(idx).entrySide != side) continue;
+        if (requireUnused && PlanContainsPreset(plan, slot, idx)) continue;
+        candidates.push_back(idx);
+    }
+
+    int oldestWave = 1000000;
+    std::vector<int> oldestPresets;
+    for (int presetIdx : candidates) {
+        int last = PresetLastUsed(G, presetIdx);
+        if (last < oldestWave) {
+            oldestWave = last;
+            oldestPresets.clear();
+            oldestPresets.push_back(presetIdx);
+        } else if (last == oldestWave) {
+            oldestPresets.push_back(presetIdx);
+        }
+    }
+
+    if (oldestPresets.empty()) return -1;
+    std::uniform_int_distribution<int> pick(0, (int)oldestPresets.size() - 1);
+    return oldestPresets[pick(G.rng)];
+}
+
+static RoutePlan PlanNextRouteSet(Game& G, int laneCount, int targetWave) {
+    RoutePlan plan = CurrentRoutePlan(G, laneCount);
+    int count = std::max(1, std::min(MAX_LANES, laneCount));
+    plan.fill(-1);
+    std::array<int, MAX_LANES> sidePlan{};
+    sidePlan.fill(-1);
+
+    for (int slot = 0; slot < count; slot++) {
+        int sideIdx = PickEntrySideForSlot(G, plan, sidePlan, slot, count, targetWave);
+        int presetIdx = PickPresetForSide(G, plan, slot, sideIdx, targetWave, true);
+        if (presetIdx < 0) {
+            presetIdx = PickPresetForSide(G, plan, slot, sideIdx, targetWave, false);
+        }
+        plan[slot] = (presetIdx >= 0) ? presetIdx : G.LanePresetIdx(slot);
+        sidePlan[slot] = EntrySideIndex(GetPathPreset(plan[slot]).entrySide);
+    }
+
     return plan;
 }
 
 static void UpdateUpcomingRoutePlan(Game& G) {
     int nextWave = G.wave + 1;
-    G.nextPreviewLaneCount = (nextWave >= 8) ? 2 : 1;
+    G.nextPreviewLaneCount = LaneCountForWave(nextWave);
 
-    if (!WaveRotatesRoutes(nextWave)) {
+    bool mustReplan = WaveRotatesRoutes(nextWave) ||
+                      RoutePoolOpensAtWave(nextWave) ||
+                      G.nextPreviewLaneCount != G.ActiveLaneCount();
+
+    if (!mustReplan) {
         G.hasPlannedRouteChange = false;
-        G.nextPreviewPaths = { G.LanePresetIdx(0), G.dualPath ? G.LanePresetIdx(1) : -1 };
+        G.nextPreviewPaths = CurrentRoutePlan(G, G.nextPreviewLaneCount);
         return;
     }
 
     G.hasPlannedRouteChange = true;
-    G.nextPreviewPaths = PlanNextRoutePair(G, G.nextPreviewLaneCount);
+    G.nextPreviewPaths = PlanNextRouteSet(G, G.nextPreviewLaneCount, nextWave);
 }
 
-static void ApplyRoutePlan(Game& G, const std::array<int, 2>& plan, int laneCount) {
-    BuildPath(plan[0]);
-    if (laneCount > 1) BuildDualPath(plan[1]);
+static void ApplyRoutePlan(Game& G, const RoutePlan& plan, int laneCount) {
+    int count = std::max(1, std::min(MAX_LANES, laneCount));
+    for (int lane = 0; lane < count; lane++) {
+        int presetIdx = (plan[lane] >= 0) ? plan[lane] : G.LanePresetIdx(lane);
+        SetActiveLanePreset(lane, presetIdx);
+    }
+
+    G.activeLaneCount = count;
+    G.dualPath = count > 1;
+
+    for (int lane = 0; lane < count; lane++) {
+        int presetIdx = G.LanePresetIdx(lane);
+        int sideIdx = EntrySideIndex(G.LanePreset(lane).entrySide);
+        G.lastEntrySideWave[sideIdx] = G.wave;
+        if (presetIdx >= 0 && presetIdx < (int)G.lastPresetWave.size()) {
+            G.lastPresetWave[presetIdx] = G.wave;
+        }
+    }
+}
+
+static int DemolishTowersOnActivePaths(Game& G, int laneCount) {
+    int count = std::max(1, std::min(MAX_LANES, laneCount));
+    int demolished = 0;
+    G.towers.erase(
+        std::remove_if(G.towers.begin(), G.towers.end(),
+            [&](const Tower& t) {
+                if (t.type == TType::CPU) return false;
+                bool onPath = IsAnyActivePathCell(t.gx, t.gy, count);
+                if (onPath) {
+                    G.credits += TDef(t.type).baseCost;
+                    demolished++;
+                }
+                return onPath;
+            }),
+        G.towers.end()
+    );
+    return demolished;
+}
+
+static void RemoveDanglingTowerConnections(Game& G) {
+    for (auto& tw : G.towers) {
+        tw.conns.erase(
+            std::remove_if(tw.conns.begin(), tw.conns.end(),
+                [&](int id) { return G.FindTower(id) == nullptr; }),
+            tw.conns.end()
+        );
+    }
 }
 
 void ApplyTrainingChoice(Game& G, int choiceIdx) {
@@ -408,7 +618,9 @@ void PropagateSignals(Game& G, float dt) {
     for (auto& t : G.towers) {
         if (t.type != TType::SENSOR) continue;
 
-        float effectiveRange = G.blackoutActive ? t.range * 0.30f : t.range;
+        float effectiveRange = G.blackoutActive
+            ? t.range * BlackoutSensorRangeMultiplier(G.ActiveLaneCount())
+            : t.range;
         float minD = effectiveRange + 1.f;
 
         for (auto& e : G.enemies) {
@@ -596,6 +808,53 @@ void UpdateBossAI(Game& G, Enemy& boss, float dt) {
     }
 }
 
+static float LaneOpeningThreat(Game& G, int laneSlot) {
+    const auto& cells = G.LaneCells(laneSlot);
+    float sum = 0.f;
+    int   n   = std::min((int)cells.size(), 10);
+    if (n <= 0) return 0.f;
+
+    for (int k = 0; k < n; k++) {
+        sum += G.threatMap.Get(cells[k].gx, cells[k].gy);
+    }
+
+    float maxT = G.threatMap.GetMax();
+    return (maxT > 0.f) ? (sum / n) / maxT : 0.f;
+}
+
+static void UpdateLegacyPathIntelThreat(Game& G) {
+    for (float& threat : G.intel.pathAvgThreat) threat = 0.f;
+
+    int tracked = G.ActiveLaneCount();
+    for (int lane = 0; lane < tracked; lane++) {
+        G.intel.pathAvgThreat[lane] = LaneOpeningThreat(G, lane);
+    }
+}
+
+static int NextSpawnLane(Game& G) {
+    int laneCount = G.ActiveLaneCount();
+    if (laneCount <= 1) return 0;
+
+    if (G.spawnLaneCursor < laneCount) {
+        int lane = G.spawnLaneCursor++;
+        if (!G.LaneCells(lane).empty()) return lane;
+    }
+
+    if (G.intel.adapted) {
+        std::uniform_real_distribution<float> rd(0.f, 1.f);
+        int lane = G.intel.PickPath(rd(G.rng), laneCount);
+        if (!G.LaneCells(lane).empty()) return lane;
+    }
+
+    for (int attempt = 0; attempt < laneCount; attempt++) {
+        int lane = G.spawnLaneCursor % laneCount;
+        G.spawnLaneCursor = (G.spawnLaneCursor + 1) % laneCount;
+        if (!G.LaneCells(lane).empty()) return lane;
+    }
+
+    return 0;
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  SpawnEnemy
 // ══════════════════════════════════════════════════════════════════
@@ -642,6 +901,7 @@ void SpawnEnemy(Game& G) {
     e.angle        = 0.f;
     e.bossState    = BossState::CHARGE;
     e.evadeSpdMult = 1.f;
+    e.pathIdx      = NextSpawnLane(G);
 
     switch (et) {
         case EType::BASIC:
@@ -686,10 +946,10 @@ void SpawnEnemy(Game& G) {
         case WaveEvent::REGEN_ARMY:
             e.regenTimer = -1.f; break;
         case WaveEvent::DOUBLE_SPD:
-            e.spd *= 2.f; break;
+            e.spd *= (G.ActiveLaneCount() >= 4) ? 1.65f : 2.f; break;
         case WaveEvent::MUTANT:
             e.hp *= 2.0f; e.maxHp = e.hp;
-            e.spd *= 1.3f; e.armor = 0.f;
+            e.spd *= (G.ActiveLaneCount() >= 4) ? 1.15f : 1.3f; e.armor = 0.f;
             e.regenTimer = -1.f; break;
         case WaveEvent::SIEGE:
             if (G.spawned == 0) {
@@ -703,34 +963,8 @@ void SpawnEnemy(Game& G) {
     AssignEnemyTag(G, e);
     e.spawnFx = 0.65f;
 
+    UpdateLegacyPathIntelThreat(G);
     G.enemies.push_back(e);
-    if (G.dualPath && !G.LaneCells(1).empty()) {
-        // ── 敵方神經網路評估兩條路線的威脅 ─────────────────────
-        auto pathThreat = [&](const std::vector<PathCell>& cells) -> float {
-            float sum = 0.f;
-            int   n   = std::min((int)cells.size(), 10);
-            if (n <= 0) return 0.f;
-            for (int k = 0; k < n; k++)
-                sum += G.threatMap.Get(cells[k].gx, cells[k].gy);
-            float maxT = G.threatMap.GetMax();
-            return (maxT > 0.f) ? (sum / n) / maxT : 0.f;
-        };
-
-        float t0 = pathThreat(G.LaneCells(0));
-        float t1 = pathThreat(G.LaneCells(1));
-
-        // 存入用於波末訓練
-        G.intel.pathAvgThreat[0] = t0;
-        G.intel.pathAvgThreat[1] = t1;
-
-        // 腦選路或隨機（學習前）
-        if (G.intel.adapted) {
-            G.enemies.back().pathIdx = G.intel.BrainPickPath(t0, t1);
-        } else {
-            std::uniform_real_distribution<float> rd(0.f, 1.f);
-            G.enemies.back().pathIdx = G.intel.PickPath(rd(G.rng), true);
-        }
-    }
 
     G.spawnPulseTimer = 0.28f;
     G.spawnPulsePath  = G.enemies.back().pathIdx;
@@ -744,7 +978,7 @@ void SpawnEnemy(Game& G) {
     int ti = (int)G.enemies.back().type;
     if (ti >= 0 && ti < 5) G.intel.typeSpawned[ti]++;
     int pi = G.enemies.back().pathIdx;
-    if (pi >= 0 && pi < 2) G.intel.pathSpawned[pi]++;
+    if (pi >= 0 && pi < MAX_LANES) G.intel.pathSpawned[pi]++;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -754,63 +988,48 @@ void StartWave(Game& G) {
     if (G.phase != Game::BUILD) return;
 
     G.wave++;
+    int laneCount = LaneCountForWave(G.wave);
+    std::string routeNotice;
 
-    // ── 每 3 波輪換路線 ──────────────────────────────────────────
-    if (WaveRotatesRoutes(G.wave)) {
-        int laneCount = (G.wave >= 8) ? 2 : 1;
-        std::array<int, 2> routePlan = G.hasPlannedRouteChange
+    // ── 路線輪換 / 門檻波次強制重組 ─────────────────────────────
+    bool mustReplan = WaveRotatesRoutes(G.wave) ||
+                      RoutePoolOpensAtWave(G.wave) ||
+                      laneCount != G.ActiveLaneCount();
+
+    if (mustReplan) {
+        RoutePlan routePlan = (G.hasPlannedRouteChange && G.nextPreviewLaneCount == laneCount)
             ? G.nextPreviewPaths
-            : PlanNextRoutePair(G, laneCount);
+            : PlanNextRouteSet(G, laneCount, G.wave);
         ApplyRoutePlan(G, routePlan, laneCount);
 
-        int demolished = 0;
-        G.towers.erase(
-            std::remove_if(G.towers.begin(), G.towers.end(),
-                [&](const Tower& t) {
-                    if (t.type == TType::CPU) return false;
-                    bool onPath = IsAnyActivePathCell(t.gx, t.gy, laneCount);
-                    if (onPath) { G.credits += TDef(t.type).baseCost; demolished++; }
-                    return onPath;
-                }),
-            G.towers.end()
-        );
+        int activeLaneCount = G.ActiveLaneCount();
+        int demolished = DemolishTowersOnActivePaths(G, activeLaneCount);
+        RemoveDanglingTowerConnections(G);
 
-        for (auto& tw : G.towers) {
-            tw.conns.erase(
-                std::remove_if(tw.conns.begin(), tw.conns.end(),
-                    [&](int id) { return G.FindTower(id) == nullptr; }),
-                tw.conns.end()
-            );
-        }
+        int replanCredit = RouteReplanCreditForLaneCount(activeLaneCount, G.wave);
+        G.credits += replanCredit;
 
-        G.credits += 200;
-
-        char pb[120];
+        char pb[180];
         if (demolished > 0) {
-            if (laneCount > 1)
-                snprintf(pb, 120, "雙路徑重組！+200CR。%d座塔被占用（全額退款）。主：%s | 副：%s",
-                    demolished, G.LanePreset(0).name, G.LanePreset(1).name);
+            if (activeLaneCount == 1)
+                snprintf(pb, 180, "路徑重組！+%dCR。%d座塔被占用（全額退款）。新路線：%s",
+                    replanCredit, demolished, G.LanePreset(0).name);
+            else if (activeLaneCount == 2)
+                snprintf(pb, 180, "雙路徑重組！+%dCR。%d座塔被占用（全額退款）。主：%s | 副：%s",
+                    replanCredit, demolished, G.LanePreset(0).name, G.LanePreset(1).name);
             else
-                snprintf(pb, 120, "路徑重組！+200CR。%d座塔被占用（全額退款）。新路線：%s",
-                    demolished, G.LanePreset(0).name);
+                snprintf(pb, 180, "%d路徑重組！+%dCR。%d座塔被占用（全額退款）。",
+                    activeLaneCount, replanCredit, demolished);
         } else {
-            if (laneCount > 1)
-                snprintf(pb, 120, "雙路徑重組！+200CR。主：%s | 副：%s",
-                    G.LanePreset(0).name, G.LanePreset(1).name);
+            if (activeLaneCount == 1)
+                snprintf(pb, 180, "路徑重組！+%dCR。新路線：%s", replanCredit, G.LanePreset(0).name);
+            else if (activeLaneCount == 2)
+                snprintf(pb, 180, "雙路徑重組！+%dCR。主：%s | 副：%s",
+                    replanCredit, G.LanePreset(0).name, G.LanePreset(1).name);
             else
-                snprintf(pb, 120, "路徑重組！+200CR。新路線：%s", G.LanePreset(0).name);
+                snprintf(pb, 180, "%d路徑重組！+%dCR。", activeLaneCount, replanCredit);
         }
-        G.SetMsg(pb);
-    }
-
-    // ── Wave 8 開通雙路徑 ────────────────────────────────────────
-    if (G.wave >= 8 && !G.dualPath) {
-        G.dualPath = true;
-        int p2 = PickSecondaryRouteForPrimary(G, G.LanePresetIdx(0));
-        BuildDualPath(p2);
-        char db[96];
-        snprintf(db, 96, "警告：第二條路徑開通！雙路進攻！副路：%s", G.LanePreset(1).name);
-        G.SetMsg(db);
+        routeNotice = pb;
     }
 
     UpdateUpcomingRoutePlan(G);
@@ -819,15 +1038,11 @@ void StartWave(Game& G) {
     G.eventBannerTimer = 4.f;
     G.blackoutActive   = (G.currentEvent == WaveEvent::BLACKOUT);
 
-    bool boss      = (G.wave % 5 == 0);
-    int  baseCount = boss ? 1 + (G.wave / 5) * 2 : 6 + G.wave * 3;
-
-    if (G.currentEvent == WaveEvent::SWARM)       baseCount = (int)(baseCount * 2.2f);
-    if (G.currentEvent == WaveEvent::BOSS_ESCORT) baseCount = 1 + G.wave * 2;
-    if (G.currentEvent == WaveEvent::ELITE_RUSH)  baseCount = std::max(4, baseCount / 2);
+    int baseCount = BalancedWaveCountForLanes(G.currentEvent, G.wave, G.ActiveLaneCount());
 
     G.waveCount   = baseCount;
     G.spawned     = 0;
+    G.spawnLaneCursor = 0;
     G.spawnTimer  = 0.f;
     G.phase       = Game::FIGHT;
     G.trainingTimer = 0.f;
@@ -841,12 +1056,17 @@ void StartWave(Game& G) {
     G.placing = TType::NONE;
     G.connectSrc = -1;
 
-    char buf[96];
+    std::string thresholdNotice = RouteThresholdNotice(G.wave, G.ActiveLaneCount());
+    char buf[128];
     if (G.eventName.empty() || G.currentEvent == WaveEvent::NONE)
-        snprintf(buf, 96, "第%d波 — %d 個病毒！", G.wave, G.waveCount);
+        snprintf(buf, 128, "第%d波 — %d 個病毒！", G.wave, G.waveCount);
     else
-        snprintf(buf, 96, "第%d波 %s (%d 個)", G.wave, G.eventName.c_str(), G.waveCount);
-    G.SetMsg(buf);
+        snprintf(buf, 128, "第%d波 %s (%d 個)", G.wave, G.eventName.c_str(), G.waveCount);
+
+    std::string waveMsg = buf;
+    if (!thresholdNotice.empty()) waveMsg = thresholdNotice + " | " + waveMsg;
+    if (!routeNotice.empty()) G.SetMsg(routeNotice + " | " + waveMsg);
+    else                      G.SetMsg(waveMsg);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -894,7 +1114,7 @@ void Update(Game& G, float dt) {
     // ── 生成敵人 ─────────────────────────────────────────────────
     if (G.phase == Game::FIGHT && G.waveTelegraphTimer <= 0.f && G.spawned < G.waveCount) {
         G.spawnTimer += dt;
-        float interval = std::max(0.15f, 0.75f - G.wave * 0.035f);
+        float interval = SpawnIntervalForWave(G.wave, G.ActiveLaneCount(), G.currentEvent);
         if (G.spawnTimer >= interval) {
             G.spawnTimer = 0.f;
             SpawnEnemy(G);
@@ -1176,7 +1396,7 @@ void Update(Game& G, float dt) {
             int ti = (int)e.type;
             if (ti >= 0 && ti < 5) G.intel.typeSurvived[ti]++;
             int pi = e.pathIdx;
-            if (pi >= 0 && pi < 2) G.intel.pathSurvived[pi]++;
+            if (pi >= 0 && pi < MAX_LANES) G.intel.pathSurvived[pi]++;
 
             e.hp = 0.f;
         }
@@ -1218,7 +1438,7 @@ void Update(Game& G, float dt) {
         }
         G.credits      += bonus;
         G.threatMap.Decay(0.85f);
-        G.intel.LearnFromWave();
+        G.intel.LearnFromWave(G.ActiveLaneCount());
         G.TrainDefenseNN();
         G.TrainPerceptrons();
         G.GenerateAIHints();

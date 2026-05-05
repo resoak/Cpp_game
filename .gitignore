@@ -1,2 +1,6 @@
 *.exe
 .vscode/
+report/
+build-debug-routes/
+build/
+build-cmake-*/

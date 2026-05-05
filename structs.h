@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <random>
+#include <array>
 
 // ══════════════════════════════════════════════════════════════════
 //  PerceptronLearner（Delta Rule 梯度更新）
@@ -159,24 +160,36 @@ struct EnemyIntel {
     EnemyBrain brain;
 
     float typeSurvRate[5]{ 0.2f, 0.2f, 0.2f, 0.2f, 0.2f };
-    float pathSurvRate[2]{ 0.4f, 0.4f };
+    std::array<float, MAX_LANES> pathSurvRate{};
 
     int typeSpawned[5]{};
     int typeSurvived[5]{};
-    int pathSpawned[2]{};
-    int pathSurvived[2]{};
-    float pathAvgThreat[2]{ 0.f, 0.f };
+    std::array<int, MAX_LANES> pathSpawned{};
+    std::array<int, MAX_LANES> pathSurvived{};
+    std::array<float, MAX_LANES> pathAvgThreat{};
 
     int  wavesLearned{ 0 };
     bool adapted{ false };
 
-    void ResetWave() {
-        for (int i = 0; i < 5; i++) { typeSpawned[i] = 0; typeSurvived[i] = 0; }
-        for (int i = 0; i < 2; i++) { pathSpawned[i] = 0; pathSurvived[i] = 0; pathAvgThreat[i] = 0.f; }
+    EnemyIntel() {
+        pathSurvRate.fill(0.4f);
     }
 
-    void LearnFromWave() {
+    static int ClampLaneCount(int activeLaneCount) {
+        return std::max(1, std::min(MAX_LANES, activeLaneCount));
+    }
+
+    void ResetWave() {
+        for (int i = 0; i < 5; i++) { typeSpawned[i] = 0; typeSurvived[i] = 0; }
+        pathSpawned.fill(0);
+        pathSurvived.fill(0);
+        pathAvgThreat.fill(0.f);
+    }
+
+    void LearnFromWave(int activeLaneCount = MAX_LANES) {
         constexpr float LR = 0.40f;
+        int laneCount = ClampLaneCount(activeLaneCount);
+
         for (int i = 0; i < 5; i++) {
             if (typeSpawned[i] > 0) {
                 float rate = (float)typeSurvived[i] / typeSpawned[i];
@@ -184,27 +197,38 @@ struct EnemyIntel {
                 typeSurvRate[i] = std::max(0.05f, std::min(0.95f, typeSurvRate[i]));
             }
         }
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < MAX_LANES; i++) {
             if (pathSpawned[i] > 0) {
                 float rate = (float)pathSurvived[i] / pathSpawned[i];
                 pathSurvRate[i] = pathSurvRate[i]*(1.f-LR) + rate*LR;
                 pathSurvRate[i] = std::max(0.05f, std::min(0.95f, pathSurvRate[i]));
             }
         }
-        float total = pathSurvRate[0] + pathSurvRate[1] + 0.001f;
-        for (int i = 0; i < 2; i++) {
+
+        float total = 0.001f;
+        for (int i = 0; i < laneCount; i++) total += pathSurvRate[i];
+        for (int i = 0; i < laneCount; i++) {
             float target = pathSurvRate[i] / total;
             brain.Learn(pathAvgThreat[i], 0.5f, pathSurvRate[i], target);
         }
+
         wavesLearned++;
         if (wavesLearned >= 2) adapted = true;
         ResetWave();
     }
 
-    int BrainPickPath(float threat0, float threat1) const {
-        float s0 = brain.Eval(threat0, 1.f, pathSurvRate[0]);
-        float s1 = brain.Eval(threat1, 1.f, pathSurvRate[1]);
-        return (s0 >= s1) ? 0 : 1;
+    int BrainPickPath(int activeLaneCount = MAX_LANES) const {
+        int laneCount = ClampLaneCount(activeLaneCount);
+        int bestLane = 0;
+        float bestScore = -1.f;
+        for (int lane = 0; lane < laneCount; lane++) {
+            float score = brain.Eval(pathAvgThreat[lane], 1.f, pathSurvRate[lane]);
+            if (score > bestScore) {
+                bestScore = score;
+                bestLane = lane;
+            }
+        }
+        return bestLane;
     }
 
     EType WeightedType(float rand01, int wave) const {
@@ -220,11 +244,27 @@ struct EnemyIntel {
         return EType::BASIC;
     }
 
-    int PickPath(float rand01, bool dualPath) const {
-        if (!dualPath || !adapted) return (rand01 < 0.5f) ? 0 : 1;
-        float total = pathSurvRate[0] + pathSurvRate[1];
-        if (total <= 0.f) return (rand01 < 0.5f) ? 0 : 1;
-        return (rand01 * total < pathSurvRate[0]) ? 0 : 1;
+    int PickPath(float rand01, int activeLaneCount = MAX_LANES) const {
+        int laneCount = ClampLaneCount(activeLaneCount);
+        if (laneCount <= 1) return 0;
+        if (!adapted) {
+            int lane = (int)(rand01 * laneCount);
+            return std::max(0, std::min(laneCount - 1, lane));
+        }
+
+        float total = 0.f;
+        for (int lane = 0; lane < laneCount; lane++) {
+            total += std::max(0.01f, pathSurvRate[lane]);
+        }
+        if (total <= 0.f) return 0;
+
+        float r = rand01 * total;
+        float acc = 0.f;
+        for (int lane = 0; lane < laneCount; lane++) {
+            acc += std::max(0.01f, pathSurvRate[lane]);
+            if (r <= acc) return lane;
+        }
+        return laneCount - 1;
     }
 
     const char* TopTypeName() const {
@@ -234,7 +274,14 @@ struct EnemyIntel {
         return NAMES[best];
     }
 
-    int PreferredPath() const { return (pathSurvRate[1] > pathSurvRate[0]) ? 1 : 0; }
+    int PreferredPath(int activeLaneCount = MAX_LANES) const {
+        int laneCount = ClampLaneCount(activeLaneCount);
+        int best = 0;
+        for (int lane = 1; lane < laneCount; lane++) {
+            if (pathSurvRate[lane] > pathSurvRate[best]) best = lane;
+        }
+        return best;
+    }
 };
 
 

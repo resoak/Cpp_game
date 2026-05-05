@@ -48,10 +48,13 @@ struct Game {
     bool  showThreat{false};
     bool  showAIHints{true};
     bool  dualPath{false};
+    int   activeLaneCount{1};
     bool  blackoutActive{false};
-    std::array<int, 2> nextPreviewPaths{{1, -1}};
+    std::array<int, MAX_LANES> nextPreviewPaths{{1, -1, -1, -1, -1, -1}};
     int   nextPreviewLaneCount{1};
     bool  hasPlannedRouteChange{false};
+    std::array<int, ENTRY_SIDE_COUNT> lastEntrySideWave{};
+    std::vector<int> lastPresetWave;
 
     float buffOverfreq{0.f};
     float buffArmorBreak{0.f};
@@ -73,6 +76,7 @@ struct Game {
 
     int   waveCount{0};
     int   spawned{0};
+    int   spawnLaneCursor{0};
     float spawnTimer{0.f};
     float trainingTimer{0.f};
     constexpr static float TRAIN_TIME = 15.f;
@@ -151,19 +155,23 @@ struct Game {
     }
 
     bool IsPath(int gx, int gy) {
-        return IsAnyActivePathCell(gx, gy, dualPath ? 2 : 1);
+        return IsAnyActivePathCell(gx, gy, ActiveLaneCount());
     }
 
     bool IsLaneActive(int laneSlot) const {
-        return laneSlot == 0 || (laneSlot == 1 && dualPath);
+        return laneSlot >= 0 && laneSlot < ActiveLaneCount();
     }
 
     int ActiveLaneCount() const {
-        return dualPath ? 2 : 1;
+        int count = activeLaneCount;
+        if (dualPath) count = std::max(count, 2);
+        return std::max(1, std::min(MAX_LANES, count));
     }
 
     int ResolveLaneSlot(int laneSlot) const {
-        return (laneSlot == 1 && dualPath) ? 1 : 0;
+        if (laneSlot < 0) return 0;
+        if (laneSlot >= MAX_LANES) return MAX_LANES - 1;
+        return laneSlot;
     }
 
     const PathPreset& LanePreset(int laneSlot) const {
@@ -188,6 +196,7 @@ struct Game {
 
     Vector2 EnemyWorld(const Enemy& e) {
         const auto& cells = EnemyLaneCells(e);
+        if (cells.empty()) return CC(CPU_GX, CPU_GY);
         int   i = (int)e.pathPos;
         float f = e.pathPos - i;
         if (i >= (int)cells.size() - 1) return CC(CPU_GX, CPU_GY);
@@ -199,6 +208,7 @@ struct Game {
 
     Vector2 EnemyGrid(const Enemy& e) {
         const auto& cells = EnemyLaneCells(e);
+        if (cells.empty()) return { (float)CPU_GX, (float)CPU_GY };
         int   i = (int)e.pathPos;
         float f = e.pathPos - i;
         if (i >= (int)cells.size() - 1) return { (float)CPU_GX, (float)CPU_GY };

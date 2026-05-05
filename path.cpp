@@ -45,14 +45,19 @@ const PathPreset PATH_PRESETS[] = {
 const int PATH_PRESET_COUNT = (int)(sizeof(PATH_PRESETS) / sizeof(PATH_PRESETS[0]));
 
 // ── 全域路徑狀態 ─────────────────────────────────────────────────
-int                   CURRENT_PATH_IDX  = 0;
-int                   CURRENT_PATH_IDX2 = 1;
-const PathPreset*     CUR_PRESET  = &PATH_PRESETS[0];
-const PathPreset*     CUR_PRESET2 = &PATH_PRESETS[1];
-std::vector<PathCell> PATH_CELLS;
-std::vector<PathCell> PATH_CELLS2;
-bool IS_PATH [24][20] = {};
-bool IS_PATH2[24][20] = {};
+std::array<int, MAX_LANES> CURRENT_PATH_IDX = {{0, 1, 2, 3, 4, 5}};
+std::array<const PathPreset*, MAX_LANES> CUR_PRESET = {{
+    &PATH_PRESETS[0], &PATH_PRESETS[1], &PATH_PRESETS[2],
+    &PATH_PRESETS[3], &PATH_PRESETS[4], &PATH_PRESETS[5]
+}};
+std::array<std::vector<PathCell>, MAX_LANES> PATH_CELLS;
+bool IS_PATH[MAX_LANES][24][20] = {};
+
+static int NormalizeLaneSlot(int laneSlot) {
+    if (laneSlot < 0) return 0;
+    if (laneSlot >= MAX_LANES) return MAX_LANES - 1;
+    return laneSlot;
+}
 
 static void BuildLaneCells(const PathPreset& preset,
                            std::vector<PathCell>& cells,
@@ -96,26 +101,29 @@ const PathPreset& GetPathPreset(int presetIdx) {
 }
 
 int GetActiveLanePresetIdx(int laneSlot) {
-    return (laneSlot == 1) ? CURRENT_PATH_IDX2 : CURRENT_PATH_IDX;
+    return CURRENT_PATH_IDX[NormalizeLaneSlot(laneSlot)];
 }
 
 const PathPreset& GetActiveLanePreset(int laneSlot) {
-    return (laneSlot == 1) ? *CUR_PRESET2 : *CUR_PRESET;
+    return *CUR_PRESET[NormalizeLaneSlot(laneSlot)];
 }
 
 const std::vector<PathCell>& GetActiveLaneCells(int laneSlot) {
-    return (laneSlot == 1) ? PATH_CELLS2 : PATH_CELLS;
+    return PATH_CELLS[NormalizeLaneSlot(laneSlot)];
 }
 
 bool IsActiveLaneCell(int laneSlot, int gx, int gy) {
     if (gx < 0 || gx >= COLS || gy < 0 || gy >= ROWS) return false;
-    return (laneSlot == 1) ? IS_PATH2[gx][gy] : IS_PATH[gx][gy];
+    return IS_PATH[NormalizeLaneSlot(laneSlot)][gx][gy];
 }
 
 bool IsAnyActivePathCell(int gx, int gy, int activeLaneCount) {
     if (gx < 0 || gx >= COLS || gy < 0 || gy >= ROWS) return false;
-    if (IsActiveLaneCell(0, gx, gy)) return true;
-    return activeLaneCount > 1 && IsActiveLaneCell(1, gx, gy);
+    int laneCount = std::max(1, std::min(MAX_LANES, activeLaneCount));
+    for (int lane = 0; lane < laneCount; lane++) {
+        if (IsActiveLaneCell(lane, gx, gy)) return true;
+    }
+    return false;
 }
 
 std::vector<PathCell> BuildPresetPathCells(int presetIdx) {
@@ -126,19 +134,13 @@ std::vector<PathCell> BuildPresetPathCells(int presetIdx) {
 }
 
 void SetActiveLanePreset(int laneSlot, int presetIdx) {
+    int lane = NormalizeLaneSlot(laneSlot);
     int normalized = NormalizePathPresetIdx(presetIdx);
     const PathPreset& preset = GetPathPreset(normalized);
 
-    if (laneSlot == 1) {
-        CURRENT_PATH_IDX2 = normalized;
-        CUR_PRESET2 = &preset;
-        BuildLaneCells(preset, PATH_CELLS2, IS_PATH2);
-        return;
-    }
-
-    CURRENT_PATH_IDX = normalized;
-    CUR_PRESET = &preset;
-    BuildLaneCells(preset, PATH_CELLS, IS_PATH);
+    CURRENT_PATH_IDX[lane] = normalized;
+    CUR_PRESET[lane] = &preset;
+    BuildLaneCells(preset, PATH_CELLS[lane], IS_PATH[lane]);
 }
 
 // ══════════════════════════════════════════════════════════════════

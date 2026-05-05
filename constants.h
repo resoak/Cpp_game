@@ -21,6 +21,7 @@ constexpr int COLS     = MAP_W / CELL;
 constexpr int ROWS     = MAP_H / CELL;
 constexpr int CPU_GX   = 11;
 constexpr int CPU_GY   = 8;
+constexpr int MAX_LANES = 6;
 
 // ── 列舉型別 ─────────────────────────────────────────────────────
 enum class TType { SENSOR, PERCEPTRON, AND, OR, XOR, CANNON, CPU, NAND, NONE };
