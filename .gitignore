@@ -1,2 +1,29 @@
 *.exe
+
+# CMake / build output
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+Makefile
+*.ninja
+*.dir/
+
+# Compiler artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.pdb
+*.ilk
+
+# IDE / editor settings
 .vscode/
+.idea/
+
+# Local OS noise
+.DS_Store
+Thumbs.db

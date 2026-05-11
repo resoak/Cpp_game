@@ -216,7 +216,7 @@ void DrawHelp() {
 
     struct AIRow { const char* title; const char* desc; };
     AIRow aiRows[] = {
-        {"感知器學習",  "每波結束以擊殺率為目標，對 w1/w2/bias 執行 Delta Rule 梯度更新"},
+        {"感知器學習",  "每波結束以下游砲塔射程覆蓋率為目標，對 w1/w2/bias 執行 Delta Rule 更新"},
         {"感知器層數",  "感知器串接形成多層網路（L1/L2/L3），右側面板顯示 loss 折線圖"},
         {"威脅熱圖",    "擊殺位置累積熱度，跨波衰減 15%，Boss 貢獻 8x"},
         {"Boss 狀態機", "偵測前方高威脅→EVADE加速x2.0；血量<30%永久RAMPAGE x2.8"},

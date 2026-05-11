@@ -22,6 +22,15 @@ constexpr int ROWS     = MAP_H / CELL;
 constexpr int CPU_GX   = 11;
 constexpr int CPU_GY   = 8;
 
+// ── 左側 UI 控制項幾何（繪製與點擊判定共用）──────────────────────
+constexpr int LEFT_CTRL_X       = 10;
+constexpr int LEFT_CTRL_W       = PANEL_L - 20;
+constexpr int LEFT_TOWER_BTN_H  = 58;
+constexpr int LEFT_TOWER_BTN_GAP = 7;
+constexpr int LEFT_WAVE_BTN_H   = 54;
+constexpr int TRAIN_CARD_H      = 72;
+constexpr int TRAIN_CARD_GAP    = 14;
+
 // ── 列舉型別 ─────────────────────────────────────────────────────
 enum class TType { SENSOR, PERCEPTRON, AND, OR, XOR, CANNON, CPU, NAND, NONE };
 enum class EType { BASIC, FAST, ARMORED, ELITE, BOSS };

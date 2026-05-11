@@ -24,6 +24,26 @@ static Color EnemyTagColor(EnemyTag tag) {
     }
 }
 
+static void EmitVfxRing(Game& G, Vector2 pos, Color col, float radius, float life) {
+    G.particles.push_back({ pos, {0.f, 0.f}, life, life, radius, col });
+}
+
+static void EmitMuzzleVfx(Game& G, Vector2 pos, Vector2 dir, Color col, bool charged) {
+    float ringR = charged ? 28.f : 20.f;
+    EmitVfxRing(G, pos, col, ringR, charged ? 0.28f : 0.20f);
+    G.SpawnParticles(pos, col, charged ? 9 : 5, charged ? 135.f : 95.f);
+
+    Vector2 nose = { pos.x + dir.x * CELL * 0.26f, pos.y + dir.y * CELL * 0.26f };
+    float speed = charged ? 180.f : 125.f;
+    G.particles.push_back({ nose, {dir.x * speed, dir.y * speed}, 0.22f, 0.22f, charged ? 7.f : 5.f, WHITE });
+}
+
+static void EmitImpactVfx(Game& G, Vector2 pos, Color col, bool heavy) {
+    G.SpawnParticles(pos, col, heavy ? 14 : 7, heavy ? 135.f : 85.f);
+    EmitVfxRing(G, pos, col, heavy ? 38.f : 24.f, heavy ? 0.36f : 0.25f);
+    if (heavy) EmitVfxRing(G, pos, WHITE, 18.f, 0.18f);
+}
+
 static void AssignEnemyTag(Game& G, Enemy& e) {
     if (e.type == EType::BOSS || G.wave < 4) return;
 
@@ -104,6 +124,40 @@ static void BuildTrainingChoices(Game& G) {
 
 static bool WaveRotatesRoutes(int wave) {
     return wave > 1 && (wave - 1) % 3 == 0;
+}
+
+static float IncidentDuration(Game::Incident incident) {
+    switch (incident) {
+        case Game::Incident::SIGNAL_STORM:  return 7.0f;
+        case Game::Incident::ROUTE_SURGE:   return 6.5f;
+        case Game::Incident::BOUNTY_WINDOW: return 8.0f;
+        default:                            return 0.f;
+    }
+}
+
+static Color IncidentColor(Game::Incident incident) {
+    switch (incident) {
+        case Game::Incident::SIGNAL_STORM:  return COL_SENSOR;
+        case Game::Incident::ROUTE_SURGE:   return Color{255, 130, 90, 255};
+        case Game::Incident::BOUNTY_WINDOW: return COL_STAR;
+        default:                            return WHITE;
+    }
+}
+
+static void TriggerIncident(Game& G) {
+    G.currentIncident = Game::RollIncident(G.wave, G.rng);
+    if (G.currentIncident == Game::Incident::NONE) return;
+
+    G.incidentTriggered   = true;
+    G.incidentName        = Game::IncidentName(G.currentIncident);
+    G.incidentTimer       = IncidentDuration(G.currentIncident);
+    G.incidentBannerTimer = 3.2f;
+
+    Color col = IncidentColor(G.currentIncident);
+    G.SetMsg(G.incidentName);
+    G.AddFloat(G.CC(CPU_GX, CPU_GY), G.incidentName, col);
+    G.SpawnParticles(G.CC(CPU_GX, CPU_GY), col, 18, 120.f);
+    G.Shake(7.f, 0.22f);
 }
 
 static bool IsOppositeSide(PathEntrySide a, PathEntrySide b) {
@@ -372,6 +426,7 @@ void ActivateSkill(Game& G, Tower& t) {
                 Vector2 dir = Vector2Normalize(Vector2Subtract(tp, sp));
                 G.bullets.push_back({ sp, {dir.x * 600.f, dir.y * 600.f},
                                        tgt->id, t.id, 500.f, false, true, 80.f, RED });
+                EmitMuzzleVfx(G, sp, dir, RED, true);
                 G.AddFloat(pos, "超砲！", RED);
             }
             G.SpawnParticles(pos, RED, 16, 160.f);
@@ -409,6 +464,9 @@ void PropagateSignals(Game& G, float dt) {
         if (t.type != TType::SENSOR) continue;
 
         float effectiveRange = G.blackoutActive ? t.range * 0.30f : t.range;
+        if (G.currentIncident == Game::Incident::SIGNAL_STORM && G.incidentTimer > 0.f) {
+            effectiveRange *= 0.65f;
+        }
         float minD = effectiveRange + 1.f;
 
         for (auto& e : G.enemies) {
@@ -818,6 +876,18 @@ void StartWave(Game& G) {
     G.eventName        = Game::EventName(G.currentEvent);
     G.eventBannerTimer = 4.f;
     G.blackoutActive   = (G.currentEvent == WaveEvent::BLACKOUT);
+    G.currentIncident     = Game::Incident::NONE;
+    G.incidentName        = "";
+    G.incidentTimer       = 0.f;
+    G.incidentBannerTimer = 0.f;
+    G.incidentTriggered   = false;
+    if (G.wave >= 3) {
+        std::uniform_real_distribution<float> delay(4.5f, 8.0f);
+        G.incidentRollTimer = delay(G.rng);
+    } else {
+        G.incidentRollTimer = 0.f;
+        G.incidentTriggered = true;
+    }
 
     bool boss      = (G.wave % 5 == 0);
     int  baseCount = boss ? 1 + (G.wave / 5) * 2 : 6 + G.wave * 3;
@@ -859,8 +929,22 @@ void Update(Game& G, float dt) {
     if (G.msgTimer         > 0) G.msgTimer         -= dt;
     if (G.shakeT           > 0) G.shakeT           -= dt;
     if (G.eventBannerTimer > 0) G.eventBannerTimer  -= dt;
+    if (G.incidentBannerTimer > 0) G.incidentBannerTimer -= dt;
     if (G.waveTelegraphTimer > 0) G.waveTelegraphTimer -= dt;
     if (G.spawnPulseTimer > 0)    G.spawnPulseTimer    -= dt;
+    if (G.incidentRollTimer > 0)  G.incidentRollTimer  -= dt;
+    if (G.incidentTimer > 0) {
+        G.incidentTimer -= dt;
+        if (G.incidentTimer <= 0.f) {
+            G.currentIncident = Game::Incident::NONE;
+            G.incidentName = "";
+        }
+    }
+
+    if (G.phase == Game::FIGHT && G.waveTelegraphTimer <= 0.f &&
+        !G.incidentTriggered && G.spawned > 0 && G.incidentRollTimer <= 0.f) {
+        TriggerIncident(G);
+    }
 
     bool surgeWasActive = (G.comboSurgeTimer > 0.f);
     if (G.comboSurgeTimer > 0.f) {
@@ -958,6 +1042,7 @@ void Update(Game& G, float dt) {
         Color bcol = crit ? YELLOW : (surgeShot ? Color{255, 140, 90, 255} : COL_CANNON);
         G.bullets.push_back({ sp, {dir.x * 420.f, dir.y * 420.f},
                                tgt->id, cannon.id, dmg, crit, hasSplash, hasSplash ? 55.f : 0.f, bcol });
+        EmitMuzzleVfx(G, sp, dir, bcol, crit || surgeShot || hasSplash);
 
         bool hasOrL3 = false;
         for (auto& src : G.towers)
@@ -976,6 +1061,7 @@ void Update(Game& G, float dt) {
                 Vector2 dir2 = Vector2Normalize(Vector2Subtract(tp2, sp));
                 G.bullets.push_back({ sp, {dir2.x * 420.f, dir2.y * 420.f},
                                        tgt2->id, cannon.id, dmg * 0.6f, false, false, 0.f, COL_OR });
+                EmitMuzzleVfx(G, sp, dir2, COL_OR, false);
             }
         }
     }
@@ -999,13 +1085,15 @@ void Update(Game& G, float dt) {
                 if (e.shieldHp <= 0.f) {
                     e.shielded = false;
                     G.SpawnParticles(ep, Color{150, 220, 255, 255}, 12, 90.f);
+                    EmitImpactVfx(G, ep, Color{150, 220, 255, 255}, true);
                     G.AddFloat(ep, "護盾破！", Color{150, 220, 255, 255});
                 }
             }
             e.hp -= actualDmg;
             e.flashTimer = 0.15f;
             G.waveDmg   += actualDmg;
-            G.SpawnParticles(b.pos, b.col, b.crit ? 12 : 6, b.crit ? 115.f : 80.f);
+            EmitImpactVfx(G, ep, b.crit ? YELLOW : b.col,
+                          b.crit || b.splash || e.type == EType::BOSS || actualDmg >= 60.f);
             hit = true;
 
             if (actualDmg >= 45.f || b.crit || e.type == EType::BOSS) {
@@ -1034,13 +1122,15 @@ void Update(Game& G, float dt) {
                         if (e2.shieldHp <= 0.f) {
                             e2.shielded = false;
                             G.SpawnParticles(G.EnemyWorld(e2), Color{150, 220, 255, 255}, 8, 80.f);
+                            EmitImpactVfx(G, G.EnemyWorld(e2), Color{150, 220, 255, 255}, true);
                             G.AddFloat(G.EnemyWorld(e2), "護盾破！", Color{150, 220, 255, 255});
                         }
                     }
                     e2.hp -= splashDmg;
-                    G.SpawnParticles(G.EnemyWorld(e2), Color{255, 180, 50, 255}, 4, 60.f);
+                    e2.flashTimer = std::max(e2.flashTimer, 0.08f);
+                    EmitImpactVfx(G, G.EnemyWorld(e2), Color{255, 180, 50, 255}, false);
                 }
-                G.SpawnParticles(b.pos, Color{255, 120, 40, 255}, 16, 100.f);
+                EmitImpactVfx(G, b.pos, Color{255, 120, 40, 255}, true);
             }
             break;
         }
@@ -1085,6 +1175,7 @@ void Update(Game& G, float dt) {
         float comboMult = (G.combo >= 10) ? 2.f
                         : (G.combo >=  5) ? 1.5f
                         : (G.combo >=  3) ? 1.2f : 1.f;
+        if (G.currentIncident == Game::Incident::BOUNTY_WINDOW && G.incidentTimer > 0.f) comboMult += 0.35f;
         int reward = (int)(it->reward * comboMult);
         G.credits += reward;
         G.score   += (int)(reward * 1.5f);
@@ -1159,6 +1250,7 @@ void Update(Game& G, float dt) {
 
         float speed = e.spd;
         if (e.type == EType::BOSS) speed *= e.evadeSpdMult;
+        if (G.currentIncident == Game::Incident::ROUTE_SURGE && G.incidentTimer > 0.f) speed *= 1.22f;
         e.pathPos += speed * dt;
 
         const auto& pathRef = G.EnemyLaneCells(e);
@@ -1210,6 +1302,11 @@ void Update(Game& G, float dt) {
         G.blackoutActive = false;
         G.waveTelegraphTimer = 0.f;
         G.spawnPulseTimer = 0.f;
+        G.currentIncident = Game::Incident::NONE;
+        G.incidentName = "";
+        G.incidentTimer = 0.f;
+        G.incidentBannerTimer = 0.f;
+        G.incidentRollTimer = 0.f;
         G.combo = 0;
         G.comboTimer = 0.f;
         G.comboSurgeTimer = 0.f;

@@ -3,6 +3,7 @@ project(LogicGateDefense CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # ── 查找 raylib ──────────────────────────────────────────────────
 find_package(raylib QUIET)
@@ -36,6 +37,17 @@ add_executable(lgd ${SOURCES})
 
 target_include_directories(lgd PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(lgd PRIVATE raylib)
+
+# ── 執行時資源 ────────────────────────────────────────────────────
+# 遊戲需要字型檔顯示中文；建置後自動複製到執行檔旁，方便直接執行。
+add_custom_command(TARGET lgd POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/font.ttf
+        $<TARGET_FILE_DIR:lgd>/font.ttf
+)
+
+install(TARGETS lgd RUNTIME DESTINATION bin)
+install(FILES font.ttf DESTINATION bin)
 
 # ── 平台特定連結 ──────────────────────────────────────────────────
 if (UNIX AND NOT APPLE)

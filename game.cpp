@@ -49,6 +49,24 @@ const char* Game::EventName(WaveEvent e) {
     }
 }
 
+Game::Incident Game::RollIncident(int wave, std::mt19937& rng) {
+    if (wave < 3) return Incident::NONE;
+    std::uniform_int_distribution<int> d(0, 99);
+    int r = d(rng);
+    if (r < 34) return Incident::SIGNAL_STORM;
+    if (r < 68) return Incident::ROUTE_SURGE;
+    return Incident::BOUNTY_WINDOW;
+}
+
+const char* Game::IncidentName(Incident i) {
+    switch (i) {
+        case Incident::SIGNAL_STORM:  return "突發：信號風暴！";
+        case Incident::ROUTE_SURGE:   return "突發：路徑暴走！";
+        case Incident::BOUNTY_WINDOW: return "突發：漏洞賞金！";
+        default:                      return "";
+    }
+}
+
 static float SegmentCoverage(const Game& G, const std::vector<PathCell>& cells, int seg) {
     int n = (int)cells.size();
     if (n <= 0) return 0.f;
@@ -467,6 +485,12 @@ void Game::Reset() {
     currentEvent     = WaveEvent::NONE;
     eventName        = "";
     eventBannerTimer = 0.f;
+    currentIncident     = Incident::NONE;
+    incidentName        = "";
+    incidentTimer       = 0.f;
+    incidentBannerTimer = 0.f;
+    incidentRollTimer   = 0.f;
+    incidentTriggered   = false;
     aiHints.clear();
     intel = EnemyIntel{};
     defNN = DefenseAdvisorNN{};
