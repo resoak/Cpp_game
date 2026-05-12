@@ -26,6 +26,19 @@ git clone <你的 GitHub 專案網址>
 cd project
 ```
 
+使用 Opencode（下載到桌面）：
+
+1. 在 Opencode 輸入以下 prompt（把網址換成你的 fork 或目標專案）：
+
+   ```text
+   請使用 git clone 將 https://github.com/resoak/Cpp_game 下載到我的桌面資料夾，並把專案命名為 Cpp_game。
+   ```
+
+2. 下載完成後，在終端機進入專案：
+
+   - macOS / Linux：`cd ~/Desktop/Cpp_game`
+   - Windows（PowerShell）：`cd $HOME\Desktop\Cpp_game`
+
 如果你是直接從 GitHub 網頁下載 ZIP：
 
 1. 點選 **Code** → **Download ZIP**。
