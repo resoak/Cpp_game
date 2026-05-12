@@ -45,5 +45,7 @@ void DrawBotBar(Game& G);
 
 // ── 畫面層 ───────────────────────────────────────────────────────
 void DrawMenu(Game& G);
+void DrawTutorialSelect(Game& G);
+void DrawTutorialOverlay(Game& G);
 void DrawHelp();
 void DrawGameOver(Game& G);

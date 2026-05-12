@@ -6,6 +6,7 @@
 #include "path.h"
 #include "font.h"
 #include "globals.h"
+#include "tutorial.h"
 #include <random>
 #include <string>
 #include <functional>
@@ -83,9 +84,10 @@ struct Game {
     float cpuHp{100.f};
     bool  paused{false};
     bool  showHelp{false};
+    TutorialRuntime tutorial;
 
     // ── 遊戲階段 ───────────────────────────────────────────────────
-    enum Phase { MENU, BUILD, FIGHT, TRAINING, GAMEOVER } phase{MENU};
+    enum Phase { MENU, TUTORIAL_SELECT, BUILD, FIGHT, TRAINING, GAMEOVER } phase{MENU};
 
     int   waveCount{0};
     int   spawned{0};

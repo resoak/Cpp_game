@@ -476,6 +476,7 @@ void Game::Reset() {
 
     paused   = false;
     showHelp = false;
+    tutorial.ResetTransient();
     phase    = BUILD;
 
     placing    = TType::NONE;

@@ -141,28 +141,34 @@ void DrawLeftPanel(Game& G) {
 
         bool sel    = (G.placing == tt);
         bool canBuy = (G.credits >= def.baseCost);
+        bool tutorialAllowed = IsTutorialTowerAllowed(G, tt);
+        bool enabled = canBuy && tutorialAllowed;
 
         Color bg = PANEL_BG;
         if (sel)          { bg = def.col; bg.a = 55; }
-        else if (!canBuy)   bg = {8, 8, 8, 255};
+        else if (!enabled) bg = {8, 8, 8, 255};
 
-        Color bd = sel ? def.col : AlphaOf(def.col, canBuy ? 80 : 30);
+        Color bd = sel ? def.col : AlphaOf(def.col, enabled ? 80 : 30);
         if (sel) { float p2=0.7f+0.3f*sinf(t*4.f); bd.a=(unsigned char)(200*p2); }
 
         DrawRoundBox(LEFT_CTRL_X, (float)by, LEFT_CTRL_W, (float)LEFT_TOWER_BTN_H, 8, bg, bd, sel ? 2.5f : 1.5f);
-        DrawRectangleGradientH(LEFT_CTRL_X + 2, by + 2, LEFT_CTRL_W - 4, LEFT_TOWER_BTN_H - 4, AlphaOf(def.col, canBuy ? 14 : 5), AlphaOf(BG, 0));
+        DrawRectangleGradientH(LEFT_CTRL_X + 2, by + 2, LEFT_CTRL_W - 4, LEFT_TOWER_BTN_H - 4, AlphaOf(def.col, enabled ? 14 : 5), AlphaOf(BG, 0));
         if (sel) DrawPanelScan((float)LEFT_CTRL_X + 3.f, (float)by + 3.f, (float)LEFT_CTRL_W - 6.f, (float)LEFT_TOWER_BTN_H - 6.f, def.col, fmodf(t * 0.55f, 1.f));
         DrawCardTicks((float)LEFT_CTRL_X, (float)by, (float)LEFT_CTRL_W, (float)LEFT_TOWER_BTN_H, def.col);
 
-        Color sc = sel ? def.col : AlphaOf(def.col, canBuy ? 200 : 80);
+        Color sc = sel ? def.col : AlphaOf(def.col, enabled ? 200 : 80);
         DTC(def.sym, 48, by + LEFT_TOWER_BTN_H / 2, FS_MED, sc);
 
-        Color tc = canBuy ? WHITE : AlphaOf(WHITE, 80);
+        Color tc = enabled ? WHITE : AlphaOf(WHITE, 80);
         DTX(def.label, 72, (float)by + 7, FS_TINY, tc);
 
         char cs[16]; snprintf(cs, 16, "%d CR", def.baseCost);
-        DTX(cs, 72, (float)by + 25, FS_TINY, AlphaOf(COL_AND, canBuy ? 200 : 80));
-        DTX(def.desc, 14, (float)by + LEFT_TOWER_BTN_H - 14, FS_TINY, AlphaOf(WHITE, canBuy ? 100 : 40));
+        DTX(cs, 72, (float)by + 25, FS_TINY, AlphaOf(COL_AND, enabled ? 200 : 80));
+        DTX(def.desc, 14, (float)by + LEFT_TOWER_BTN_H - 14, FS_TINY, AlphaOf(WHITE, enabled ? 100 : 40));
+        if (G.tutorial.active && !tutorialAllowed) {
+            DrawRectangle(LEFT_CTRL_X + 2, by + 2, LEFT_CTRL_W - 4, LEFT_TOWER_BTN_H - 4, AlphaOf(BLACK, 115));
+            DTC("LOCK", LEFT_CTRL_X + LEFT_CTRL_W - 36, by + 17, FS_TINY, AlphaOf(WHITE, 95));
+        }
     }
 
     // ── 發動波次按鈕 ─────────────────────────────────────────────
@@ -170,8 +176,11 @@ void DrawLeftPanel(Game& G) {
     if (G.phase == Game::BUILD) {
         float p2   = 0.7f + 0.3f * sinf(t * 3.f);
         Color wbc  = COL_PERC;
-        DrawRoundBox(LEFT_CTRL_X, (float)G.waveBtnY, LEFT_CTRL_W, LEFT_WAVE_BTN_H, 10, AlphaOf(wbc, 25), wbc, 2.5f);
-        DTC("▶ 發動下一波", PANEL_L / 2, G.waveBtnY + 27, FS_MED, AlphaOf(wbc, (int)(220 * p2)));
+        bool waveAllowed = IsTutorialWaveStartAllowed(G);
+        DrawRoundBox(LEFT_CTRL_X, (float)G.waveBtnY, LEFT_CTRL_W, LEFT_WAVE_BTN_H, 10,
+                     AlphaOf(wbc, waveAllowed ? 25 : 8), AlphaOf(wbc, waveAllowed ? 255 : 70), waveAllowed ? 2.5f : 1.2f);
+        DTC(G.tutorial.active ? "▶ 啟動教學短波次" : "▶ 發動下一波", PANEL_L / 2, G.waveBtnY + 27, FS_MED,
+            AlphaOf(wbc, waveAllowed ? (int)(220 * p2) : 92));
     }
 
     // ── 金幣 + 訊息 ──────────────────────────────────────────────

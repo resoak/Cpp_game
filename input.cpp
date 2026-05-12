@@ -3,6 +3,7 @@
 #include "globals.h"
 #include "path.h"
 #include "logic.h"
+#include "tutorial.h"
 #include "raylib.h"
 #include <algorithm>
 #include <cstdio>
@@ -50,10 +51,120 @@ void HandleInput(Game& G) {
             }
             return;
         }
-        if (IsKeyPressed(KEY_H))                                 G.showHelp = true;
-        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE))  G.Reset();
+        int cx = VIRT_W / 2, cy = VIRT_H / 2;
+        int frameW = 1120;
+        int fx = cx - frameW / 2;
+        int fy = cy - 250;
+        int actionY = fy + 264;
+        int actionH = 72;
+        int actionGap = 14;
+        int actionW = (frameW - 44 - actionGap) / 2;
+        Rectangle startBtn = {(float)fx + 22.f, (float)actionY, (float)actionW, (float)actionH};
+        Rectangle tutorialBtn = {startBtn.x + actionW + actionGap, (float)actionY, (float)actionW, (float)actionH};
+
+        if (IsKeyPressed(KEY_H))                                G.showHelp = true;
+        if (IsKeyPressed(KEY_T))                                EnterTutorialSelect(G);
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) G.Reset();
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            if (CheckCollisionPointRec(mp, startBtn)) {
+                G.Reset();
+            } else if (CheckCollisionPointRec(mp, tutorialBtn)) {
+                EnterTutorialSelect(G);
+            }
+        }
         return;
     }
+
+    // ── 教學章節選單輸入 ───────────────────────────────────────
+    if (G.phase == Game::TUTORIAL_SELECT) {
+        if (G.showHelp) {
+            if (IsKeyPressed(KEY_H) ||
+                IsKeyPressed(KEY_ESCAPE) ||
+                IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                G.showHelp = false;
+            }
+            return;
+        }
+
+        if (IsKeyPressed(KEY_H)) {
+            G.showHelp = true;
+            return;
+        }
+        if (IsKeyPressed(KEY_ESCAPE)) {
+            G.phase = Game::MENU;
+            G.tutorial.ResetTransient();
+            return;
+        }
+        if (IsKeyPressed(KEY_UP)) {
+            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson - 3);
+            return;
+        }
+        if (IsKeyPressed(KEY_DOWN)) {
+            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson + 3);
+            return;
+        }
+        if (IsKeyPressed(KEY_LEFT)) {
+            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson - 1);
+            return;
+        }
+        if (IsKeyPressed(KEY_RIGHT)) {
+            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson + 1);
+            return;
+        }
+
+        int picked = -1;
+        static const int NUM_KEYS[TUTORIAL_LESSON_COUNT] = {
+            KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR, KEY_FIVE,
+            KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE
+        };
+        static const int KP_KEYS[TUTORIAL_LESSON_COUNT] = {
+            KEY_KP_1, KEY_KP_2, KEY_KP_3, KEY_KP_4, KEY_KP_5,
+            KEY_KP_6, KEY_KP_7, KEY_KP_8, KEY_KP_9
+        };
+        for (int i = 0; i < TUTORIAL_LESSON_COUNT; i++) {
+            if (IsKeyPressed(NUM_KEYS[i]) || IsKeyPressed(KP_KEYS[i])) {
+                picked = i;
+                break;
+            }
+        }
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+            int gridX = 150;
+            int gridY = 210;
+            int cardW = 500;
+            int cardH = 180;
+            int gapX = 60;
+            int gapY = 34;
+            for (int i = 0; i < TUTORIAL_LESSON_COUNT; i++) {
+                int col = i % 3;
+                int row = i / 3;
+                Rectangle card = {
+                    (float)(gridX + col * (cardW + gapX)),
+                    (float)(gridY + row * (cardH + gapY)),
+                    (float)cardW,
+                    (float)cardH
+                };
+                if (CheckCollisionPointRec(mp, card)) {
+                    picked = i;
+                    break;
+                }
+            }
+        }
+
+        if (picked >= 0) {
+            G.tutorial.selectedLesson = ClampTutorialLessonIndex(picked);
+            StartTutorial(G, (TutorialLessonId)G.tutorial.selectedLesson);
+            return;
+        }
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            StartTutorial(G, (TutorialLessonId)G.tutorial.selectedLesson);
+            return;
+        }
+        return;
+    }
+
+    // ── 教學進行中輸入優先權 ───────────────────────────────────
+    if (HandleTutorialInput(G)) return;
 
     // ── 說明頁面開關 ─────────────────────────────────────────────
     if (IsKeyPressed(KEY_H)) {
@@ -124,6 +235,7 @@ void HandleInput(Game& G) {
                 G.SetMsg(b2);
             } else {
                 ActivateSkill(G, *st);
+                RecordTutorialSkillUsed(G, st->type);
                 char b2[48];
                 snprintf(b2, 48, "[%s] %s！", TDef(st->type).sym, SKILL_NAME[(int)st->type]);
                 G.SetMsg(b2);
@@ -148,6 +260,13 @@ void HandleInput(Game& G) {
             int by = G.btnY0 + i * (LEFT_TOWER_BTN_H + LEFT_TOWER_BTN_GAP);
             if (mp.y >= by && mp.y < by + LEFT_TOWER_BTN_H) {
                 TType tt  = ORDER[i];
+                if (G.tutorial.active && !IsTutorialTowerAllowed(G, tt)) {
+                    char msg[128];
+                    snprintf(msg, 128, "教學提示：目前步驟是「%s」。%s",
+                             TutorialCurrentStepTitle(G), TutorialCurrentStepHint(G));
+                    G.SetMsg(msg);
+                    return;
+                }
                 G.placing = (G.placing == tt) ? TType::NONE : tt;
                 G.selectedId = -1;
                 G.connectSrc = -1;
@@ -156,6 +275,10 @@ void HandleInput(Game& G) {
         }
         if (mp.y >= G.waveBtnY && mp.y < G.waveBtnY + LEFT_WAVE_BTN_H &&
             G.phase == Game::BUILD) {
+            if (G.tutorial.active && !IsTutorialWaveStartAllowed(G)) {
+                G.SetMsg("教學提示：請先完成目前步驟，再發動短波次。");
+                return;
+            }
             StartWave(G);
             return;
         }
@@ -178,6 +301,7 @@ void HandleInput(Game& G) {
                         std::string err = G.ValidateConnect(G.connectSrc, dst->id);
                         if (err.empty()) {
                             src->conns.push_back(dst->id);
+                            RecordTutorialConnection(G, src->type, dst->type);
                             G.SetMsg("連接成功！");
                         } else {
                             G.SetMsg("[錯誤] " + err);
@@ -194,6 +318,7 @@ void HandleInput(Game& G) {
         if (ex) {
             G.selectedId = ex->id;
             G.placing    = TType::NONE;
+            RecordTutorialTowerSelected(G, ex->type);
             return;
         }
 
@@ -215,8 +340,10 @@ void HandleInput(Game& G) {
                 nt.cooldown = 0;
                 nt.anim     = 0.f;
                 G.ApplyTowerStats(nt);
+                TType placedType = nt.type;
                 G.towers.push_back(nt);
                 G.credits -= TDef(G.placing).baseCost;
+                RecordTutorialTowerPlaced(G, placedType);
 
                 if (G.placing == TType::PERCEPTRON) {
                     G.SetMsg("感知器已放置，每波結束會自動學習！");
@@ -236,7 +363,13 @@ void HandleInput(Game& G) {
     }
 
     // ── 其他快捷鍵 ───────────────────────────────────────────────
-    if (IsKeyPressed(KEY_SPACE) && G.phase == Game::BUILD) StartWave(G);
+    if (IsKeyPressed(KEY_SPACE) && G.phase == Game::BUILD) {
+        if (G.tutorial.active && !IsTutorialWaveStartAllowed(G)) {
+            G.SetMsg("教學提示：請先完成目前步驟，再發動短波次。");
+        } else {
+            StartWave(G);
+        }
+    }
     if (IsKeyPressed(KEY_ESCAPE)) {
         G.placing    = TType::NONE;
         G.connectSrc = -1;

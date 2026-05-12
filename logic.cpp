@@ -1039,6 +1039,10 @@ void SpawnEnemy(Game& G) {
 // ══════════════════════════════════════════════════════════════════
 void StartWave(Game& G) {
     if (G.phase != Game::BUILD) return;
+    if (G.tutorial.active) {
+        StartTutorialWave(G);
+        return;
+    }
 
     G.wave++;
     int laneCount = LaneCountForWave(G.wave);
@@ -1102,6 +1106,14 @@ void StartWave(Game& G) {
         G.incidentRollTimer = 0.f;
         G.incidentTriggered = true;
     }
+    if (G.tutorial.active) {
+        G.currentEvent = WaveEvent::NONE;
+        G.eventName = "";
+        G.eventBannerTimer = 0.f;
+        G.blackoutActive = false;
+        G.incidentRollTimer = 0.f;
+        G.incidentTriggered = true;
+    }
 
     int baseCount = BalancedWaveCountForLanes(G.currentEvent, G.wave, G.ActiveLaneCount());
 
@@ -1110,6 +1122,7 @@ void StartWave(Game& G) {
     G.spawnLaneCursor = 0;
     G.spawnTimer  = 0.f;
     G.phase       = Game::FIGHT;
+    RecordTutorialWaveStarted(G);
     G.trainingTimer = 0.f;
     G.trainingChoiceCount = 0;
     G.waveKills   = 0;
@@ -1138,7 +1151,10 @@ void StartWave(Game& G) {
 //  Update  —  主更新迴圈
 // ══════════════════════════════════════════════════════════════════
 void Update(Game& G, float dt) {
-    if (G.paused || G.phase == Game::GAMEOVER || G.phase == Game::MENU) return;
+    if (G.paused || G.phase == Game::GAMEOVER ||
+        G.phase == Game::MENU || G.phase == Game::TUTORIAL_SELECT) return;
+
+    UpdateTutorial(G, dt);
 
     // ── 倒數計時器 ───────────────────────────────────────────────
     if (G.msgTimer         > 0) G.msgTimer         -= dt;
@@ -1394,7 +1410,8 @@ void Update(Game& G, float dt) {
         int reward = (int)(it->reward * comboMult);
         G.credits += reward;
         G.score   += (int)(reward * 1.5f);
-        if (G.score > G.highScore) G.highScore = G.score;
+        if (!G.tutorial.active && G.score > G.highScore) G.highScore = G.score;
+        RecordTutorialEnemyKilled(G, it->type);
 
         Vector2 p = G.EnemyWorld(*it);
         G.SpawnParticles(p, COL_VIRUS,
@@ -1513,6 +1530,28 @@ void Update(Game& G, float dt) {
     // ── 波次結束 ─────────────────────────────────────────────────
     bool waveFinished = (G.phase == Game::FIGHT) && G.enemies.empty() && (G.spawned >= G.waveCount);
     if (waveFinished) {
+        if (G.tutorial.active) {
+            RecordTutorialSurvived(G);
+            G.blackoutActive = false;
+            G.waveTelegraphTimer = 0.f;
+            G.spawnPulseTimer = 0.f;
+            G.currentIncident = Game::Incident::NONE;
+            G.incidentName = "";
+            G.incidentTimer = 0.f;
+            G.incidentBannerTimer = 0.f;
+            G.incidentRollTimer = 0.f;
+            G.combo = 0;
+            G.comboTimer = 0.f;
+            G.comboSurgeTimer = 0.f;
+            G.phase = Game::BUILD;
+            G.trainingTimer = 0.f;
+            G.trainingChoiceCount = 0;
+            G.placing = TType::NONE;
+            G.connectSrc = -1;
+            G.SetMsg("教學短波次結束。後續 Phase 將接上章節完成條件。");
+            return;
+        }
+
         int bonus = 50 + G.wave * 10;
         G.blackoutActive = false;
         G.waveTelegraphTimer = 0.f;
@@ -1550,6 +1589,18 @@ void Update(Game& G, float dt) {
 
     // ── 遊戲結束 ─────────────────────────────────────────────────
     if (G.lives <= 0 || G.cpuHp <= 0) {
+        if (G.tutorial.active) {
+            G.lives = 0;
+            G.cpuHp = 0.f;
+            G.enemies.clear();
+            G.bullets.clear();
+            G.phase = Game::BUILD;
+            G.paused = true;
+            G.tutorial.exitPromptOpen = true;
+            G.tutorial.exitPromptChoice = 0;
+            G.SetMsg("教學失敗：可繼續查看、重開章節或退出。");
+            return;
+        }
         G.lives = 0; G.cpuHp = 0; G.phase = Game::GAMEOVER;
         if (G.score > G.highScore) G.highScore = G.score;
         G.SetMsg("防線崩潰 — 遊戲結束！");

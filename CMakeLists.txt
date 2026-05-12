@@ -31,6 +31,7 @@ set(SOURCES
     path.cpp
     tower_data.cpp
     game.cpp
+    tutorial.cpp
     logic.cpp
     draw_world.cpp
     draw_ui.cpp

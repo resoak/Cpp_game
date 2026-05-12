@@ -86,6 +86,9 @@ int main() {
         if (G.phase == Game::MENU) {
             DrawMenu(G);
             if (G.showHelp) DrawHelp();
+        } else if (G.phase == Game::TUTORIAL_SELECT) {
+            DrawTutorialSelect(G);
+            if (G.showHelp) DrawHelp();
         } else {
             DrawStars(G);
             gShkX = shakeX; gShkY = shakeY;
@@ -110,6 +113,7 @@ int main() {
             DrawTopBar(G);
             DrawBotBar(G);
 
+            if (G.tutorial.active) DrawTutorialOverlay(G);
             if (G.phase == Game::GAMEOVER) DrawGameOver(G);
             if (G.showHelp) DrawHelp();
         }

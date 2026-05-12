@@ -103,8 +103,16 @@ void DrawMenu(Game& G) {
 
     DrawRoundBox((float)fx + 22, (float)fy + 92, (float)frameW - 44, 150.f, 10.f,
                  AlphaOf(COL_SENSOR, 10), AlphaOf(COL_SENSOR, 36), 1.1f);
-    DrawRoundBox((float)fx + 22, (float)fy + 264, (float)frameW - 44, 72.f, 12.f,
+    int actionY = fy + 264;
+    int actionH = 72;
+    int actionGap = 14;
+    int actionW = (frameW - 44 - actionGap) / 2;
+    int startX = fx + 22;
+    int tutorialX = startX + actionW + actionGap;
+    DrawRoundBox((float)startX, (float)actionY, (float)actionW, (float)actionH, 12.f,
                  AlphaOf(COL_PERC, 14), AlphaOf(COL_PERC, 96), 1.7f);
+    DrawRoundBox((float)tutorialX, (float)actionY, (float)actionW, (float)actionH, 12.f,
+                 AlphaOf(COL_AI, 12), AlphaOf(COL_AI, 88), 1.5f);
 
     DTX("SYSTEM BOOT", (float)fx + 28, (float)fy + 18, FS_TINY, AlphaOf(COL_SENSOR, 180));
     DTX("NEURAL FORTRESS // MENU", (float)fx + frameW - 324, (float)fy + 18, FS_TINY, AlphaOf(COL_AI, 180));
@@ -135,8 +143,11 @@ void DrawMenu(Game& G) {
     }
 
     float sp=0.82f+0.18f*sinf(t*3.2f);
-    DTC("按 ENTER 或 空白鍵 開始",cx,fy+300, FS_LARGE,AlphaOf(COL_PERC,(int)(240*sp)));
-    DTC("[H] 查看說明",             cx,fy+338, FS_MED,  AlphaOf(WHITE,98));
+    DTC("開始遊戲", startX + actionW / 2, fy + 292, FS_LARGE, AlphaOf(COL_PERC, (int)(238 * sp)));
+    DTC("[ENTER / SPACE]", startX + actionW / 2, fy + 326, FS_TINY, AlphaOf(WHITE, 112));
+    DTC("教學關卡", tutorialX + actionW / 2, fy + 292, FS_LARGE, AlphaOf(COL_AI, (int)(224 * sp)));
+    DTC("[T] 選擇章節", tutorialX + actionW / 2, fy + 326, FS_TINY, AlphaOf(WHITE, 112));
+    DTC("[H] 查看說明", cx, fy + 358, FS_MED, AlphaOf(WHITE, 98));
 
     if (G.highScore > 0) {
         char hs[40]; snprintf(hs,40,"歷史最高分：%d",G.highScore);
