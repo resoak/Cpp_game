@@ -31,25 +31,53 @@ static float LanePressureUi(const Game& G, int laneSlot) {
     return Clamp(furthest, 0.f, 1.f);
 }
 
+static Color IncidentUiColor(Game::Incident incident) {
+    switch (incident) {
+        case Game::Incident::SIGNAL_STORM:  return COL_SENSOR;
+        case Game::Incident::ROUTE_SURGE:   return Color{255, 130, 90, 255};
+        case Game::Incident::BOUNTY_WINDOW: return COL_STAR;
+        default:                            return WHITE;
+    }
+}
+
+static void DrawPanelScan(float x, float y, float w, float h, Color col, float phase) {
+    float sx = x + fmodf(phase, 1.f) * w;
+    DrawLineEx({sx, y + 5.f}, {sx - 34.f, y + h - 5.f}, 1.2f, AlphaOf(col, 54));
+    DrawLineEx({x + 10.f, y + h - 8.f}, {x + w - 10.f, y + h - 8.f}, 1.f, AlphaOf(col, 24));
+}
+
+static void DrawCardTicks(float x, float y, float w, float h, Color col) {
+    DrawLineEx({x + 10.f, y + 9.f}, {x + 34.f, y + 9.f}, 1.f, AlphaOf(col, 92));
+    DrawLineEx({x + 10.f, y + 9.f}, {x + 10.f, y + 22.f}, 1.f, AlphaOf(col, 70));
+    DrawLineEx({x + w - 10.f, y + h - 9.f}, {x + w - 34.f, y + h - 9.f}, 1.f, AlphaOf(col, 76));
+    DrawLineEx({x + w - 10.f, y + h - 9.f}, {x + w - 10.f, y + h - 22.f}, 1.f, AlphaOf(col, 56));
+}
+
 static void DrawRouteUiCard(int x, int y, int w, const char* header, const PathPreset& preset,
                             int laneSlot, int enemyCount, float pressure, bool preview) {
     RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
     float pulse = 0.65f + 0.35f * sinf((float)GetTime() * 2.4f + laneSlot * 0.8f + preset.family * 0.35f);
 
-    DrawRoundBox((float)x, (float)y, (float)w, 46.f, 8.f,
+    DrawRoundBox((float)x, (float)y, (float)w, 52.f, 8.f,
         AlphaOf(theme.fillSoft, 220),
         AlphaOf(theme.accent, (int)(120 + pulse * 70)), 1.4f);
-    DTX(header, (float)x + 10, (float)y + 6, FS_TINY, AlphaOf(theme.accent, 230));
-    DTX(theme.shortLabel, (float)x + 10, (float)y + 21, FS_TINY, AlphaOf(theme.glow, 215));
-    DTX(preset.name, (float)x + 78, (float)y + 5, FS_SMALL, theme.text);
-    DTX(theme.sideLabel, (float)x + 78, (float)y + 22, FS_TINY, AlphaOf(theme.glow, 165));
+    DrawRectangleGradientH(x + 2, y + 2, w - 4, 48, AlphaOf(theme.accent, 16), AlphaOf(theme.fill, 4));
+    DrawPanelScan((float)x + 4.f, (float)y + 4.f, (float)w - 8.f, 44.f, theme.glow,
+        fmodf((float)GetTime() * 0.18f + laneSlot * 0.33f, 1.f));
+    DrawCardTicks((float)x, (float)y, (float)w, 52.f, theme.accent);
+    DTX(header, (float)x + 12, (float)y + 7, FS_TINY, AlphaOf(theme.accent, 230));
+    DTX(theme.shortLabel, (float)x + 12, (float)y + 25, FS_TINY, AlphaOf(theme.glow, 215));
+    DTX(preset.name, (float)x + 84, (float)y + 7, FS_SMALL, theme.text);
+    DTX(theme.sideLabel, (float)x + 84, (float)y + 26, FS_TINY, AlphaOf(theme.glow, 165));
 
     if (!preview) {
         char eb[16];
         snprintf(eb, 16, "x%d", enemyCount);
-        DTX(eb, (float)(x + w - 38), (float)y + 6, FS_TINY, AlphaOf(theme.text, 215));
-        DrawRectangle(x + 78, y + 35, w - 100, 4, AlphaOf(theme.fill, 170));
-        DrawRectangle(x + 78, y + 35, (int)((w - 100) * pressure), 4, AlphaOf(theme.accent, 230));
+        DTX(eb, (float)(x + w - 40), (float)y + 7, FS_TINY, AlphaOf(theme.text, 215));
+        DrawRectangle(x + 84, y + 41, w - 108, 4, AlphaOf(theme.fill, 170));
+        DrawRectangle(x + 84, y + 41, (int)((w - 108) * pressure), 4, AlphaOf(theme.accent, 230));
+        float hi = x + 84 + (w - 108) * Clamp(pressure, 0.f, 1.f);
+        DrawCircleV({hi, (float)y + 43.f}, 4.f, AlphaOf(theme.glow, 150));
     }
 }
 
@@ -63,6 +91,7 @@ void DrawLeftPanel(Game& G) {
     DrawRectangleLines(0, py0, PANEL_L, ph, PANEL_BD);
 
     float t = (float)GetTime();
+    DrawPanelScan(6.f, (float)py0 + 8.f, (float)PANEL_L - 12.f, (float)ph - 16.f, COL_SENSOR, fmodf(t * 0.045f, 1.f));
 
     if (G.phase == Game::TRAINING) {
         DTC("TRAINING", PANEL_L / 2, py0 + 38, FS_MED, AlphaOf(COL_PERC, 230));
@@ -71,11 +100,13 @@ void DrawLeftPanel(Game& G) {
         int startY = py0 + 76;
         for (int i = 0; i < G.trainingChoiceCount; i++) {
             auto& choice = G.trainingChoices[i];
-            int by = startY + i * 86;
+            int by = startY + i * (TRAIN_CARD_H + TRAIN_CARD_GAP);
             Color bd = choice.col;
             bd.a = 170;
             Color bg = AlphaOf(choice.col, 22);
-            DrawRoundBox(10, (float)by, PANEL_L - 20, 72, 8, bg, bd, 1.8f);
+            DrawRoundBox(LEFT_CTRL_X, (float)by, LEFT_CTRL_W, TRAIN_CARD_H, 8, bg, bd, 1.8f);
+            DrawRectangleGradientH(LEFT_CTRL_X + 2, by + 2, LEFT_CTRL_W - 4, TRAIN_CARD_H - 4, AlphaOf(choice.col, 18), AlphaOf(BG, 0));
+            DrawCardTicks((float)LEFT_CTRL_X, (float)by, (float)LEFT_CTRL_W, (float)TRAIN_CARD_H, choice.col);
 
             char key[8];
             snprintf(key, 8, "[%d]", i + 1);
@@ -87,11 +118,11 @@ void DrawLeftPanel(Game& G) {
         float pulse = 0.75f + 0.25f * sinf(t * 4.f);
         char tb[32];
         snprintf(tb, 32, "剩餘 %.1fs", std::max(0.f, G.trainingTimer));
-        DrawRoundBox(10, (float)(startY + G.trainingChoiceCount * 86 + 8), PANEL_L - 20, 62, 8,
+        DrawRoundBox(LEFT_CTRL_X, (float)(startY + G.trainingChoiceCount * (TRAIN_CARD_H + TRAIN_CARD_GAP) + 8), LEFT_CTRL_W, 62, 8,
                      AlphaOf(COL_SENSOR, 16), AlphaOf(COL_SENSOR, 90), 1.2f);
-        DTC(tb, PANEL_L / 2, startY + G.trainingChoiceCount * 86 + 32, FS_SMALL,
+        DTC(tb, PANEL_L / 2, startY + G.trainingChoiceCount * (TRAIN_CARD_H + TRAIN_CARD_GAP) + 32, FS_SMALL,
             AlphaOf(COL_SENSOR, (int)(220 * pulse)));
-        DTX("未選擇時將自動套用第 1 項", 18, (float)(startY + G.trainingChoiceCount * 86 + 54), FS_TINY, AlphaOf(WHITE, 100));
+        DTX("未選擇時將自動套用第 1 項", 18, (float)(startY + G.trainingChoiceCount * (TRAIN_CARD_H + TRAIN_CARD_GAP) + 54), FS_TINY, AlphaOf(WHITE, 100));
         return;
     }
 
@@ -103,13 +134,10 @@ void DrawLeftPanel(Game& G) {
     };
 
     G.btnY0 = py0 + 68;
-    constexpr int BTN_H_SM  = 56;
-    constexpr int BTN_GAP_SM = 3;
-
     for (int i = 0; i < 7; i++) {
         TType     tt  = ORDER[i];
         TowerDef& def = TDef(tt);
-        int       by  = G.btnY0 + i * (BTN_H_SM + BTN_GAP_SM);
+        int       by  = G.btnY0 + i * (LEFT_TOWER_BTN_H + LEFT_TOWER_BTN_GAP);
 
         bool sel    = (G.placing == tt);
         bool canBuy = (G.credits >= def.baseCost);
@@ -121,25 +149,28 @@ void DrawLeftPanel(Game& G) {
         Color bd = sel ? def.col : AlphaOf(def.col, canBuy ? 80 : 30);
         if (sel) { float p2=0.7f+0.3f*sinf(t*4.f); bd.a=(unsigned char)(200*p2); }
 
-        DrawRoundBox(10, (float)by, PANEL_L - 20, (float)BTN_H_SM, 8, bg, bd, sel ? 2.5f : 1.5f);
+        DrawRoundBox(LEFT_CTRL_X, (float)by, LEFT_CTRL_W, (float)LEFT_TOWER_BTN_H, 8, bg, bd, sel ? 2.5f : 1.5f);
+        DrawRectangleGradientH(LEFT_CTRL_X + 2, by + 2, LEFT_CTRL_W - 4, LEFT_TOWER_BTN_H - 4, AlphaOf(def.col, canBuy ? 14 : 5), AlphaOf(BG, 0));
+        if (sel) DrawPanelScan((float)LEFT_CTRL_X + 3.f, (float)by + 3.f, (float)LEFT_CTRL_W - 6.f, (float)LEFT_TOWER_BTN_H - 6.f, def.col, fmodf(t * 0.55f, 1.f));
+        DrawCardTicks((float)LEFT_CTRL_X, (float)by, (float)LEFT_CTRL_W, (float)LEFT_TOWER_BTN_H, def.col);
 
         Color sc = sel ? def.col : AlphaOf(def.col, canBuy ? 200 : 80);
-        DTC(def.sym, 48, by + BTN_H_SM / 2, FS_MED, sc);
+        DTC(def.sym, 48, by + LEFT_TOWER_BTN_H / 2, FS_MED, sc);
 
         Color tc = canBuy ? WHITE : AlphaOf(WHITE, 80);
-        DTX(def.label, 70, (float)by + 5, FS_TINY, tc);
+        DTX(def.label, 72, (float)by + 7, FS_TINY, tc);
 
         char cs[16]; snprintf(cs, 16, "%d CR", def.baseCost);
-        DTX(cs, 70, (float)by + 22, FS_TINY, AlphaOf(COL_AND, canBuy ? 200 : 80));
-        DTX(def.desc, 12, (float)by + BTN_H_SM - 15, FS_TINY, AlphaOf(WHITE, canBuy ? 100 : 40));
+        DTX(cs, 72, (float)by + 25, FS_TINY, AlphaOf(COL_AND, canBuy ? 200 : 80));
+        DTX(def.desc, 14, (float)by + LEFT_TOWER_BTN_H - 14, FS_TINY, AlphaOf(WHITE, canBuy ? 100 : 40));
     }
 
     // ── 發動波次按鈕 ─────────────────────────────────────────────
-    G.waveBtnY = G.btnY0 + 7 * (BTN_H_SM + BTN_GAP_SM) + 12;
+    G.waveBtnY = G.btnY0 + 7 * (LEFT_TOWER_BTN_H + LEFT_TOWER_BTN_GAP) + 12;
     if (G.phase == Game::BUILD) {
         float p2   = 0.7f + 0.3f * sinf(t * 3.f);
         Color wbc  = COL_PERC;
-        DrawRoundBox(10, (float)G.waveBtnY, PANEL_L - 20, 54, 10, AlphaOf(wbc, 25), wbc, 2.5f);
+        DrawRoundBox(LEFT_CTRL_X, (float)G.waveBtnY, LEFT_CTRL_W, LEFT_WAVE_BTN_H, 10, AlphaOf(wbc, 25), wbc, 2.5f);
         DTC("▶ 發動下一波", PANEL_L / 2, G.waveBtnY + 27, FS_MED, AlphaOf(wbc, (int)(220 * p2)));
     }
 
@@ -213,7 +244,17 @@ void DrawRightPanel(Game& G) {
             iy += 6;
         }
 
-        DTC("敵情分析", cx, iy, FS_MED, AlphaOf({255, 100, 100, 255}, 220)); iy += 38;
+        if (G.currentIncident != Game::Incident::NONE && G.incidentTimer > 0.f) {
+            Color ic = IncidentUiColor(G.currentIncident);
+            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, 48.f, 8.f,
+                         AlphaOf(ic, 16), AlphaOf(ic, 95), 1.2f);
+            DTC("突發事件", cx, iy + 13, FS_TINY, AlphaOf(ic, 220));
+            char ib[64]; snprintf(ib, 64, "%s  %.0fs", G.incidentName.c_str(), std::max(0.f, G.incidentTimer));
+            DTC(ib, cx, iy + 32, FS_TINY, AlphaOf(WHITE, 165));
+            iy += 60;
+        }
+
+        DTC("敵情分析", cx, iy, FS_MED, AlphaOf({255, 100, 100, 255}, 220)); iy += 34;
 
         if (!I.adapted) {
             DTC("收集中...", cx, iy, FS_SMALL, AlphaOf(WHITE, 80)); iy += 24;
@@ -446,7 +487,7 @@ void DrawTopBar(Game& G) {
 
     float t = (float)GetTime();
     float p2 = 0.8f + 0.2f * sinf(t * 1.5f);
-    DTC("邏輯閘防禦戰", VIRT_W / 2, 22, FS_TITLE, AlphaOf(COL_CPU, (int)(220 * p2)));
+    DTX("邏輯閘防禦戰", 20.f, 18.f, FS_MED, AlphaOf(COL_CPU, (int)(220 * p2)));
 
     char wb[32], lb[20];
     snprintf(wb, 32, "第 %d 波", G.wave);
@@ -604,6 +645,19 @@ void DrawTopBar(Game& G) {
         float pulse2 = 0.8f + 0.2f * sinf((float)GetTime() * 6.f);
         Color ec = {255, 80, 80, (unsigned char)(230 * alpha * pulse2)};
         DTC(G.eventName.c_str(), VIRT_W / 2, TOPBAR_H + 36, FS_LARGE, ec);
+    }
+
+    if ((G.incidentBannerTimer > 0.f || G.incidentTimer > 0.f) &&
+        G.currentIncident != Game::Incident::NONE) {
+        float alpha = (G.incidentBannerTimer > 0.f) ? std::min(1.f, G.incidentBannerTimer) : 0.62f;
+        float pulse3 = 0.78f + 0.22f * sinf((float)GetTime() * 8.f);
+        Color ic = IncidentUiColor(G.currentIncident);
+        int boxW = 420;
+        DrawRoundBox((float)(VIRT_W / 2 - boxW / 2), (float)(TOPBAR_H + 58), (float)boxW, 30.f, 8.f,
+                     AlphaOf(ic, (int)(18 * alpha)), AlphaOf(ic, (int)(130 * alpha * pulse3)), 1.4f);
+        char ib[80];
+        snprintf(ib, 80, "%s  %.0fs", G.incidentName.c_str(), std::max(0.f, G.incidentTimer));
+        DTC(ib, VIRT_W / 2, TOPBAR_H + 73, FS_SMALL, AlphaOf(ic, (int)(225 * alpha)));
     }
 }
 

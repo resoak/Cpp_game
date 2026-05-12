@@ -37,12 +37,25 @@ struct Game {
         BOSS_ESCORT, REGEN_ARMY, DOUBLE_SPD, BLACKOUT, MUTANT, SIEGE
     };
 
+    enum class Incident {
+        NONE, SIGNAL_STORM, ROUTE_SURGE, BOUNTY_WINDOW
+    };
+
     WaveEvent   currentEvent{WaveEvent::NONE};
     std::string eventName;
     float       eventBannerTimer{0.f};
 
+    Incident    currentIncident{Incident::NONE};
+    std::string incidentName;
+    float       incidentTimer{0.f};
+    float       incidentBannerTimer{0.f};
+    float       incidentRollTimer{0.f};
+    bool        incidentTriggered{false};
+
     static WaveEvent  RollEvent(int wave, std::mt19937& rng);
     static const char* EventName(WaveEvent e);
+    static Incident   RollIncident(int wave, std::mt19937& rng);
+    static const char* IncidentName(Incident i);
 
     // ── 遊戲狀態旗標 ───────────────────────────────────────────────
     bool  showThreat{false};

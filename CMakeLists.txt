@@ -3,6 +3,7 @@ project(LogicGateDefense CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(LGD_DEBUG_WAVE_JUMP "Enable removable debug hotkeys for route expansion wave tests" OFF)
 if (CMAKE_VERSION VERSION_GREATER_EQUAL 4.0)
@@ -44,6 +45,17 @@ target_link_libraries(lgd PRIVATE raylib)
 if (LGD_DEBUG_WAVE_JUMP)
     target_compile_definitions(lgd PRIVATE LGD_DEBUG_WAVE_JUMP=1)
 endif()
+
+# ── 執行時資源 ────────────────────────────────────────────────────
+# 遊戲需要字型檔顯示中文；建置後自動複製到執行檔旁，方便直接執行。
+add_custom_command(TARGET lgd POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_SOURCE_DIR}/font.ttf
+        $<TARGET_FILE_DIR:lgd>/font.ttf
+)
+
+install(TARGETS lgd RUNTIME DESTINATION bin)
+install(FILES font.ttf DESTINATION bin)
 
 # ── 平台特定連結 ──────────────────────────────────────────────────
 if (UNIX AND NOT APPLE)
