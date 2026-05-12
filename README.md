@@ -22,7 +22,7 @@
 使用 Git 下載：
 
 ```bash
-git clone <你的 GitHub 專案網址>
+git clone git@github.com:resoak/Cpp_game.git
 cd project
 ```
 
