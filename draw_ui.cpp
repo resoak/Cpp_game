@@ -6,6 +6,78 @@
 #include <cstdio>
 #include <algorithm>
 
+static const char* LaneLabel(int laneSlot) {
+    return laneSlot == 0 ? "主線" : "副線";
+}
+
+static int CountLaneEnemiesUi(const Game& G, int laneSlot) {
+    int count = 0;
+    for (auto& e : G.enemies) if (e.pathIdx == laneSlot) count++;
+    return count;
+}
+
+static float LanePressureUi(const Game& G, int laneSlot) {
+    const auto& cells = G.LaneCells(laneSlot);
+    if (cells.empty()) return 0.f;
+
+    float furthest = 0.f;
+    for (auto& e : G.enemies) {
+        if (e.pathIdx != laneSlot) continue;
+        furthest = std::max(furthest, e.pathPos / (float)std::max(1, (int)cells.size()));
+    }
+    return Clamp(furthest, 0.f, 1.f);
+}
+
+static Color IncidentUiColor(Game::Incident incident) {
+    switch (incident) {
+        case Game::Incident::SIGNAL_STORM:  return COL_SENSOR;
+        case Game::Incident::ROUTE_SURGE:   return Color{255, 130, 90, 255};
+        case Game::Incident::BOUNTY_WINDOW: return COL_STAR;
+        default:                            return WHITE;
+    }
+}
+
+static void DrawPanelScan(float x, float y, float w, float h, Color col, float phase) {
+    float sx = x + fmodf(phase, 1.f) * w;
+    DrawLineEx({sx, y + 5.f}, {sx - 34.f, y + h - 5.f}, 1.2f, AlphaOf(col, 54));
+    DrawLineEx({x + 10.f, y + h - 8.f}, {x + w - 10.f, y + h - 8.f}, 1.f, AlphaOf(col, 24));
+}
+
+static void DrawCardTicks(float x, float y, float w, float h, Color col) {
+    DrawLineEx({x + 10.f, y + 9.f}, {x + 34.f, y + 9.f}, 1.f, AlphaOf(col, 92));
+    DrawLineEx({x + 10.f, y + 9.f}, {x + 10.f, y + 22.f}, 1.f, AlphaOf(col, 70));
+    DrawLineEx({x + w - 10.f, y + h - 9.f}, {x + w - 34.f, y + h - 9.f}, 1.f, AlphaOf(col, 76));
+    DrawLineEx({x + w - 10.f, y + h - 9.f}, {x + w - 10.f, y + h - 22.f}, 1.f, AlphaOf(col, 56));
+}
+
+static void DrawRouteUiCard(int x, int y, int w, const char* header, const PathPreset& preset,
+                            int laneSlot, int enemyCount, float pressure, bool preview) {
+    RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
+    float pulse = 0.65f + 0.35f * sinf((float)GetTime() * 2.4f + laneSlot * 0.8f + preset.family * 0.35f);
+
+    DrawRoundBox((float)x, (float)y, (float)w, 52.f, 8.f,
+        AlphaOf(theme.fillSoft, 220),
+        AlphaOf(theme.accent, (int)(120 + pulse * 70)), 1.4f);
+    DrawRectangleGradientH(x + 2, y + 2, w - 4, 48, AlphaOf(theme.accent, 16), AlphaOf(theme.fill, 4));
+    DrawPanelScan((float)x + 4.f, (float)y + 4.f, (float)w - 8.f, 44.f, theme.glow,
+        fmodf((float)GetTime() * 0.18f + laneSlot * 0.33f, 1.f));
+    DrawCardTicks((float)x, (float)y, (float)w, 52.f, theme.accent);
+    DTX(header, (float)x + 12, (float)y + 7, FS_TINY, AlphaOf(theme.accent, 230));
+    DTX(theme.shortLabel, (float)x + 12, (float)y + 25, FS_TINY, AlphaOf(theme.glow, 215));
+    DTX(preset.name, (float)x + 84, (float)y + 7, FS_SMALL, theme.text);
+    DTX(theme.sideLabel, (float)x + 84, (float)y + 26, FS_TINY, AlphaOf(theme.glow, 165));
+
+    if (!preview) {
+        char eb[16];
+        snprintf(eb, 16, "x%d", enemyCount);
+        DTX(eb, (float)(x + w - 40), (float)y + 7, FS_TINY, AlphaOf(theme.text, 215));
+        DrawRectangle(x + 84, y + 41, w - 108, 4, AlphaOf(theme.fill, 170));
+        DrawRectangle(x + 84, y + 41, (int)((w - 108) * pressure), 4, AlphaOf(theme.accent, 230));
+        float hi = x + 84 + (w - 108) * Clamp(pressure, 0.f, 1.f);
+        DrawCircleV({hi, (float)y + 43.f}, 4.f, AlphaOf(theme.glow, 150));
+    }
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  DrawLeftPanel
 // ══════════════════════════════════════════════════════════════════
@@ -16,6 +88,41 @@ void DrawLeftPanel(Game& G) {
     DrawRectangleLines(0, py0, PANEL_L, ph, PANEL_BD);
 
     float t = (float)GetTime();
+    DrawPanelScan(6.f, (float)py0 + 8.f, (float)PANEL_L - 12.f, (float)ph - 16.f, COL_SENSOR, fmodf(t * 0.045f, 1.f));
+
+    if (G.phase == Game::TRAINING) {
+        DTC("TRAINING", PANEL_L / 2, py0 + 38, FS_MED, AlphaOf(COL_PERC, 230));
+        DTX("防線凍結中，選擇一項短訓練獎勵", 12, (float)py0 + 58, FS_TINY, AlphaOf(WHITE, 120));
+
+        int startY = py0 + 76;
+        for (int i = 0; i < G.trainingChoiceCount; i++) {
+            auto& choice = G.trainingChoices[i];
+            int by = startY + i * (TRAIN_CARD_H + TRAIN_CARD_GAP);
+            Color bd = choice.col;
+            bd.a = 170;
+            Color bg = AlphaOf(choice.col, 22);
+            DrawRoundBox(LEFT_CTRL_X, (float)by, LEFT_CTRL_W, TRAIN_CARD_H, 8, bg, bd, 1.8f);
+            DrawRectangleGradientH(LEFT_CTRL_X + 2, by + 2, LEFT_CTRL_W - 4, TRAIN_CARD_H - 4, AlphaOf(choice.col, 18), AlphaOf(BG, 0));
+            DrawCardTicks((float)LEFT_CTRL_X, (float)by, (float)LEFT_CTRL_W, (float)TRAIN_CARD_H, choice.col);
+
+            char key[8];
+            snprintf(key, 8, "[%d]", i + 1);
+            DTX(key, 16, (float)by + 8, FS_TINY, AlphaOf(choice.col, 220));
+            DTX(choice.title.c_str(), 46, (float)by + 7, FS_SMALL, choice.col);
+            DTX(choice.desc.c_str(), 16, (float)by + 31, FS_TINY, AlphaOf(WHITE, 165));
+        }
+
+        float pulse = 0.75f + 0.25f * sinf(t * 4.f);
+        char tb[32];
+        snprintf(tb, 32, "剩餘 %.1fs", std::max(0.f, G.trainingTimer));
+        DrawRoundBox(LEFT_CTRL_X, (float)(startY + G.trainingChoiceCount * (TRAIN_CARD_H + TRAIN_CARD_GAP) + 8), LEFT_CTRL_W, 62, 8,
+                     AlphaOf(COL_SENSOR, 16), AlphaOf(COL_SENSOR, 90), 1.2f);
+        DTC(tb, PANEL_L / 2, startY + G.trainingChoiceCount * (TRAIN_CARD_H + TRAIN_CARD_GAP) + 32, FS_SMALL,
+            AlphaOf(COL_SENSOR, (int)(220 * pulse)));
+        DTX("未選擇時將自動套用第 1 項", 18, (float)(startY + G.trainingChoiceCount * (TRAIN_CARD_H + TRAIN_CARD_GAP) + 54), FS_TINY, AlphaOf(WHITE, 100));
+        return;
+    }
+
     DTC("元件選擇", PANEL_L / 2, py0 + 38, FS_MED, AlphaOf(COL_CPU, 220));
 
     static TType ORDER[] = {
@@ -24,13 +131,10 @@ void DrawLeftPanel(Game& G) {
     };
 
     G.btnY0 = py0 + 68;
-    constexpr int BTN_H_SM  = 56;
-    constexpr int BTN_GAP_SM = 3;
-
     for (int i = 0; i < 7; i++) {
         TType     tt  = ORDER[i];
         TowerDef& def = TDef(tt);
-        int       by  = G.btnY0 + i * (BTN_H_SM + BTN_GAP_SM);
+        int       by  = G.btnY0 + i * (LEFT_TOWER_BTN_H + LEFT_TOWER_BTN_GAP);
 
         bool sel    = (G.placing == tt);
         bool canBuy = (G.credits >= def.baseCost);
@@ -42,25 +146,28 @@ void DrawLeftPanel(Game& G) {
         Color bd = sel ? def.col : AlphaOf(def.col, canBuy ? 80 : 30);
         if (sel) { float p2=0.7f+0.3f*sinf(t*4.f); bd.a=(unsigned char)(200*p2); }
 
-        DrawRoundBox(10, (float)by, PANEL_L - 20, (float)BTN_H_SM, 8, bg, bd, sel ? 2.5f : 1.5f);
+        DrawRoundBox(LEFT_CTRL_X, (float)by, LEFT_CTRL_W, (float)LEFT_TOWER_BTN_H, 8, bg, bd, sel ? 2.5f : 1.5f);
+        DrawRectangleGradientH(LEFT_CTRL_X + 2, by + 2, LEFT_CTRL_W - 4, LEFT_TOWER_BTN_H - 4, AlphaOf(def.col, canBuy ? 14 : 5), AlphaOf(BG, 0));
+        if (sel) DrawPanelScan((float)LEFT_CTRL_X + 3.f, (float)by + 3.f, (float)LEFT_CTRL_W - 6.f, (float)LEFT_TOWER_BTN_H - 6.f, def.col, fmodf(t * 0.55f, 1.f));
+        DrawCardTicks((float)LEFT_CTRL_X, (float)by, (float)LEFT_CTRL_W, (float)LEFT_TOWER_BTN_H, def.col);
 
         Color sc = sel ? def.col : AlphaOf(def.col, canBuy ? 200 : 80);
-        DTC(def.sym, 48, by + BTN_H_SM / 2, FS_MED, sc);
+        DTC(def.sym, 48, by + LEFT_TOWER_BTN_H / 2, FS_MED, sc);
 
         Color tc = canBuy ? WHITE : AlphaOf(WHITE, 80);
-        DTX(def.label, 70, (float)by + 5, FS_TINY, tc);
+        DTX(def.label, 72, (float)by + 7, FS_TINY, tc);
 
         char cs[16]; snprintf(cs, 16, "%d CR", def.baseCost);
-        DTX(cs, 70, (float)by + 22, FS_TINY, AlphaOf(COL_AND, canBuy ? 200 : 80));
-        DTX(def.desc, 12, (float)by + BTN_H_SM - 15, FS_TINY, AlphaOf(WHITE, canBuy ? 100 : 40));
+        DTX(cs, 72, (float)by + 25, FS_TINY, AlphaOf(COL_AND, canBuy ? 200 : 80));
+        DTX(def.desc, 14, (float)by + LEFT_TOWER_BTN_H - 14, FS_TINY, AlphaOf(WHITE, canBuy ? 100 : 40));
     }
 
     // ── 發動波次按鈕 ─────────────────────────────────────────────
-    G.waveBtnY = G.btnY0 + 7 * (BTN_H_SM + BTN_GAP_SM) + 12;
+    G.waveBtnY = G.btnY0 + 7 * (LEFT_TOWER_BTN_H + LEFT_TOWER_BTN_GAP) + 12;
     if (G.phase == Game::BUILD) {
         float p2   = 0.7f + 0.3f * sinf(t * 3.f);
         Color wbc  = COL_PERC;
-        DrawRoundBox(10, (float)G.waveBtnY, PANEL_L - 20, 54, 10, AlphaOf(wbc, 25), wbc, 2.5f);
+        DrawRoundBox(LEFT_CTRL_X, (float)G.waveBtnY, LEFT_CTRL_W, LEFT_WAVE_BTN_H, 10, AlphaOf(wbc, 25), wbc, 2.5f);
         DTC("▶ 發動下一波", PANEL_L / 2, G.waveBtnY + 27, FS_MED, AlphaOf(wbc, (int)(220 * p2)));
     }
 
@@ -103,11 +210,46 @@ void DrawRightPanel(Game& G) {
 
     Tower* sel = G.FindTower(G.selectedId);
     if (!sel) {
-        // ── 無選取時：顯示敵情分析 ───────────────────────────────
         EnemyIntel& I = G.intel;
         int iy = py0 + 70;
 
-        DTC("敵情分析", cx, iy, FS_MED, AlphaOf({255, 100, 100, 255}, 220)); iy += 38;
+        DTC("入口態勢", cx, iy, FS_MED, AlphaOf(COL_CPU, 220)); iy += 28;
+        DrawRouteUiCard(rx + 10, iy, PANEL_R - 20, "當前主線", G.LanePreset(0), 0,
+            CountLaneEnemiesUi(G, 0), LanePressureUi(G, 0), false);
+        iy += 62;
+
+        if (G.dualPath) {
+            DrawRouteUiCard(rx + 10, iy, PANEL_R - 20, "當前副線", G.LanePreset(1), 1,
+                CountLaneEnemiesUi(G, 1), LanePressureUi(G, 1), false);
+            iy += 62;
+        }
+
+        if (G.hasPlannedRouteChange) {
+            int previewH = (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) ? 140 : 80;
+            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, (float)previewH, 8,
+                AlphaOf({255, 205, 120, 255}, 9), AlphaOf({255, 205, 120, 255}, 56), 1.3f);
+            DTC("下次輪換", cx, iy + 14, FS_TINY, AlphaOf({255, 220, 160, 255}, 220));
+            iy += 26;
+            DrawRouteUiCard(rx + 14, iy, PANEL_R - 28, "下波主線", GetPathPreset(G.nextPreviewPaths[0]), 0, 0, 0.f, true);
+            iy += 60;
+            if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
+                DrawRouteUiCard(rx + 14, iy, PANEL_R - 28, "下波副線", GetPathPreset(G.nextPreviewPaths[1]), 1, 0, 0.f, true);
+                iy += 60;
+            }
+            iy += 6;
+        }
+
+        if (G.currentIncident != Game::Incident::NONE && G.incidentTimer > 0.f) {
+            Color ic = IncidentUiColor(G.currentIncident);
+            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, 48.f, 8.f,
+                         AlphaOf(ic, 16), AlphaOf(ic, 95), 1.2f);
+            DTC("突發事件", cx, iy + 13, FS_TINY, AlphaOf(ic, 220));
+            char ib[64]; snprintf(ib, 64, "%s  %.0fs", G.incidentName.c_str(), std::max(0.f, G.incidentTimer));
+            DTC(ib, cx, iy + 32, FS_TINY, AlphaOf(WHITE, 165));
+            iy += 60;
+        }
+
+        DTC("敵情分析", cx, iy, FS_MED, AlphaOf({255, 100, 100, 255}, 220)); iy += 34;
 
         if (!I.adapted) {
             DTC("收集中...", cx, iy, FS_SMALL, AlphaOf(WHITE, 80)); iy += 24;
@@ -141,23 +283,29 @@ void DrawRightPanel(Game& G) {
         }
         iy += 6;
 
-        // ── 路徑存活率（雙路徑才顯示）───────────────────────────
         if (G.dualPath) {
-            DrawRoundBox((float)rx+8, (float)iy, (float)PANEL_R-16, 54, 6,
+            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, 86, 6,
                          AlphaOf({255,180,60,255}, 8), AlphaOf({255,180,60,255}, 50), 1.5f);
-            DTC("路線威脅", cx, iy+14, FS_TINY, AlphaOf({255,200,80,255}, 200)); iy += 28;
+            DTC("路線威脅", cx, iy + 14, FS_TINY, AlphaOf({255,200,80,255}, 200)); iy += 28;
 
             for (int i = 0; i < 2; i++) {
+                const PathPreset& preset = G.LanePreset(i);
+                RouteVisualTheme theme = GetRouteTheme(preset, i);
                 float surv = I.pathSurvRate[i];
-                int   barW = (int)((PANEL_R - 56) * surv);
+                int   barW = (int)((PANEL_R - 138) * surv);
                 bool  pref = (I.PreferredPath() == i);
-                Color pc   = pref ? Color{255, 160, 40, 255} : AlphaOf({255,160,40,255}, 120);
+                Color pc   = pref ? theme.accent : AlphaOf(theme.accent, 150);
 
-                char label[16]; snprintf(label, 16, "%s路%s", (i==0)?"主":"副", pref?"▶":"");
-                DTX(label, (float)rx+12, (float)iy, FS_TINY, pc);
-                DrawRectangle(rx+52, iy, PANEL_R-64, 12, AlphaOf(BLACK, 120));
-                if (barW > 0) DrawRectangle(rx+52, iy, barW, 12, AlphaOf(pc, 200));
-                iy += 18;
+                char label[24]; snprintf(label, 24, "%s%s", LaneLabel(i), pref ? " ▶" : "");
+                DTX(label, (float)rx + 12, (float)iy, FS_TINY, pc);
+                DTX(preset.name, (float)rx + 72, (float)iy, FS_TINY, theme.text);
+                DrawRectangle(rx + 72, iy + 13, PANEL_R - 138, 10, AlphaOf(theme.fill, 190));
+                if (barW > 0) DrawRectangle(rx + 72, iy + 13, barW, 10, AlphaOf(pc, 220));
+
+                char pct[12]; snprintf(pct, 12, "%2.0f%%", surv * 100.f);
+                DTX(theme.sideLabel, (float)rx + 12, (float)iy + 13, FS_TINY, AlphaOf(theme.glow, 150));
+                DTX(pct, (float)(rx + PANEL_R - 34), (float)iy + 11, FS_TINY, AlphaOf(pc, 220));
+                iy += 28;
             }
             iy += 6;
         }
@@ -171,9 +319,10 @@ void DrawRightPanel(Game& G) {
         DTC(topb, cx, iy, FS_TINY, AlphaOf({255, 100, 100, 255}, 200)); iy += 22;
 
         if (G.dualPath) {
-            char pathb[32];
-            snprintf(pathb, 32, "主攻路線：%s路", I.PreferredPath() == 0 ? "主" : "副");
-            DTC(pathb, cx, iy, FS_TINY, AlphaOf({255, 180, 60, 255}, 200)); iy += 22;
+            const PathPreset& prefPreset = G.LanePreset(I.PreferredPath());
+            char pathb[80];
+            snprintf(pathb, 80, "偏好路線：%s / %s", GetRouteTheme(prefPreset, I.PreferredPath()).sideLabel, prefPreset.name);
+            DTC(pathb, cx, iy, FS_TINY, AlphaOf(GetRouteTheme(prefPreset, I.PreferredPath()).accent, 210)); iy += 22;
         }
 
         // ── 防禦建議神經網路輸出機率 ─────────────────────────────
@@ -319,67 +468,158 @@ void DrawRightPanel(Game& G) {
 //  DrawTopBar
 // ══════════════════════════════════════════════════════════════════
 void DrawTopBar(Game& G) {
-    DrawRectangle(0,0,VIRT_W,TOPBAR_H,PANEL_BG);
-    DrawLine(0,TOPBAR_H,VIRT_W,TOPBAR_H,PANEL_BD);
+    DrawRectangleGradientH(0, 0, VIRT_W, TOPBAR_H, Color{4, 10, 18, 255}, Color{8, 16, 30, 255});
+    DrawRectangleGradientV(0, 0, VIRT_W, TOPBAR_H, AlphaOf(COL_CPU, 10), AlphaOf(BLACK, 0));
+    
+    if (G.cpuHp < 30.f) {
+        float flicker = 0.5f + 0.5f * sinf((float)GetTime() * 12.f);
+        DrawRectangle(0, 0, VIRT_W, TOPBAR_H, AlphaOf(RED, (int)(60 * flicker)));
+    }
+    DrawLine(0, TOPBAR_H, VIRT_W, TOPBAR_H, PANEL_BD);
 
-    float t=(float)GetTime();
-    float p2=0.8f+0.2f*sinf(t*1.5f);
-    DTC("邏輯閘防禦戰",VIRT_W/2,TOPBAR_H/2,FS_TITLE,AlphaOf(COL_CPU,(int)(220*p2)));
+    float t = (float)GetTime();
+    float p2 = 0.8f + 0.2f * sinf(t * 1.5f);
+    DTX("邏輯閘防禦戰", 20.f, 18.f, FS_MED, AlphaOf(COL_CPU, (int)(220 * p2)));
 
-    char wb[32],lb[20];
-    snprintf(wb,32,"第 %d 波",G.wave);
-    snprintf(lb,20,"命 %d",G.lives);
-    DTX(wb,PANEL_L+20,12,FS_MED,COL_SENSOR);
-    DTX(lb,PANEL_L+20,40,FS_MED,G.lives>10?COL_PERC:G.lives>5?ORANGE:RED);
+    char wb[32], lb[20];
+    snprintf(wb, 32, "第 %d 波", G.wave);
+    snprintf(lb, 20, "命 %d", G.lives);
+    DTX(wb, PANEL_L + 20, 10, FS_MED, COL_SENSOR);
+    DTX(lb, PANEL_L + 20, 38, FS_MED, G.lives > 10 ? COL_PERC : G.lives > 5 ? ORANGE : RED);
 
-    char sc[32],hs[32];
-    snprintf(sc,32,"分數：%d",G.score);
-    snprintf(hs,32,"最高：%d",G.highScore);
-    DTX(sc,PANEL_L+200,12,FS_MED,COL_AND);
-    DTX(hs,PANEL_L+200,38,FS_TINY,AlphaOf(COL_AND,160));
+    char sc[32], hs[32];
+    snprintf(sc, 32, "分數：%d", G.score);
+    snprintf(hs, 32, "最高：%d", G.highScore);
+    DTX(sc, PANEL_L + 200, 10, FS_MED, COL_AND);
+    DTX(hs, PANEL_L + 200, 38, FS_TINY, AlphaOf(COL_AND, 160));
 
-    if (G.dualPath) {
-        float dp=0.7f+0.3f*sinf(t*4.f);
-        DTC("⚡雙路進攻",PANEL_L+430,TOPBAR_H/2,FS_SMALL,AlphaOf(COL_BOSS,(int)(220*dp)));
+    auto drawTopRouteBadge = [&](int x, const char* header, const PathPreset& preset, int laneSlot) {
+        RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
+        int enemyCount = CountLaneEnemiesUi(G, laneSlot);
+        float pressure = LanePressureUi(G, laneSlot);
+
+        DrawRoundBox((float)x, 38.f, 188.f, 24.f, 6.f,
+            AlphaOf(theme.fillSoft, 220), AlphaOf(theme.accent, 150), 1.2f);
+        DTX(header, (float)x + 8, 42.f, FS_TINY, AlphaOf(theme.accent, 220));
+        DTX(preset.name, (float)x + 56, 42.f, FS_TINY, theme.text);
+
+        char eb[12];
+        snprintf(eb, 12, "x%d", enemyCount);
+        DTX(eb, (float)x + 154, 42.f, FS_TINY, AlphaOf(theme.text, 210));
+        DrawRectangle(x + 56, 56, 96, 3, AlphaOf(theme.fill, 170));
+        DrawRectangle(x + 56, 56, (int)(96.f * pressure), 3, AlphaOf(theme.accent, 230));
+    };
+
+    int routeCount = G.dualPath ? 2 : 1;
+    int badgeW = 188;
+    int badgeGap = 10;
+    int routeStripW = routeCount * badgeW + (routeCount - 1) * badgeGap;
+    int routeStartX = VIRT_W / 2 - routeStripW / 2;
+    drawTopRouteBadge(routeStartX, "主線", G.LanePreset(0), 0);
+    if (G.dualPath) drawTopRouteBadge(routeStartX + badgeW + badgeGap, "副線", G.LanePreset(1), 1);
+
+    int leftInfoX = VIRT_W / 2 - 360;
+    if (G.hasPlannedRouteChange) {
+        char preview[96];
+        const PathPreset& next0 = GetPathPreset(G.nextPreviewPaths[0]);
+        if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
+            const PathPreset& next1 = GetPathPreset(G.nextPreviewPaths[1]);
+            snprintf(preview, 96, "下波輪換：%s / %s", next0.name, next1.name);
+        } else {
+            snprintf(preview, 96, "下波輪換：%s", next0.name);
+        }
+        DTX(preview, (float)leftInfoX, 10.f, FS_TINY, AlphaOf({255, 210, 150, 255}, 210));
     }
 
-    int bx2=PANEL_L+560,by2=8;
-    if (G.buffArmorBreak>0) {
-        char ab[24]; snprintf(ab,24,"破甲 %.0fs",G.buffArmorBreak);
-        DrawRoundBox((float)bx2,(float)by2,90,22,4,AlphaOf(COL_AND,30),AlphaOf(COL_AND,180));
-        DTC(ab,bx2+45,by2+11,FS_TINY,COL_AND); bx2+=96;
-    }
-    if (G.buffOverfreq>0) {
-        char ob[24]; snprintf(ob,24,"超頻 %.0fs",G.buffOverfreq);
-        DrawRoundBox((float)bx2,(float)by2,90,22,4,AlphaOf(COL_OR,30),AlphaOf(COL_OR,180));
-        DTC(ob,bx2+45,by2+11,FS_TINY,COL_OR); bx2+=96;
-    }
-    if (G.buffGlobalMark>0) {
-        char ob2[24]; snprintf(ob2,24,"標記 %.0fs",G.buffGlobalMark);
-        DrawRoundBox((float)bx2,(float)by2,90,22,4,AlphaOf(COL_XOR,30),AlphaOf(COL_XOR,180));
-        DTC(ob2,bx2+45,by2+11,FS_TINY,COL_XOR);
-    }
+    const char* phaseStr =
+        (G.phase == Game::FIGHT) ? "戰鬥中" :
+        (G.phase == Game::BUILD) ? "建置" :
+        (G.phase == Game::TRAINING) ? "訓練" : "";
+    Color phaseCol =
+        (G.phase == Game::FIGHT) ? COL_VIRUS : COL_PERC;
+    auto drawStatusPill = [&](int x, int y, int w, const char* text, Color border, Color textCol) {
+        DrawRoundBox((float)x, (float)y, (float)w, 22.f, 4.f,
+                     AlphaOf(border, 28), AlphaOf(border, 170), 1.3f);
+        DTC(text, x + w / 2, y + 11, FS_TINY, textCol);
+    };
+    auto reserveRightText = [&](int& cursor, int y, const char* text, Color col, int fontSize) {
+        int width = (int)MCN(text, fontSize) + 2;
+        cursor -= width;
+        DTX(text, (float)cursor, (float)y, fontSize, col);
+        cursor -= 14;
+    };
+
+    int rightCursorTop = VIRT_W - PANEL_R - 22;
+    int rightCursorBottom = VIRT_W - PANEL_R - 22;
+
+    reserveRightText(rightCursorTop, 18, phaseStr, phaseCol, FS_MED);
 
     if (G.combo >= 3) {
-        char cb[24]; snprintf(cb,24,"COMBO x%d",G.combo);
-        float cp=0.8f+0.2f*sinf(t*8.f);
-        Color cc2=(G.combo>=10)?Color{255,100,255,255}:(G.combo>=5)?COL_STAR:Color{255,220,100,255};
-        cc2.a=(unsigned char)(230*cp);
-        DTC(cb,VIRT_W-PANEL_R-200,TOPBAR_H/2,FS_LARGE,cc2);
+        char cb[24]; snprintf(cb, 24, "COMBO x%d", G.combo);
+        float cp = 0.8f + 0.2f * sinf(t * 8.f);
+        Color cc2 = (G.combo >= 10) ? Color{255, 100, 255, 255} : (G.combo >= 5) ? COL_STAR : Color{255, 220, 100, 255};
+        cc2.a = (unsigned char)(230 * cp);
+        reserveRightText(rightCursorTop, 15, cb, cc2, FS_LARGE);
     }
 
-    const char* phaseStr=
-        (G.phase==Game::FIGHT) ? "戰鬥中" :
-        (G.phase==Game::BUILD) ? "建置" : "";
-    Color phaseCol=
-        (G.phase==Game::FIGHT) ? COL_VIRUS : COL_PERC;
-    DTC(phaseStr,VIRT_W-PANEL_R-60,TOPBAR_H/2,FS_MED,phaseCol);
+    if (G.comboSurgeTimer > 0.f) {
+        char sb[24]; snprintf(sb, 24, "SURGE %.0fs", ceilf(G.comboSurgeTimer));
+        float sp = 0.75f + 0.25f * sinf(t * 10.f);
+        int pillW = 108;
+        rightCursorTop -= pillW;
+        drawStatusPill(rightCursorTop, 8, pillW, sb,
+                       Color{255, 140, 90, 255}, AlphaOf(Color{255, 180, 120, 255}, (int)(230 * sp)));
+        rightCursorTop -= 10;
+    }
 
-    if (G.eventBannerTimer>0 && G.currentEvent!=WaveEvent::NONE) {
-        float alpha=std::min(1.f,G.eventBannerTimer);
-        float pulse2=0.8f+0.2f*sinf((float)GetTime()*6.f);
-        Color ec={255,80,80,(unsigned char)(230*alpha*pulse2)};
-        DTC(G.eventName.c_str(),VIRT_W/2,TOPBAR_H+36,FS_LARGE,ec);
+    if (G.buffGlobalMark > 0) {
+        char ob2[24]; snprintf(ob2, 24, "標記 %.0fs", G.buffGlobalMark);
+        int pillW = 90;
+        rightCursorBottom -= pillW;
+        drawStatusPill(rightCursorBottom, 38, pillW, ob2, COL_XOR, COL_XOR);
+        rightCursorBottom -= 6;
+    }
+    if (G.buffOverfreq > 0) {
+        char ob[24]; snprintf(ob, 24, "超頻 %.0fs", G.buffOverfreq);
+        int pillW = 90;
+        rightCursorBottom -= pillW;
+        drawStatusPill(rightCursorBottom, 38, pillW, ob, COL_OR, COL_OR);
+        rightCursorBottom -= 6;
+    }
+    if (G.buffArmorBreak > 0) {
+        char ab[24]; snprintf(ab, 24, "破甲 %.0fs", G.buffArmorBreak);
+        int pillW = 90;
+        rightCursorBottom -= pillW;
+        drawStatusPill(rightCursorBottom, 38, pillW, ab, COL_AND, COL_AND);
+        rightCursorBottom -= 6;
+    }
+
+    if (G.phase == Game::TRAINING) {
+        char tb[32]; snprintf(tb, 32, "選擇獎勵 %.1fs", std::max(0.f, G.trainingTimer));
+        DTX(tb, (float)leftInfoX, 24.f, FS_TINY, AlphaOf(COL_SENSOR, 220));
+    } else if (G.phase == Game::FIGHT && G.waveTelegraphTimer > 0.f) {
+        char ib[32]; snprintf(ib, 32, "敵潮接近 %.1fs", std::max(0.f, G.waveTelegraphTimer));
+        DTX(ib, (float)leftInfoX, 24.f, FS_TINY, AlphaOf(Color{255, 180, 90, 255}, 230));
+    }
+
+    if (G.eventBannerTimer > 0 && G.currentEvent != WaveEvent::NONE) {
+        float alpha = std::min(1.f, G.eventBannerTimer);
+        float pulse2 = 0.8f + 0.2f * sinf((float)GetTime() * 6.f);
+        Color ec = {255, 80, 80, (unsigned char)(230 * alpha * pulse2)};
+        DTC(G.eventName.c_str(), VIRT_W / 2, TOPBAR_H + 36, FS_LARGE, ec);
+    }
+
+    if ((G.incidentBannerTimer > 0.f || G.incidentTimer > 0.f) &&
+        G.currentIncident != Game::Incident::NONE) {
+        float alpha = (G.incidentBannerTimer > 0.f) ? std::min(1.f, G.incidentBannerTimer) : 0.62f;
+        float pulse3 = 0.78f + 0.22f * sinf((float)GetTime() * 8.f);
+        Color ic = IncidentUiColor(G.currentIncident);
+        int boxW = 420;
+        DrawRoundBox((float)(VIRT_W / 2 - boxW / 2), (float)(TOPBAR_H + 58), (float)boxW, 30.f, 8.f,
+                     AlphaOf(ic, (int)(18 * alpha)), AlphaOf(ic, (int)(130 * alpha * pulse3)), 1.4f);
+        char ib[80];
+        snprintf(ib, 80, "%s  %.0fs", G.incidentName.c_str(), std::max(0.f, G.incidentTimer));
+        DTC(ib, VIRT_W / 2, TOPBAR_H + 73, FS_SMALL, AlphaOf(ic, (int)(225 * alpha)));
     }
 }
 
@@ -391,7 +631,8 @@ void DrawBotBar(Game& G) {
     DrawRectangle(0,by,VIRT_W,BOTBAR_H,PANEL_BG);
     DrawLine(0,by,VIRT_W,by,PANEL_BD);
     const char* hint=
-        "[空白]發動  [C]連線  [U]升級  [Q]主動技能  [DEL]移除  "
-        "[T]熱圖  [A]AI提示  [P]暫停  [H]說明  [F11]全螢幕";
+        (G.phase == Game::TRAINING)
+        ? "[1][2][3] 選擇訓練獎勵  [滑鼠] 點選卡片  [P]暫停  [H]說明  [F11]全螢幕"
+        : "[空白]發動  [C]連線  [U]升級  [Q]主動技能  [DEL]移除  [T]熱圖  [A]AI提示  [P]暫停  [H]說明  [F11]全螢幕";
     DTC(hint,VIRT_W/2,by+BOTBAR_H/2,FS_TINY,AlphaOf(WHITE,120));
 }

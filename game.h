@@ -10,6 +10,7 @@
 #include <string>
 #include <functional>
 #include <algorithm>
+#include <array>
 #include <sstream>
 
 // ══════════════════════════════════════════════════════════════════
@@ -36,19 +37,34 @@ struct Game {
         BOSS_ESCORT, REGEN_ARMY, DOUBLE_SPD, BLACKOUT, MUTANT, SIEGE
     };
 
+    enum class Incident {
+        NONE, SIGNAL_STORM, ROUTE_SURGE, BOUNTY_WINDOW
+    };
+
     WaveEvent   currentEvent{WaveEvent::NONE};
     std::string eventName;
     float       eventBannerTimer{0.f};
 
+    Incident    currentIncident{Incident::NONE};
+    std::string incidentName;
+    float       incidentTimer{0.f};
+    float       incidentBannerTimer{0.f};
+    float       incidentRollTimer{0.f};
+    bool        incidentTriggered{false};
+
     static WaveEvent  RollEvent(int wave, std::mt19937& rng);
     static const char* EventName(WaveEvent e);
+    static Incident   RollIncident(int wave, std::mt19937& rng);
+    static const char* IncidentName(Incident i);
 
     // ── 遊戲狀態旗標 ───────────────────────────────────────────────
     bool  showThreat{false};
     bool  showAIHints{true};
     bool  dualPath{false};
     bool  blackoutActive{false};
-    int   nextPreviewPath{1};
+    std::array<int, 2> nextPreviewPaths{{1, -1}};
+    int   nextPreviewLaneCount{1};
+    bool  hasPlannedRouteChange{false};
 
     float buffOverfreq{0.f};
     float buffArmorBreak{0.f};
@@ -95,6 +111,26 @@ struct Game {
     int   combo{0};
     float comboTimer{0.f};
     constexpr static float COMBO_WINDOW = 3.f;
+    float comboSurgeTimer{0.f};
+    constexpr static float COMBO_SURGE_TIME = 6.f;
+    constexpr static int   COMBO_SURGE_THRESHOLD = 6;
+
+    float waveTelegraphTimer{0.f};
+    float spawnPulseTimer{0.f};
+    int   spawnPulsePath{0};
+
+    enum class TrainingRewardKind { CREDITS, PATCH, UPGRADE };
+    struct TrainingReward {
+        TrainingRewardKind kind{TrainingRewardKind::CREDITS};
+        std::string        title;
+        std::string        desc;
+        Color              col{WHITE};
+        int                valueA{0};
+        int                valueB{0};
+    };
+
+    std::array<TrainingReward, 3> trainingChoices{};
+    int                           trainingChoiceCount{0};
 
     float shakeT{0.f};
     float shakePow{0.f};
@@ -128,12 +164,43 @@ struct Game {
     }
 
     bool IsPath(int gx, int gy) {
-        if (gx < 0 || gx >= COLS || gy < 0 || gy >= ROWS) return false;
-        return IS_PATH[gx][gy] || IS_PATH2[gx][gy];
+        return IsAnyActivePathCell(gx, gy, dualPath ? 2 : 1);
+    }
+
+    bool IsLaneActive(int laneSlot) const {
+        return laneSlot == 0 || (laneSlot == 1 && dualPath);
+    }
+
+    int ActiveLaneCount() const {
+        return dualPath ? 2 : 1;
+    }
+
+    int ResolveLaneSlot(int laneSlot) const {
+        return (laneSlot == 1 && dualPath) ? 1 : 0;
+    }
+
+    const PathPreset& LanePreset(int laneSlot) const {
+        return GetActiveLanePreset(ResolveLaneSlot(laneSlot));
+    }
+
+    int LanePresetIdx(int laneSlot) const {
+        return GetActiveLanePresetIdx(ResolveLaneSlot(laneSlot));
+    }
+
+    const std::vector<PathCell>& LaneCells(int laneSlot) const {
+        return GetActiveLaneCells(ResolveLaneSlot(laneSlot));
+    }
+
+    bool IsLanePathCell(int laneSlot, int gx, int gy) const {
+        return IsLaneActive(laneSlot) && IsActiveLaneCell(ResolveLaneSlot(laneSlot), gx, gy);
+    }
+
+    const std::vector<PathCell>& EnemyLaneCells(const Enemy& e) const {
+        return LaneCells(e.pathIdx);
     }
 
     Vector2 EnemyWorld(const Enemy& e) {
-        auto& cells = (e.pathIdx == 1 && dualPath) ? PATH_CELLS2 : PATH_CELLS;
+        const auto& cells = EnemyLaneCells(e);
         int   i = (int)e.pathPos;
         float f = e.pathPos - i;
         if (i >= (int)cells.size() - 1) return CC(CPU_GX, CPU_GY);
@@ -144,7 +211,7 @@ struct Game {
     }
 
     Vector2 EnemyGrid(const Enemy& e) {
-        auto& cells = (e.pathIdx == 1 && dualPath) ? PATH_CELLS2 : PATH_CELLS;
+        const auto& cells = EnemyLaneCells(e);
         int   i = (int)e.pathPos;
         float f = e.pathPos - i;
         if (i >= (int)cells.size() - 1) return { (float)CPU_GX, (float)CPU_GY };

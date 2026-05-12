@@ -6,6 +6,308 @@
 #include <algorithm>
 #include <cmath>
 
+static const char* EnemyTagName(EnemyTag tag) {
+    switch (tag) {
+        case EnemyTag::BRUTE:  return "BRUTE";
+        case EnemyTag::SWIFT:  return "SWIFT";
+        case EnemyTag::BOUNTY: return "BOUNTY";
+        default:               return "";
+    }
+}
+
+static Color EnemyTagColor(EnemyTag tag) {
+    switch (tag) {
+        case EnemyTag::BRUTE:  return Color{255, 120, 120, 255};
+        case EnemyTag::SWIFT:  return Color{120, 255, 200, 255};
+        case EnemyTag::BOUNTY: return Color{255, 220, 90, 255};
+        default:               return WHITE;
+    }
+}
+
+static void EmitVfxRing(Game& G, Vector2 pos, Color col, float radius, float life) {
+    G.particles.push_back({ pos, {0.f, 0.f}, life, life, radius, col });
+}
+
+static void EmitMuzzleVfx(Game& G, Vector2 pos, Vector2 dir, Color col, bool charged) {
+    float ringR = charged ? 28.f : 20.f;
+    EmitVfxRing(G, pos, col, ringR, charged ? 0.28f : 0.20f);
+    G.SpawnParticles(pos, col, charged ? 9 : 5, charged ? 135.f : 95.f);
+
+    Vector2 nose = { pos.x + dir.x * CELL * 0.26f, pos.y + dir.y * CELL * 0.26f };
+    float speed = charged ? 180.f : 125.f;
+    G.particles.push_back({ nose, {dir.x * speed, dir.y * speed}, 0.22f, 0.22f, charged ? 7.f : 5.f, WHITE });
+}
+
+static void EmitImpactVfx(Game& G, Vector2 pos, Color col, bool heavy) {
+    G.SpawnParticles(pos, col, heavy ? 14 : 7, heavy ? 135.f : 85.f);
+    EmitVfxRing(G, pos, col, heavy ? 38.f : 24.f, heavy ? 0.36f : 0.25f);
+    if (heavy) EmitVfxRing(G, pos, WHITE, 18.f, 0.18f);
+}
+
+static void AssignEnemyTag(Game& G, Enemy& e) {
+    if (e.type == EType::BOSS || G.wave < 4) return;
+
+    std::uniform_int_distribution<int> roll(0, 99);
+    int r = roll(G.rng);
+    if (r < 12) {
+        e.tag = EnemyTag::BRUTE;
+        e.hp *= 1.35f;
+        e.maxHp = e.hp;
+        e.spd *= 0.92f;
+        e.reward += 6 + G.wave / 2;
+    } else if (r < 22) {
+        e.tag = EnemyTag::SWIFT;
+        e.hp *= 0.82f;
+        e.maxHp = e.hp;
+        e.spd *= 1.25f;
+        e.reward += 4 + G.wave / 3;
+    } else if (r < 30) {
+        e.tag = EnemyTag::BOUNTY;
+        e.hp *= 1.10f;
+        e.maxHp = e.hp;
+        e.reward = (int)std::round(e.reward * 1.55f);
+    }
+}
+
+static Tower* FindTrainingUpgradeTarget(Game& G) {
+    Tower* best = nullptr;
+    int bestScore = -100000;
+    for (auto& t : G.towers) {
+        if (t.type == TType::CPU || t.level >= 3) continue;
+        int score = t.kills * 10 + (int)t.totalDmg;
+        if (t.type == TType::CANNON)     score += 220;
+        if (t.type == TType::PERCEPTRON) score += 120;
+        if (score > bestScore) {
+            bestScore = score;
+            best = &t;
+        }
+    }
+    return best;
+}
+
+static void BuildTrainingChoices(Game& G) {
+    G.trainingChoiceCount = 3;
+
+    int creditReward = 90 + G.wave * 15;
+    G.trainingChoices[0] = {
+        Game::TrainingRewardKind::CREDITS,
+        "資金快取",
+        "+" + std::to_string(creditReward) + " CR，立刻補強防線",
+        COL_AND,
+        creditReward,
+        0
+    };
+
+    int livePatch = std::min(4, 2 + G.wave / 5);
+    int cpuPatch  = std::min(30, 12 + G.wave * 2);
+    G.trainingChoices[1] = {
+        Game::TrainingRewardKind::PATCH,
+        "系統修補",
+        "+" + std::to_string(livePatch) + " 命 / CPU +" + std::to_string(cpuPatch) + "%",
+        COL_SENSOR,
+        livePatch,
+        cpuPatch
+    };
+
+    Tower* target = FindTrainingUpgradeTarget(G);
+    G.trainingChoices[2] = {
+        Game::TrainingRewardKind::UPGRADE,
+        "實戰調校",
+        target
+            ? ("免費升級一座「" + std::string(TDef(target->type).label) + "」")
+            : "若無可升級塔，改領 +80 CR",
+        COL_PERC,
+        1,
+        80
+    };
+}
+
+static bool WaveRotatesRoutes(int wave) {
+    return wave > 1 && (wave - 1) % 3 == 0;
+}
+
+static float IncidentDuration(Game::Incident incident) {
+    switch (incident) {
+        case Game::Incident::SIGNAL_STORM:  return 7.0f;
+        case Game::Incident::ROUTE_SURGE:   return 6.5f;
+        case Game::Incident::BOUNTY_WINDOW: return 8.0f;
+        default:                            return 0.f;
+    }
+}
+
+static Color IncidentColor(Game::Incident incident) {
+    switch (incident) {
+        case Game::Incident::SIGNAL_STORM:  return COL_SENSOR;
+        case Game::Incident::ROUTE_SURGE:   return Color{255, 130, 90, 255};
+        case Game::Incident::BOUNTY_WINDOW: return COL_STAR;
+        default:                            return WHITE;
+    }
+}
+
+static void TriggerIncident(Game& G) {
+    G.currentIncident = Game::RollIncident(G.wave, G.rng);
+    if (G.currentIncident == Game::Incident::NONE) return;
+
+    G.incidentTriggered   = true;
+    G.incidentName        = Game::IncidentName(G.currentIncident);
+    G.incidentTimer       = IncidentDuration(G.currentIncident);
+    G.incidentBannerTimer = 3.2f;
+
+    Color col = IncidentColor(G.currentIncident);
+    G.SetMsg(G.incidentName);
+    G.AddFloat(G.CC(CPU_GX, CPU_GY), G.incidentName, col);
+    G.SpawnParticles(G.CC(CPU_GX, CPU_GY), col, 18, 120.f);
+    G.Shake(7.f, 0.22f);
+}
+
+static bool IsOppositeSide(PathEntrySide a, PathEntrySide b) {
+    return (a == PathEntrySide::LEFT   && b == PathEntrySide::RIGHT) ||
+           (a == PathEntrySide::RIGHT  && b == PathEntrySide::LEFT)  ||
+           (a == PathEntrySide::TOP    && b == PathEntrySide::BOTTOM) ||
+           (a == PathEntrySide::BOTTOM && b == PathEntrySide::TOP);
+}
+
+static int ScorePrimaryRouteCandidate(Game& G, int presetIdx) {
+    const auto& cand = GetPathPreset(presetIdx);
+    const auto& cur0 = G.LanePreset(0);
+
+    int score = cand.dualWeight * 8;
+    if (presetIdx != G.LanePresetIdx(0)) score += 30;
+    else                                 score -= 120;
+    if (cand.entrySide != cur0.entrySide) score += 18;
+    if (cand.family    != cur0.family)    score += 12;
+    if (G.dualPath && presetIdx != G.LanePresetIdx(1)) score += 6;
+
+    std::uniform_int_distribution<int> jitter(0, 7);
+    return score + jitter(G.rng);
+}
+
+static int ScoreDualRoutePair(Game& G, int primaryPresetIdx, int secondaryPresetIdx) {
+    if (primaryPresetIdx == secondaryPresetIdx) return -100000;
+
+    const auto& a = GetPathPreset(primaryPresetIdx);
+    const auto& b = GetPathPreset(secondaryPresetIdx);
+
+    int score = ScorePrimaryRouteCandidate(G, primaryPresetIdx) + b.dualWeight * 8;
+    if (secondaryPresetIdx != G.LanePresetIdx(1)) score += 14;
+    else                                          score -= 28;
+    if (a.entrySide != b.entrySide) score += 42;
+    else                            score -= 45;
+    if (IsOppositeSide(a.entrySide, b.entrySide)) score += 20;
+    if (a.family != b.family) score += 18;
+    else                      score -= 22;
+
+    std::uniform_int_distribution<int> jitter(0, 9);
+    return score + jitter(G.rng);
+}
+
+static int PickSecondaryRouteForPrimary(Game& G, int primaryPresetIdx) {
+    int bestIdx = (primaryPresetIdx == 0) ? 1 : 0;
+    int bestScore = -100000;
+    for (int idx = 0; idx < PATH_PRESET_COUNT; idx++) {
+        int score = ScoreDualRoutePair(G, primaryPresetIdx, idx);
+        if (score > bestScore) {
+            bestScore = score;
+            bestIdx = idx;
+        }
+    }
+    return bestIdx;
+}
+
+static std::array<int, 2> PlanNextRoutePair(Game& G, int laneCount) {
+    std::array<int, 2> plan = { G.LanePresetIdx(0), G.dualPath ? G.LanePresetIdx(1) : -1 };
+
+    if (laneCount <= 1) {
+        int bestIdx = G.LanePresetIdx(0);
+        int bestScore = -100000;
+        for (int idx = 0; idx < PATH_PRESET_COUNT; idx++) {
+            int score = ScorePrimaryRouteCandidate(G, idx);
+            if (score > bestScore) {
+                bestScore = score;
+                bestIdx = idx;
+            }
+        }
+        plan[0] = bestIdx;
+        plan[1] = -1;
+        return plan;
+    }
+
+    int bestScore = -100000;
+    for (int a = 0; a < PATH_PRESET_COUNT; a++) {
+        for (int b = 0; b < PATH_PRESET_COUNT; b++) {
+            int score = ScoreDualRoutePair(G, a, b);
+            if (score > bestScore) {
+                bestScore = score;
+                plan[0] = a;
+                plan[1] = b;
+            }
+        }
+    }
+    return plan;
+}
+
+static void UpdateUpcomingRoutePlan(Game& G) {
+    int nextWave = G.wave + 1;
+    G.nextPreviewLaneCount = (nextWave >= 8) ? 2 : 1;
+
+    if (!WaveRotatesRoutes(nextWave)) {
+        G.hasPlannedRouteChange = false;
+        G.nextPreviewPaths = { G.LanePresetIdx(0), G.dualPath ? G.LanePresetIdx(1) : -1 };
+        return;
+    }
+
+    G.hasPlannedRouteChange = true;
+    G.nextPreviewPaths = PlanNextRoutePair(G, G.nextPreviewLaneCount);
+}
+
+static void ApplyRoutePlan(Game& G, const std::array<int, 2>& plan, int laneCount) {
+    BuildPath(plan[0]);
+    if (laneCount > 1) BuildDualPath(plan[1]);
+}
+
+void ApplyTrainingChoice(Game& G, int choiceIdx) {
+    if (G.phase != Game::TRAINING) return;
+    if (choiceIdx < 0 || choiceIdx >= G.trainingChoiceCount) return;
+
+    auto reward = G.trainingChoices[choiceIdx];
+    switch (reward.kind) {
+        case Game::TrainingRewardKind::CREDITS: {
+            G.credits += reward.valueA;
+            G.AddFloat(G.CC(CPU_GX, CPU_GY), "+" + std::to_string(reward.valueA) + " CR", reward.col);
+            G.SetMsg("TRAINING：取得資金快取，建置資源已補充。");
+            break;
+        }
+        case Game::TrainingRewardKind::PATCH: {
+            G.lives = std::min(30, G.lives + reward.valueA);
+            G.cpuHp = std::min(100.f, G.cpuHp + (float)reward.valueB);
+            G.SpawnParticles(G.CC(CPU_GX, CPU_GY), reward.col, 18, 100.f);
+            G.AddFloat(G.CC(CPU_GX, CPU_GY), "+PATCH", reward.col);
+            G.SetMsg("TRAINING：核心修補完成，防線穩定度提升。");
+            break;
+        }
+        case Game::TrainingRewardKind::UPGRADE: {
+            Tower* target = FindTrainingUpgradeTarget(G);
+            if (target) {
+                target->level++;
+                G.ApplyTowerStats(*target);
+                target->upgradeFlash = 1.f;
+                G.SpawnParticles(G.CC(target->gx, target->gy), reward.col, 24, 130.f);
+                G.AddFloat(G.CC(target->gx, target->gy), "TRAIN UP!", reward.col);
+                G.SetMsg("TRAINING：實戰調校完成，一座主力塔已免費升級。");
+            } else {
+                G.credits += reward.valueB;
+                G.AddFloat(G.CC(CPU_GX, CPU_GY), "+" + std::to_string(reward.valueB) + " CR", COL_AND);
+                G.SetMsg("TRAINING：目前無可升級塔，已改發資金補給。");
+            }
+            break;
+        }
+    }
+
+    G.trainingTimer = 0.f;
+    G.trainingChoiceCount = 0;
+    G.phase = Game::BUILD;
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  主動技能常數表
 // ══════════════════════════════════════════════════════════════════
@@ -123,7 +425,8 @@ void ActivateSkill(Game& G, Tower& t) {
                 Vector2 sp  = G.CC(t.gx, t.gy);
                 Vector2 dir = Vector2Normalize(Vector2Subtract(tp, sp));
                 G.bullets.push_back({ sp, {dir.x * 600.f, dir.y * 600.f},
-                                       tgt->id, t.id, 500.f, true, 80.f, RED });
+                                       tgt->id, t.id, 500.f, false, true, 80.f, RED });
+                EmitMuzzleVfx(G, sp, dir, RED, true);
                 G.AddFloat(pos, "超砲！", RED);
             }
             G.SpawnParticles(pos, RED, 16, 160.f);
@@ -161,6 +464,9 @@ void PropagateSignals(Game& G, float dt) {
         if (t.type != TType::SENSOR) continue;
 
         float effectiveRange = G.blackoutActive ? t.range * 0.30f : t.range;
+        if (G.currentIncident == Game::Incident::SIGNAL_STORM && G.incidentTimer > 0.f) {
+            effectiveRange *= 0.65f;
+        }
         float minD = effectiveRange + 1.f;
 
         for (auto& e : G.enemies) {
@@ -329,10 +635,11 @@ void UpdateBossAI(Game& G, Enemy& boss, float dt) {
     int     bgy = (int)(eg.y + 0.5f);
 
     float threat = G.threatMap.Get(bgx, bgy);
+    const auto& laneCells = G.EnemyLaneCells(boss);
     int   nextIdx = (int)boss.pathPos + 2;
-    if (nextIdx < (int)PATH_CELLS.size()) {
+    if (nextIdx < (int)laneCells.size()) {
         threat = std::max(threat,
-            G.threatMap.Get(PATH_CELLS[nextIdx].gx, PATH_CELLS[nextIdx].gy));
+            G.threatMap.Get(laneCells[nextIdx].gx, laneCells[nextIdx].gy));
     }
 
     boss.localThreat = threat;
@@ -451,20 +758,24 @@ void SpawnEnemy(Game& G) {
         default: break;
     }
 
+    AssignEnemyTag(G, e);
+    e.spawnFx = 0.65f;
+
     G.enemies.push_back(e);
-    if (G.dualPath && !PATH_CELLS2.empty()) {
+    if (G.dualPath && !G.LaneCells(1).empty()) {
         // ── 敵方神經網路評估兩條路線的威脅 ─────────────────────
         auto pathThreat = [&](const std::vector<PathCell>& cells) -> float {
             float sum = 0.f;
             int   n   = std::min((int)cells.size(), 10);
+            if (n <= 0) return 0.f;
             for (int k = 0; k < n; k++)
                 sum += G.threatMap.Get(cells[k].gx, cells[k].gy);
             float maxT = G.threatMap.GetMax();
             return (maxT > 0.f) ? (sum / n) / maxT : 0.f;
         };
 
-        float t0 = pathThreat(PATH_CELLS);
-        float t1 = pathThreat(PATH_CELLS2);
+        float t0 = pathThreat(G.LaneCells(0));
+        float t1 = pathThreat(G.LaneCells(1));
 
         // 存入用於波末訓練
         G.intel.pathAvgThreat[0] = t0;
@@ -479,6 +790,14 @@ void SpawnEnemy(Game& G) {
         }
     }
 
+    G.spawnPulseTimer = 0.28f;
+    G.spawnPulsePath  = G.enemies.back().pathIdx;
+
+    if (G.enemies.back().tag != EnemyTag::NONE) {
+        Vector2 ep = G.EnemyWorld(G.enemies.back());
+        G.AddFloat({ep.x, ep.y - 18.f}, EnemyTagName(G.enemies.back().tag), EnemyTagColor(G.enemies.back().tag));
+    }
+
     // ── 追蹤本波生成統計 ─────────────────────────────────────────
     int ti = (int)G.enemies.back().type;
     if (ti >= 0 && ti < 5) G.intel.typeSpawned[ti]++;
@@ -490,28 +809,24 @@ void SpawnEnemy(Game& G) {
 //  StartWave
 // ══════════════════════════════════════════════════════════════════
 void StartWave(Game& G) {
-    if (G.phase == Game::FIGHT) return;
+    if (G.phase != Game::BUILD) return;
 
     G.wave++;
 
     // ── 每 3 波輪換路線 ──────────────────────────────────────────
-    if (G.wave > 1 && (G.wave - 1) % 3 == 0) {
-        int nextPath = (CURRENT_PATH_IDX + 1) % 5;
-        BuildPath(nextPath);
-
-        if (G.dualPath) {
-            int nextPath2 = (CURRENT_PATH_IDX2 + 2) % 5;
-            if (nextPath2 == nextPath) nextPath2 = (nextPath2 + 1) % 5;
-            BuildDualPath(nextPath2);
-        }
+    if (WaveRotatesRoutes(G.wave)) {
+        int laneCount = (G.wave >= 8) ? 2 : 1;
+        std::array<int, 2> routePlan = G.hasPlannedRouteChange
+            ? G.nextPreviewPaths
+            : PlanNextRoutePair(G, laneCount);
+        ApplyRoutePlan(G, routePlan, laneCount);
 
         int demolished = 0;
         G.towers.erase(
             std::remove_if(G.towers.begin(), G.towers.end(),
                 [&](const Tower& t) {
                     if (t.type == TType::CPU) return false;
-                    bool onPath = IS_PATH[t.gx][t.gy] ||
-                                  (G.dualPath && IS_PATH2[t.gx][t.gy]);
+                    bool onPath = IsAnyActivePathCell(t.gx, t.gy, laneCount);
                     if (onPath) { G.credits += TDef(t.type).baseCost; demolished++; }
                     return onPath;
                 }),
@@ -530,18 +845,18 @@ void StartWave(Game& G) {
 
         char pb[120];
         if (demolished > 0) {
-            if (G.dualPath)
+            if (laneCount > 1)
                 snprintf(pb, 120, "雙路徑重組！+200CR。%d座塔被占用（全額退款）。主：%s | 副：%s",
-                    demolished, CUR_PRESET->name, CUR_PRESET2->name);
+                    demolished, G.LanePreset(0).name, G.LanePreset(1).name);
             else
                 snprintf(pb, 120, "路徑重組！+200CR。%d座塔被占用（全額退款）。新路線：%s",
-                    demolished, CUR_PRESET->name);
+                    demolished, G.LanePreset(0).name);
         } else {
-            if (G.dualPath)
+            if (laneCount > 1)
                 snprintf(pb, 120, "雙路徑重組！+200CR。主：%s | 副：%s",
-                    CUR_PRESET->name, CUR_PRESET2->name);
+                    G.LanePreset(0).name, G.LanePreset(1).name);
             else
-                snprintf(pb, 120, "路徑重組！+200CR。新路線：%s", CUR_PRESET->name);
+                snprintf(pb, 120, "路徑重組！+200CR。新路線：%s", G.LanePreset(0).name);
         }
         G.SetMsg(pb);
     }
@@ -549,17 +864,30 @@ void StartWave(Game& G) {
     // ── Wave 8 開通雙路徑 ────────────────────────────────────────
     if (G.wave >= 8 && !G.dualPath) {
         G.dualPath = true;
-        int p2 = (CURRENT_PATH_IDX + 2) % 5;
-        if (p2 == CURRENT_PATH_IDX2) p2 = (p2 + 1) % 5;
+        int p2 = PickSecondaryRouteForPrimary(G, G.LanePresetIdx(0));
         BuildDualPath(p2);
-        G.SetMsg("警告：第二條路徑開通！雙路進攻！");
+        char db[96];
+        snprintf(db, 96, "警告：第二條路徑開通！雙路進攻！副路：%s", G.LanePreset(1).name);
+        G.SetMsg(db);
     }
 
-    G.nextPreviewPath  = (CURRENT_PATH_IDX + 1) % 5;
+    UpdateUpcomingRoutePlan(G);
     G.currentEvent     = Game::RollEvent(G.wave, G.rng);
     G.eventName        = Game::EventName(G.currentEvent);
     G.eventBannerTimer = 4.f;
     G.blackoutActive   = (G.currentEvent == WaveEvent::BLACKOUT);
+    G.currentIncident     = Game::Incident::NONE;
+    G.incidentName        = "";
+    G.incidentTimer       = 0.f;
+    G.incidentBannerTimer = 0.f;
+    G.incidentTriggered   = false;
+    if (G.wave >= 3) {
+        std::uniform_real_distribution<float> delay(4.5f, 8.0f);
+        G.incidentRollTimer = delay(G.rng);
+    } else {
+        G.incidentRollTimer = 0.f;
+        G.incidentTriggered = true;
+    }
 
     bool boss      = (G.wave % 5 == 0);
     int  baseCount = boss ? 1 + (G.wave / 5) * 2 : 6 + G.wave * 3;
@@ -572,9 +900,16 @@ void StartWave(Game& G) {
     G.spawned     = 0;
     G.spawnTimer  = 0.f;
     G.phase       = Game::FIGHT;
+    G.trainingTimer = 0.f;
+    G.trainingChoiceCount = 0;
     G.waveKills   = 0;
     G.waveEscaped = 0;
     G.waveDmg     = 0.f;
+    G.waveTelegraphTimer = 1.8f;
+    G.spawnPulseTimer = 0.6f;
+    G.spawnPulsePath = 0;
+    G.placing = TType::NONE;
+    G.connectSrc = -1;
 
     char buf[96];
     if (G.eventName.empty() || G.currentEvent == WaveEvent::NONE)
@@ -594,7 +929,44 @@ void Update(Game& G, float dt) {
     if (G.msgTimer         > 0) G.msgTimer         -= dt;
     if (G.shakeT           > 0) G.shakeT           -= dt;
     if (G.eventBannerTimer > 0) G.eventBannerTimer  -= dt;
-    if (G.comboTimer > 0) { G.comboTimer -= dt; if (G.comboTimer <= 0) G.combo = 0; }
+    if (G.incidentBannerTimer > 0) G.incidentBannerTimer -= dt;
+    if (G.waveTelegraphTimer > 0) G.waveTelegraphTimer -= dt;
+    if (G.spawnPulseTimer > 0)    G.spawnPulseTimer    -= dt;
+    if (G.incidentRollTimer > 0)  G.incidentRollTimer  -= dt;
+    if (G.incidentTimer > 0) {
+        G.incidentTimer -= dt;
+        if (G.incidentTimer <= 0.f) {
+            G.currentIncident = Game::Incident::NONE;
+            G.incidentName = "";
+        }
+    }
+
+    if (G.phase == Game::FIGHT && G.waveTelegraphTimer <= 0.f &&
+        !G.incidentTriggered && G.spawned > 0 && G.incidentRollTimer <= 0.f) {
+        TriggerIncident(G);
+    }
+
+    bool surgeWasActive = (G.comboSurgeTimer > 0.f);
+    if (G.comboSurgeTimer > 0.f) {
+        G.comboSurgeTimer = std::max(0.f, G.comboSurgeTimer - dt);
+    }
+    if (G.comboTimer > 0) {
+        G.comboTimer -= dt;
+        if (G.comboTimer <= 0) {
+            G.combo = 0;
+            G.comboSurgeTimer = 0.f;
+        }
+    }
+    if (surgeWasActive && G.comboSurgeTimer <= 0.f) {
+        G.AddFloat(G.CC(CPU_GX, CPU_GY), "SURGE 結束", Color{255, 160, 120, 255});
+    }
+
+    if (G.phase == Game::TRAINING && G.trainingTimer > 0.f) {
+        G.trainingTimer -= dt;
+        if (G.trainingTimer <= 0.f && G.trainingChoiceCount > 0) {
+            ApplyTrainingChoice(G, 0);
+        }
+    }
 
     for (auto& h : G.aiHints) h.flashT += dt * 2.5f;
 
@@ -604,7 +976,7 @@ void Update(Game& G, float dt) {
     for (auto& t : G.towers) if (t.activeCd > 0) t.activeCd = std::max(0.f, t.activeCd - dt);
 
     // ── 生成敵人 ─────────────────────────────────────────────────
-    if (G.phase == Game::FIGHT && G.spawned < G.waveCount) {
+    if (G.phase == Game::FIGHT && G.waveTelegraphTimer <= 0.f && G.spawned < G.waveCount) {
         G.spawnTimer += dt;
         float interval = std::max(0.15f, 0.75f - G.wave * 0.035f);
         if (G.spawnTimer >= interval) {
@@ -647,6 +1019,8 @@ void Update(Game& G, float dt) {
 
         cannon.cooldown = effectiveCd;
         float dmg = cannon.damage * CalcDamageMultiplier(G, cannon, *tgt);
+        bool surgeShot = (G.comboSurgeTimer > 0.f);
+        if (surgeShot) dmg *= 1.35f;
 
         bool hasXorL2 = false;
         for (auto& src : G.towers)
@@ -665,9 +1039,10 @@ void Update(Game& G, float dt) {
         Vector2 sp  = G.CC(cannon.gx, cannon.gy);
         Vector2 dir = Vector2Normalize(Vector2Subtract(tp, sp));
         bool hasSplash = (cannon.level == 3);
-        Color bcol = crit ? YELLOW : COL_CANNON;
+        Color bcol = crit ? YELLOW : (surgeShot ? Color{255, 140, 90, 255} : COL_CANNON);
         G.bullets.push_back({ sp, {dir.x * 420.f, dir.y * 420.f},
-                               tgt->id, cannon.id, dmg, hasSplash, hasSplash ? 55.f : 0.f, bcol });
+                               tgt->id, cannon.id, dmg, crit, hasSplash, hasSplash ? 55.f : 0.f, bcol });
+        EmitMuzzleVfx(G, sp, dir, bcol, crit || surgeShot || hasSplash);
 
         bool hasOrL3 = false;
         for (auto& src : G.towers)
@@ -685,7 +1060,8 @@ void Update(Game& G, float dt) {
                 Vector2 tp2  = G.EnemyWorld(*tgt2);
                 Vector2 dir2 = Vector2Normalize(Vector2Subtract(tp2, sp));
                 G.bullets.push_back({ sp, {dir2.x * 420.f, dir2.y * 420.f},
-                                       tgt2->id, cannon.id, dmg * 0.6f, false, 0.f, COL_OR });
+                                       tgt2->id, cannon.id, dmg * 0.6f, false, false, 0.f, COL_OR });
+                EmitMuzzleVfx(G, sp, dir2, COL_OR, false);
             }
         }
     }
@@ -709,14 +1085,27 @@ void Update(Game& G, float dt) {
                 if (e.shieldHp <= 0.f) {
                     e.shielded = false;
                     G.SpawnParticles(ep, Color{150, 220, 255, 255}, 12, 90.f);
+                    EmitImpactVfx(G, ep, Color{150, 220, 255, 255}, true);
                     G.AddFloat(ep, "護盾破！", Color{150, 220, 255, 255});
                 }
             }
             e.hp -= actualDmg;
             e.flashTimer = 0.15f;
             G.waveDmg   += actualDmg;
-            G.SpawnParticles(b.pos, b.col, 6, 80.f);
+            EmitImpactVfx(G, ep, b.crit ? YELLOW : b.col,
+                          b.crit || b.splash || e.type == EType::BOSS || actualDmg >= 60.f);
             hit = true;
+
+            if (actualDmg >= 45.f || b.crit || e.type == EType::BOSS) {
+                char db[24];
+                snprintf(db, 24, "-%.0f", actualDmg);
+                G.AddFloat({ep.x, ep.y - 16.f}, db, b.crit ? YELLOW : b.col);
+            }
+
+            if (b.crit) {
+                G.AddFloat({ep.x, ep.y - 34.f}, "CRIT!", YELLOW);
+                G.Shake(4.f, 0.12f);
+            }
 
             Tower* src = G.FindTower(b.sourceId);
             if (src) src->totalDmg += actualDmg;
@@ -733,13 +1122,15 @@ void Update(Game& G, float dt) {
                         if (e2.shieldHp <= 0.f) {
                             e2.shielded = false;
                             G.SpawnParticles(G.EnemyWorld(e2), Color{150, 220, 255, 255}, 8, 80.f);
+                            EmitImpactVfx(G, G.EnemyWorld(e2), Color{150, 220, 255, 255}, true);
                             G.AddFloat(G.EnemyWorld(e2), "護盾破！", Color{150, 220, 255, 255});
                         }
                     }
                     e2.hp -= splashDmg;
-                    G.SpawnParticles(G.EnemyWorld(e2), Color{255, 180, 50, 255}, 4, 60.f);
+                    e2.flashTimer = std::max(e2.flashTimer, 0.08f);
+                    EmitImpactVfx(G, G.EnemyWorld(e2), Color{255, 180, 50, 255}, false);
                 }
-                G.SpawnParticles(b.pos, Color{255, 120, 40, 255}, 16, 100.f);
+                EmitImpactVfx(G, b.pos, Color{255, 120, 40, 255}, true);
             }
             break;
         }
@@ -760,6 +1151,14 @@ void Update(Game& G, float dt) {
         G.combo++;
         G.comboTimer = Game::COMBO_WINDOW;
 
+        bool surgeJustStarted = false;
+        if (G.combo >= Game::COMBO_SURGE_THRESHOLD) {
+            surgeJustStarted = (G.comboSurgeTimer <= 0.f);
+            G.comboSurgeTimer = surgeJustStarted
+                ? Game::COMBO_SURGE_TIME
+                : std::min(Game::COMBO_SURGE_TIME + 1.5f, G.comboSurgeTimer + 0.7f);
+        }
+
         for (auto& b : G.bullets) {
             if (b.targetId == it->id) {
                 Tower* src = G.FindTower(b.sourceId);
@@ -776,6 +1175,7 @@ void Update(Game& G, float dt) {
         float comboMult = (G.combo >= 10) ? 2.f
                         : (G.combo >=  5) ? 1.5f
                         : (G.combo >=  3) ? 1.2f : 1.f;
+        if (G.currentIncident == Game::Incident::BOUNTY_WINDOW && G.incidentTimer > 0.f) comboMult += 0.35f;
         int reward = (int)(it->reward * comboMult);
         G.credits += reward;
         G.score   += (int)(reward * 1.5f);
@@ -785,6 +1185,9 @@ void Update(Game& G, float dt) {
         G.SpawnParticles(p, COL_VIRUS,
             (it->type == EType::BOSS) ? 40 : 12,
             (it->type == EType::BOSS) ? 180.f : 100.f);
+        if (it->tag == EnemyTag::BOUNTY) {
+            G.SpawnParticles(p, EnemyTagColor(it->tag), 10, 95.f);
+        }
 
         std::string ftxt = "+" + std::to_string(reward) + " CR";
         if (G.combo >= 3) { char cb[16]; snprintf(cb, 16, " x%.1f", comboMult); ftxt += cb; }
@@ -793,6 +1196,11 @@ void Update(Game& G, float dt) {
         if (it->type == EType::BOSS)  { G.AddFloat({p.x, p.y - 50}, "BOSS 擊倒！", COL_BOSS); G.Shake(20.f, 0.6f); }
         if (G.combo ==  3) G.AddFloat({p.x, p.y - 30}, "COMBO x3！",  Color{255, 220, 100, 255});
         if (G.combo ==  5) G.AddFloat({p.x, p.y - 30}, "COMBO x5！",  COL_STAR);
+        if (surgeJustStarted) {
+            G.AddFloat({p.x, p.y - 48}, "SURGE ONLINE!", Color{255, 140, 90, 255});
+            G.SpawnParticles(p, Color{255, 140, 90, 255}, 20, 140.f);
+            G.SetMsg("連殺突破！進入 COMBO SURGE，砲塔火力暫時提升。");
+        }
         if (G.combo == 10) G.AddFloat({p.x, p.y - 30}, "MEGA COMBO！", Color{255, 100, 255, 255});
 
         it = G.enemies.erase(it);
@@ -825,6 +1233,7 @@ void Update(Game& G, float dt) {
     for (auto& e : G.enemies) {
         e.angle += 180.f * dt * (e.type == EType::BOSS ? 1.f : 2.f);
         if (e.flashTimer > 0) e.flashTimer -= dt;
+        if (e.spawnFx > 0)    e.spawnFx    -= dt;
         if (e.marked) { e.markTimer -= dt; if (e.markTimer <= 0) e.marked = false; }
 
         if (e.type == EType::ELITE) {
@@ -841,9 +1250,10 @@ void Update(Game& G, float dt) {
 
         float speed = e.spd;
         if (e.type == EType::BOSS) speed *= e.evadeSpdMult;
+        if (G.currentIncident == Game::Incident::ROUTE_SURGE && G.incidentTimer > 0.f) speed *= 1.22f;
         e.pathPos += speed * dt;
 
-        auto& pathRef = (e.pathIdx == 1 && G.dualPath) ? PATH_CELLS2 : PATH_CELLS;
+        const auto& pathRef = G.EnemyLaneCells(e);
         if (e.pathPos >= (float)(pathRef.size() - 1)) {
             int   liveDmg = (e.type == EType::BOSS) ? 5 : 1;
             float cpuDmg  = (e.type == EType::BOSS) ? 25.f : 8.f;
@@ -890,13 +1300,18 @@ void Update(Game& G, float dt) {
     if (waveFinished) {
         int bonus = 50 + G.wave * 10;
         G.blackoutActive = false;
+        G.waveTelegraphTimer = 0.f;
+        G.spawnPulseTimer = 0.f;
+        G.currentIncident = Game::Incident::NONE;
+        G.incidentName = "";
+        G.incidentTimer = 0.f;
+        G.incidentBannerTimer = 0.f;
+        G.incidentRollTimer = 0.f;
+        G.combo = 0;
+        G.comboTimer = 0.f;
+        G.comboSurgeTimer = 0.f;
         if (G.waveEscaped == 0) {
             bonus = (int)(bonus * 1.5f);
-            G.SetMsg("完美防守！+" + std::to_string(bonus) + " CR！進入訓練階段...");
-        } else {
-            char buf[96];
-            snprintf(buf, 96, "第%d波結束！+%d CR。%d個病毒突破。", G.wave, bonus, G.waveEscaped);
-            G.SetMsg(buf);
         }
         G.credits      += bonus;
         G.threatMap.Decay(0.85f);
@@ -904,13 +1319,17 @@ void Update(Game& G, float dt) {
         G.TrainDefenseNN();
         G.TrainPerceptrons();
         G.GenerateAIHints();
-        G.phase = Game::BUILD;
+        G.phase = Game::TRAINING;
+        G.trainingTimer = 8.5f;
+        G.placing = TType::NONE;
+        G.connectSrc = -1;
+        BuildTrainingChoices(G);
 
         char buf[96];
         if (G.waveEscaped == 0)
-            snprintf(buf, 96, "完美防守！+%d CR！準備下一波。", bonus);
+            snprintf(buf, 96, "完美防守！+%d CR！進入 TRAINING，選一項強化。", bonus);
         else
-            snprintf(buf, 96, "第%d波結束！+%d CR。%d個病毒突破。", G.wave, bonus, G.waveEscaped);
+            snprintf(buf, 96, "第%d波結束！+%d CR。%d個病毒突破。進入 TRAINING。", G.wave, bonus, G.waveEscaped);
         G.SetMsg(buf);
     }
 

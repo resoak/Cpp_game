@@ -10,6 +10,113 @@
 #include <algorithm>
 #include <cmath>
 
+static const char* DrawEnemyTagName(EnemyTag tag) {
+    switch (tag) {
+        case EnemyTag::BRUTE:  return "BRUTE";
+        case EnemyTag::SWIFT:  return "SWIFT";
+        case EnemyTag::BOUNTY: return "BOUNTY";
+        default:               return "";
+    }
+}
+
+static Color DrawEnemyTagColor(EnemyTag tag) {
+    switch (tag) {
+        case EnemyTag::BRUTE:  return Color{255, 120, 120, 255};
+        case EnemyTag::SWIFT:  return Color{120, 255, 200, 255};
+        case EnemyTag::BOUNTY: return Color{255, 220, 90, 255};
+        default:               return WHITE;
+    }
+}
+
+Color LerpColor(Color a, Color b, float t) {
+    t = Clamp(t, 0.f, 1.f);
+    return Color{
+        (unsigned char)(a.r + (b.r - a.r) * t),
+        (unsigned char)(a.g + (b.g - a.g) * t),
+        (unsigned char)(a.b + (b.b - a.b) * t),
+        (unsigned char)(a.a + (b.a - a.a) * t)
+    };
+}
+
+static Vector2 RouteAdvanceDir(PathEntrySide side) {
+    switch (side) {
+        case PathEntrySide::LEFT:   return { 1.f,  0.f};
+        case PathEntrySide::TOP:    return { 0.f,  1.f};
+        case PathEntrySide::RIGHT:  return {-1.f,  0.f};
+        case PathEntrySide::BOTTOM: return { 0.f, -1.f};
+    }
+    return {1.f, 0.f};
+}
+
+static const char* RouteSideLabel(PathEntrySide side) {
+    switch (side) {
+        case PathEntrySide::LEFT:   return "西側入口";
+        case PathEntrySide::TOP:    return "北側入口";
+        case PathEntrySide::RIGHT:  return "東側入口";
+        case PathEntrySide::BOTTOM: return "南側入口";
+    }
+    return "入口";
+}
+
+static const char* RouteShortLabel(PathEntrySide side) {
+    switch (side) {
+        case PathEntrySide::LEFT:   return "WEST";
+        case PathEntrySide::TOP:    return "NORTH";
+        case PathEntrySide::RIGHT:  return "EAST";
+        case PathEntrySide::BOTTOM: return "SOUTH";
+    }
+    return "ROUTE";
+}
+
+RouteVisualTheme GetRouteTheme(const PathPreset& preset, int laneSlot) {
+    Color accent{};
+    Color glow{};
+    Color fill{};
+
+    switch (preset.entrySide) {
+        case PathEntrySide::LEFT:
+            accent = {  70, 220, 255, 255};
+            glow   = { 150, 245, 255, 255};
+            fill   = {   8,  34,  52, 255};
+            break;
+        case PathEntrySide::TOP:
+            accent = { 255, 196,  84, 255};
+            glow   = { 255, 229, 145, 255};
+            fill   = {  54,  32,  12, 255};
+            break;
+        case PathEntrySide::RIGHT:
+            accent = { 220, 118, 255, 255};
+            glow   = { 244, 184, 255, 255};
+            fill   = {  34,  17,  52, 255};
+            break;
+        case PathEntrySide::BOTTOM:
+            accent = { 255, 110,  96, 255};
+            glow   = { 255, 168, 150, 255};
+            fill   = {  52,  16,  20, 255};
+            break;
+    }
+
+    float familyMix = 0.05f + 0.04f * (float)(preset.family % 3);
+    Color familyTint = (preset.family % 2 == 0) ? COL_AI : COL_STAR;
+
+    RouteVisualTheme theme{};
+    theme.accent    = LerpColor(accent, familyTint, familyMix);
+    theme.glow      = LerpColor(glow, WHITE, 0.06f * (float)std::max(1, preset.dualWeight - 1));
+    theme.fill      = LerpColor(fill, accent, 0.08f + 0.02f * (float)preset.dualWeight);
+    theme.fillSoft  = AlphaOf(LerpColor(theme.fill, BG, 0.45f), 255);
+    theme.text      = LerpColor(theme.glow, WHITE, 0.12f);
+    theme.sideLabel = RouteSideLabel(preset.entrySide);
+    theme.shortLabel= RouteShortLabel(preset.entrySide);
+
+    if (laneSlot == 1) {
+        theme.accent   = LerpColor(theme.accent, WHITE, 0.10f);
+        theme.fill     = LerpColor(theme.fill, BG, 0.16f);
+        theme.fillSoft = AlphaOf(LerpColor(theme.fillSoft, BG, 0.12f), 255);
+    }
+
+    return theme;
+}
+
 // ══════════════════════════════════════════════════════════════════
 //  繪圖輔助
 // ══════════════════════════════════════════════════════════════════
@@ -28,6 +135,74 @@ void DrawHex(Vector2 c, float r, Color fill, Color border) {
     }
     for (int i = 0; i < 6; i++) DrawTriangle(c, pts[i], pts[(i + 1) % 6], fill);
     for (int i = 0; i < 6; i++) DrawLineV(pts[i], pts[(i + 1) % 6], border);
+}
+
+static void DrawCornerBrackets(float x, float y, float w, float h, float len, Color col) {
+    DrawLineEx({x, y}, {x + len, y}, 2.f, col);
+    DrawLineEx({x, y}, {x, y + len}, 2.f, col);
+    DrawLineEx({x + w, y}, {x + w - len, y}, 2.f, col);
+    DrawLineEx({x + w, y}, {x + w, y + len}, 2.f, col);
+    DrawLineEx({x, y + h}, {x + len, y + h}, 2.f, col);
+    DrawLineEx({x, y + h}, {x, y + h - len}, 2.f, col);
+    DrawLineEx({x + w, y + h}, {x + w - len, y + h}, 2.f, col);
+    DrawLineEx({x + w, y + h}, {x + w, y + h - len}, 2.f, col);
+}
+
+static void DrawScanSweep(float x, float y, float w, float h, float phase, Color col) {
+    float sweep = fmodf(phase, 1.f);
+    float sy = y + sweep * h;
+    DrawRectangleGradientV((int)x, (int)(sy - 18.f), (int)w, 36,
+        AlphaOf(col, 0), AlphaOf(col, 30));
+    DrawLineEx({x + 18.f, sy}, {x + w - 18.f, sy}, 1.6f, AlphaOf(col, 86));
+    DrawLineEx({x + 48.f, sy + 5.f}, {x + w - 110.f, sy + 5.f}, 1.f, AlphaOf(WHITE, 28));
+}
+
+static void DrawMicroTicks(float x, float y, float w, float h, Color col) {
+    for (int i = 0; i < 4; i++) {
+        float px = x + 12.f + i * 18.f;
+        DrawLineEx({px, y + 8.f}, {px + 8.f, y + 8.f}, 1.f, AlphaOf(col, 62));
+        DrawLineEx({x + w - 12.f - i * 18.f, y + h - 8.f}, {x + w - 20.f - i * 18.f, y + h - 8.f}, 1.f, AlphaOf(col, 46));
+    }
+}
+
+static void DrawWorldBackdrop(Vector2 o) {
+    float t = (float)GetTime();
+    DrawRectangleGradientV((int)o.x, (int)o.y, MAP_W, MAP_H,
+        Color{5, 12, 24, 255}, Color{1, 4, 10, 255});
+    DrawRectangle((int)o.x, (int)o.y, MAP_W, MAP_H, AlphaOf(COL_CPU, 5));
+
+    for (int x = 0; x < MAP_W; x += CELL * 2) {
+        int alpha = ((x / (CELL * 2)) % 3 == 0) ? 22 : 11;
+        DrawLine((int)o.x + x, (int)o.y, (int)o.x + x, (int)o.y + MAP_H, AlphaOf(COL_SENSOR, alpha));
+    }
+    for (int y = 0; y < MAP_H; y += CELL * 2) {
+        int alpha = ((y / (CELL * 2)) % 3 == 0) ? 18 : 9;
+        DrawLine((int)o.x, (int)o.y + y, (int)o.x + MAP_W, (int)o.y + y, AlphaOf(COL_SENSOR, alpha));
+    }
+
+    for (int y = CELL; y < MAP_H; y += CELL * 4) {
+        float fy = o.y + (float)y;
+        DrawLineEx({o.x + 28.f, fy}, {o.x + MAP_W - 28.f, fy + 18.f}, 1.2f, AlphaOf(COL_AI, 18));
+    }
+
+    for (int i = 0; i < 5; i++) {
+        float y = o.y + fmodf(t * (24.f + i * 7.f) + i * 173.f, (float)MAP_H);
+        DrawLineEx({o.x + 40.f, y}, {o.x + MAP_W - 40.f, y + 26.f}, 1.f, AlphaOf(COL_SENSOR, 10 + i * 2));
+    }
+
+    float nodePulse = 0.55f + 0.45f * sinf(t * 1.8f);
+    for (int i = 0; i < 7; i++) {
+        float nx = o.x + 110.f + i * 168.f;
+        float ny = o.y + 90.f + fmodf(i * 137.f + t * 18.f, (float)MAP_H - 180.f);
+        DrawCircleV({nx, ny}, 3.f, AlphaOf(COL_AI, 34 + (int)(34 * nodePulse)));
+        DrawCircleLinesV({nx, ny}, 10.f + nodePulse * 4.f, AlphaOf(COL_AI, 18));
+        if (i > 0) DrawLineEx({nx - 168.f, ny - 28.f}, {nx, ny}, 1.f, AlphaOf(COL_SENSOR, 12));
+    }
+
+    DrawScanSweep(o.x, o.y, (float)MAP_W, (float)MAP_H, fmodf(t * 0.055f, 1.f), COL_SENSOR);
+
+    DrawRectangleLinesEx({o.x + 1.f, o.y + 1.f, (float)MAP_W - 2.f, (float)MAP_H - 2.f}, 2.f, AlphaOf(COL_CPU, 58));
+    DrawCornerBrackets(o.x + 9.f, o.y + 9.f, (float)MAP_W - 18.f, (float)MAP_H - 18.f, 34.f, AlphaOf(COL_SENSOR, 68));
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -53,105 +228,215 @@ void DrawStars(Game& G) {
 void DrawPath(Game& G) {
     auto  o = G.MapOrigin();
     float t = (float)GetTime();
+    DrawWorldBackdrop(o);
+
+    auto laneEnemyCount = [&](int laneSlot) {
+        int count = 0;
+        for (auto& e : G.enemies) if (e.pathIdx == laneSlot) count++;
+        return count;
+    };
+
+    auto lanePressure = [&](int laneSlot) {
+        const auto& cells = G.LaneCells(laneSlot);
+        if (cells.empty()) return 0.f;
+        float furthest = 0.f;
+        for (auto& e : G.enemies) {
+            if (e.pathIdx != laneSlot) continue;
+            furthest = std::max(furthest, e.pathPos / (float)std::max(1, (int)cells.size()));
+        }
+        return Clamp(furthest, 0.f, 1.f);
+    };
+
+    auto drawRouteCard = [&](float x, float y, const char* header, const PathPreset& preset,
+                             int laneSlot, float pulse, const char* detail) {
+        RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
+        DrawRoundBox(x, y, 210.f, 34.f, 8.f,
+            AlphaOf(theme.fillSoft, 210),
+            AlphaOf(theme.accent, (int)(110 + 70 * pulse)), 1.5f);
+        DTX(header, x + 10.f, y + 6.f, FS_TINY, AlphaOf(theme.accent, 230));
+        DTX(preset.name, x + 68.f, y + 5.f, FS_SMALL, theme.text);
+        DTX(detail, x + 68.f, y + 19.f, FS_TINY, AlphaOf(theme.glow, 170));
+        DTX(theme.shortLabel, x + 10.f, y + 18.f, FS_TINY, AlphaOf(theme.glow, 220));
+    };
 
     // ── 下波路線預覽 ─────────────────────────────────────────────
     bool showPreview = (G.phase == Game::BUILD || G.phase == Game::TRAINING)
+                    && G.hasPlannedRouteChange
                     && (G.wave > 0) && (G.wave % 3 == 0);
 
     if (showPreview) {
-        const PathPreset* nextP = &PATH_PRESETS[G.nextPreviewPath];
-        std::vector<PathCell> previewCells;
-        for (int wi = 0; wi + 1 < nextP->count; wi++) {
-            int x0 = nextP->wx[wi], y0 = nextP->wy[wi];
-            int x1 = nextP->wx[wi+1], y1 = nextP->wy[wi+1];
-            int dx = (x1>x0)?1:(x1<x0)?-1:0, dy = (y1>y0)?1:(y1<y0)?-1:0;
-            int cx = x0, cy = y0;
-            while (cx != x1 || cy != y1) {
-                if (cx >= 0 && cx < COLS && cy >= 0 && cy < ROWS)
-                    previewCells.push_back({cx, cy});
-                cx += dx; cy += dy;
+        float pulse = 0.55f + 0.45f * sinf(t * 3.2f);
+        auto drawPreviewLane = [&](int presetIdx, int laneSlot) {
+            const PathPreset& previewPreset = GetPathPreset(presetIdx);
+            RouteVisualTheme  theme = GetRouteTheme(previewPreset, laneSlot);
+            auto previewCells = BuildPresetPathCells(presetIdx);
+            for (auto& pc : previewCells) {
+                float px = o.x + pc.gx * CELL;
+                float py = o.y + pc.gy * CELL;
+                DrawRectangle((int)px + 2, (int)py + 2, CELL - 4, CELL - 4, AlphaOf(theme.fill, (int)(70 + pulse * 45)));
+                DrawRectangle((int)px + 8, (int)py + 8, CELL - 16, CELL - 16, AlphaOf(theme.accent, (int)(18 + pulse * 30)));
+                DrawRectangleLinesEx({px + 1.f, py + 1.f, (float)CELL - 2.f, (float)CELL - 2.f}, 2.f,
+                    AlphaOf(theme.accent, (int)(140 + pulse * 80)));
             }
-        }
-        float pulse = 0.4f + 0.4f * sinf(t * 3.f);
-        for (auto& pc : previewCells) {
-            float px = o.x + pc.gx * CELL, py = o.y + pc.gy * CELL;
-            DrawRectangle((int)px+3,(int)py+3,CELL-6,CELL-6,{255,200,50,(unsigned char)(pulse*90)});
-            DrawRectangleLinesEx({px+2,py+2,(float)CELL-4,(float)CELL-4},1.5f,AlphaOf({255,200,50,255},(int)(pulse*160)));
-        }
-        char pn2[64];
-        snprintf(pn2, 64, "⚠ 下波路線：%s", nextP->name);
-        DTC(pn2,(int)(o.x+MAP_W/2),(int)(o.y+MAP_H-20),FS_SMALL,AlphaOf({255,200,50,255},(int)(pulse*255)));
-    }
+        };
 
-    // ── 主路徑格子 ───────────────────────────────────────────────
-    for (auto& pc : PATH_CELLS) {
-        float px = o.x + pc.gx * CELL, py = o.y + pc.gy * CELL;
-        DrawRectangle((int)px,(int)py,CELL,CELL,COL_PATH);
-        DrawRectangle((int)px+2,(int)py+2,CELL-4,CELL-4,AlphaOf({15,28,45,255},255));
-    }
+        drawPreviewLane(G.nextPreviewPaths[0], 0);
+        if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
+            drawPreviewLane(G.nextPreviewPaths[1], 1);
+        }
 
-    // ── 副路徑格子 ───────────────────────────────────────────────
-    if (G.dualPath && !PATH_CELLS2.empty()) {
-        for (auto& pc : PATH_CELLS2) {
-            float px = o.x + pc.gx * CELL, py = o.y + pc.gy * CELL;
-            DrawRectangle((int)px,(int)py,CELL,CELL,Color{20,15,40,255});
-            DrawRectangle((int)px+2,(int)py+2,CELL-4,CELL-4,AlphaOf({30,15,55,255},255));
+        DTC("下波輪換預告", (int)(o.x + MAP_W * 0.5f), (int)(o.y + MAP_H - 58), FS_SMALL,
+            AlphaOf({255, 220, 150, 255}, (int)(200 + pulse * 40)));
+
+        float cardY = o.y + MAP_H - 42.f;
+        if (G.nextPreviewLaneCount > 1 && G.nextPreviewPaths[1] >= 0) {
+            drawRouteCard(o.x + MAP_W * 0.5f - 220.f, cardY, "下波主線",
+                GetPathPreset(G.nextPreviewPaths[0]), 0, pulse,
+                GetRouteTheme(GetPathPreset(G.nextPreviewPaths[0]), 0).sideLabel);
+            drawRouteCard(o.x + MAP_W * 0.5f + 10.f, cardY, "下波副線",
+                GetPathPreset(G.nextPreviewPaths[1]), 1, pulse,
+                GetRouteTheme(GetPathPreset(G.nextPreviewPaths[1]), 1).sideLabel);
+        } else {
+            drawRouteCard(o.x + MAP_W * 0.5f - 105.f, cardY, "下波路線",
+                GetPathPreset(G.nextPreviewPaths[0]), 0, pulse,
+                GetRouteTheme(GetPathPreset(G.nextPreviewPaths[0]), 0).sideLabel);
         }
     }
 
-    // ── 路段底線（主路）─────────────────────────────────────────
-    for (int wi = 0; wi + 1 < CUR_PRESET->count; wi++) {
-        int x0=CUR_PRESET->wx[wi],y0=CUR_PRESET->wy[wi];
-        int x1=CUR_PRESET->wx[wi+1],y1=CUR_PRESET->wy[wi+1];
-        if (x0 < 0 || x0 >= COLS) continue;
-        Vector2 p0={o.x+(x0+0.5f)*CELL,o.y+(y0+0.5f)*CELL};
-        Vector2 p1={o.x+(x1+0.5f)*CELL,o.y+(y1+0.5f)*CELL};
-        DrawLineEx(p0,p1,CELL-4.f,Color{0,100,60,35});
-    }
+    auto drawLane = [&](int laneSlot) {
+        if (!G.IsLaneActive(laneSlot) || G.LaneCells(laneSlot).empty()) return;
 
-    // ── 路段底線（副路）─────────────────────────────────────────
-    if (G.dualPath) {
-        for (int wi = 0; wi + 1 < CUR_PRESET2->count; wi++) {
-            int x0=CUR_PRESET2->wx[wi],y0=CUR_PRESET2->wy[wi];
-            int x1=CUR_PRESET2->wx[wi+1],y1=CUR_PRESET2->wy[wi+1];
-            if (x0 < 0 || x0 >= COLS) continue;
-            Vector2 p0={o.x+(x0+0.5f)*CELL,o.y+(y0+0.5f)*CELL};
-            Vector2 p1={o.x+(x1+0.5f)*CELL,o.y+(y1+0.5f)*CELL};
-            DrawLineEx(p0,p1,CELL-4.f,Color{80,0,100,35});
+        const auto&       cells  = G.LaneCells(laneSlot);
+        const PathPreset& preset = G.LanePreset(laneSlot);
+        RouteVisualTheme  theme  = GetRouteTheme(preset, laneSlot);
+        float             pulse  = 0.55f + 0.45f * sinf(t * 2.4f + preset.family * 0.45f + laneSlot * 0.6f);
+        int               count  = laneEnemyCount(laneSlot);
+        float             pressure = lanePressure(laneSlot);
+
+        for (auto& pc : cells) {
+            float px = o.x + pc.gx * CELL;
+            float py = o.y + pc.gy * CELL;
+            DrawRectangleRounded({px + 1.f, py + 1.f, (float)CELL - 2.f, (float)CELL - 2.f}, 0.18f, 8, AlphaOf(theme.fill, 215));
+            DrawRectangleRounded({px + 5.f, py + 5.f, (float)CELL - 10.f, (float)CELL - 10.f}, 0.20f, 8, AlphaOf(theme.fillSoft, 245));
+            DrawRectangleRoundedLinesEx({px + 6.f, py + 6.f, (float)CELL - 12.f, (float)CELL - 12.f}, 0.22f, 8, 1.f, AlphaOf(theme.glow, 40));
+
+            switch (preset.entrySide) {
+                case PathEntrySide::LEFT:
+                    DrawRectangle((int)px + 3, (int)py + 4, 6, CELL - 8, AlphaOf(theme.accent, 180));
+                    break;
+                case PathEntrySide::TOP:
+                    DrawRectangle((int)px + 4, (int)py + 3, CELL - 8, 6, AlphaOf(theme.accent, 180));
+                    break;
+                case PathEntrySide::RIGHT:
+                    DrawRectangle((int)px + CELL - 9, (int)py + 4, 6, CELL - 8, AlphaOf(theme.accent, 180));
+                    break;
+                case PathEntrySide::BOTTOM:
+                    DrawRectangle((int)px + 4, (int)py + CELL - 9, CELL - 8, 6, AlphaOf(theme.accent, 180));
+                    break;
+            }
+
+            if (((pc.gx + pc.gy + preset.family) % 3) == 0) {
+                DrawLineEx({px + 11.f, py + CELL - 10.f}, {px + CELL - 10.f, py + 11.f}, 2.f,
+                    AlphaOf(theme.glow, 48));
+            }
+
+            if (((pc.gx * 2 + pc.gy + laneSlot) % 4) == 0) {
+                DrawLineEx({px + 12.f, py + 14.f}, {px + CELL - 12.f, py + 14.f}, 1.f, AlphaOf(theme.accent, 46));
+                DrawLineEx({px + 12.f, py + CELL - 14.f}, {px + CELL - 12.f, py + CELL - 14.f}, 1.f, AlphaOf(theme.glow, 32));
+            }
+
+            DrawCircle((int)(px + CELL * 0.5f), (int)(py + CELL * 0.5f), 3.f, AlphaOf(theme.accent, 120));
+            DrawRectangleLinesEx({px + 1.f, py + 1.f, (float)CELL - 2.f, (float)CELL - 2.f}, 1.5f,
+                AlphaOf(theme.glow, 78));
         }
-    }
 
-    // ── 動態箭頭（主路）─────────────────────────────────────────
-    for (int wi = 0; wi + 1 < CUR_PRESET->count; wi++) {
-        int x0=CUR_PRESET->wx[wi]; if (x0 < 0) continue;
-        int x1=CUR_PRESET->wx[wi+1],y0=CUR_PRESET->wy[wi],y1=CUR_PRESET->wy[wi+1];
-        Vector2 p0={o.x+(x0+0.5f)*CELL,o.y+(y0+0.5f)*CELL};
-        Vector2 p1={o.x+(x1+0.5f)*CELL,o.y+(y1+0.5f)*CELL};
-        Vector2 mid={(p0.x+p1.x)*0.5f,(p0.y+p1.y)*0.5f};
-        Vector2 dir=Vector2Normalize(Vector2Subtract(p1,p0));
-        float ang=atan2f(dir.y,dir.x),al=14.f,aw=0.5f;
-        float anim=0.7f+0.3f*sinf(t*2.5f+wi*0.8f);
-        Color ac={0,180,100,(unsigned char)(80*anim)};
-        DrawTriangle(mid,
-            {mid.x+al*cosf(ang+aw+3.14f),mid.y+al*sinf(ang+aw+3.14f)},
-            {mid.x+al*cosf(ang-aw+3.14f),mid.y+al*sinf(ang-aw+3.14f)},ac);
-    }
+        for (int wi = 0; wi + 1 < preset.count; wi++) {
+            int x0 = preset.wx[wi],     y0 = preset.wy[wi];
+            int x1 = preset.wx[wi + 1], y1 = preset.wy[wi + 1];
+            if (x0 < 0 || x0 >= COLS || y0 < 0 || y0 >= ROWS) continue;
+            Vector2 p0 = {o.x + (x0 + 0.5f) * CELL, o.y + (y0 + 0.5f) * CELL};
+            Vector2 p1 = {o.x + (x1 + 0.5f) * CELL, o.y + (y1 + 0.5f) * CELL};
+            DrawLineEx(p0, p1, CELL - 10.f, AlphaOf(theme.fill, 68));
+            DrawLineEx(p0, p1, 12.f, AlphaOf(theme.accent, 72));
+            DrawLineEx(p0, p1, 4.f, AlphaOf(theme.glow, 165));
 
-    // ── 動態箭頭（副路）─────────────────────────────────────────
-    if (G.dualPath) {
-        for (int wi = 0; wi + 1 < CUR_PRESET2->count; wi++) {
-            int x0=CUR_PRESET2->wx[wi]; if (x0 < 0) continue;
-            int x1=CUR_PRESET2->wx[wi+1],y0=CUR_PRESET2->wy[wi],y1=CUR_PRESET2->wy[wi+1];
-            Vector2 p0={o.x+(x0+0.5f)*CELL,o.y+(y0+0.5f)*CELL};
-            Vector2 p1={o.x+(x1+0.5f)*CELL,o.y+(y1+0.5f)*CELL};
-            Vector2 mid={(p0.x+p1.x)*0.5f,(p0.y+p1.y)*0.5f};
-            Vector2 dir=Vector2Normalize(Vector2Subtract(p1,p0));
-            float ang=atan2f(dir.y,dir.x),al=14.f,aw=0.5f;
-            float anim=0.7f+0.3f*sinf(t*2.5f+wi*0.8f+1.5f);
-            Color ac={200,80,255,(unsigned char)(80*anim)};
+            Vector2 dir = Vector2Normalize(Vector2Subtract(p1, p0));
+            Vector2 mid = {
+                p0.x + (p1.x - p0.x) * (0.30f + 0.35f * fmodf(t * 0.55f + wi * 0.17f + laneSlot * 0.12f, 1.f)),
+                p0.y + (p1.y - p0.y) * (0.30f + 0.35f * fmodf(t * 0.55f + wi * 0.17f + laneSlot * 0.12f, 1.f))
+            };
+            float ang = atan2f(dir.y, dir.x);
+            float al = 13.f;
+            float aw = 0.55f;
+            Color ac = AlphaOf(theme.glow, (int)(105 + pulse * 85));
             DrawTriangle(mid,
-                {mid.x+al*cosf(ang+aw+3.14f),mid.y+al*sinf(ang+aw+3.14f)},
-                {mid.x+al*cosf(ang-aw+3.14f),mid.y+al*sinf(ang-aw+3.14f)},ac);
+                {mid.x + al * cosf(ang + aw + PI), mid.y + al * sinf(ang + aw + PI)},
+                {mid.x + al * cosf(ang - aw + PI), mid.y + al * sinf(ang - aw + PI)}, ac);
+        }
+
+        Vector2 entryCenter = {o.x + (cells.front().gx + 0.5f) * CELL, o.y + (cells.front().gy + 0.5f) * CELL};
+        Vector2 entryDir = RouteAdvanceDir(preset.entrySide);
+        Vector2 entryOuter = {entryCenter.x - entryDir.x * CELL * 0.75f, entryCenter.y - entryDir.y * CELL * 0.75f};
+        Vector2 entryTip = {entryCenter.x - entryDir.x * 14.f, entryCenter.y - entryDir.y * 14.f};
+        float entryAng = atan2f(entryDir.y, entryDir.x);
+        DrawLineEx(entryOuter, entryCenter, 6.f, AlphaOf(theme.accent, (int)(95 + pulse * 70)));
+        DrawCircleLinesV(entryCenter, CELL * 0.40f + pulse * 6.f, AlphaOf(theme.glow, 150));
+        DrawTriangle(entryTip,
+            {entryTip.x - 14.f * cosf(entryAng - 0.55f), entryTip.y - 14.f * sinf(entryAng - 0.55f)},
+            {entryTip.x - 14.f * cosf(entryAng + 0.55f), entryTip.y - 14.f * sinf(entryAng + 0.55f)},
+            AlphaOf(theme.accent, 210));
+
+        float tagW = MCN(theme.sideLabel, FS_TINY) + 26.f;
+        float tagX = entryCenter.x - tagW * 0.5f;
+        float tagY = entryCenter.y - CELL * 0.72f;
+        DrawRoundBox(tagX, tagY, tagW, 20.f, 6.f, AlphaOf(theme.fill, 230), AlphaOf(theme.accent, 160), 1.2f);
+        DTC(theme.sideLabel, (int)entryCenter.x, (int)(tagY + 10.f), FS_TINY, theme.text);
+
+        Vector2 cpu = G.CC(CPU_GX, CPU_GY);
+        Vector2 end = {o.x + (cells.back().gx + 0.5f) * CELL, o.y + (cells.back().gy + 0.5f) * CELL};
+        float breach = Clamp(pressure * 0.85f + count * 0.06f, 0.f, 1.f);
+        DrawLineEx(end, cpu, 10.f, AlphaOf(theme.accent, (int)(28 + breach * 110)));
+        if (count > 0 || G.phase == Game::FIGHT) {
+            float ringR = CELL * 0.42f + laneSlot * 7.f + breach * 10.f;
+            DrawCircleLinesV(cpu, ringR, AlphaOf(theme.glow, (int)(45 + breach * 150 * pulse)));
+        }
+        if (count > 0) {
+            char cb[16];
+            snprintf(cb, 16, "x%d", count);
+            DrawRoundBox(end.x - 18.f, end.y - 12.f, 36.f, 18.f, 6.f,
+                AlphaOf(theme.fill, 220), AlphaOf(theme.accent, 170), 1.2f);
+            DTC(cb, (int)end.x, (int)end.y - 3, FS_TINY, theme.text);
+        }
+    };
+
+    drawLane(0);
+    if (G.dualPath) drawLane(1);
+
+    if (G.phase == Game::FIGHT && (G.waveTelegraphTimer > 0.f || G.spawnPulseTimer > 0.f)) {
+        auto drawSpawnLane = [&](int laneSlot, float strength) {
+            if (!G.IsLaneActive(laneSlot) || G.LaneCells(laneSlot).empty()) return;
+            const auto&      cells = G.LaneCells(laneSlot);
+            RouteVisualTheme theme = GetRouteTheme(G.LanePreset(laneSlot), laneSlot);
+            int count = std::min(5, (int)cells.size());
+            for (int i = 0; i < count; i++) {
+                float px = o.x + cells[i].gx * CELL;
+                float py = o.y + cells[i].gy * CELL;
+                DrawRectangle((int)px + 2, (int)py + 2, CELL - 4, CELL - 4, AlphaOf(theme.accent, (int)(48 * strength)));
+                DrawRectangleLinesEx({px + 1.f, py + 1.f, (float)CELL - 2.f, (float)CELL - 2.f}, 2.f,
+                    AlphaOf(theme.glow, (int)(170 * strength)));
+            }
+            Vector2 entryCenter = {o.x + (cells.front().gx + 0.5f) * CELL, o.y + (cells.front().gy + 0.5f) * CELL};
+            DrawCircleLinesV(entryCenter, CELL * 0.48f + 6.f * strength, AlphaOf(theme.glow, (int)(180 * strength)));
+        };
+
+        float telegraphPulse = 0.65f + 0.35f * sinf(t * 7.f);
+        float wavePulse = std::max(0.f, G.waveTelegraphTimer) * 0.5f + std::max(0.f, G.spawnPulseTimer) * 2.5f;
+        float strength = std::min(1.f, telegraphPulse * wavePulse);
+        if (G.waveTelegraphTimer > 0.f) {
+            drawSpawnLane(0, strength);
+            if (G.dualPath) drawSpawnLane(1, strength * 0.88f);
+        } else {
+            drawSpawnLane((G.spawnPulsePath == 1 && G.dualPath) ? 1 : 0, strength);
         }
     }
 
@@ -166,19 +451,21 @@ void DrawPath(Game& G) {
 
     // ── 格線 ─────────────────────────────────────────────────────
     for (int x = 0; x <= COLS; x++) {
-        Color c=AlphaOf({0,200,100,255},(x%5==0)?18:8);
+        Color c=AlphaOf(LerpColor(COL_SENSOR, COL_CPU, 0.35f),(x%5==0)?20:9);
         DrawLine((int)(o.x+x*CELL),(int)o.y,(int)(o.x+x*CELL),(int)(o.y+ROWS*CELL),c);
     }
     for (int y = 0; y <= ROWS; y++) {
-        Color c=AlphaOf({0,200,100,255},(y%4==0)?18:8);
+        Color c=AlphaOf(LerpColor(COL_SENSOR, COL_CPU, 0.35f),(y%4==0)?20:9);
         DrawLine((int)o.x,(int)(o.y+y*CELL),(int)(o.x+COLS*CELL),(int)(o.y+y*CELL),c);
     }
 
-    // ── 路線名稱標籤 ─────────────────────────────────────────────
-    char pn[64];
-    if (G.dualPath) snprintf(pn,64,"主：%s | 副：%s",CUR_PRESET->name,CUR_PRESET2->name);
-    else            snprintf(pn,32,"路線：%s",CUR_PRESET->name);
-    DTX(pn,o.x+4,o.y+4,FS_TINY,AlphaOf(COL_SENSOR,120));
+    float routeCardY = o.y + 8.f;
+    drawRouteCard(o.x + 8.f, routeCardY, "主線路由", G.LanePreset(0), 0,
+        0.6f + 0.4f * sinf(t * 2.2f), GetRouteTheme(G.LanePreset(0), 0).sideLabel);
+    if (G.dualPath) {
+        drawRouteCard(o.x + 8.f, routeCardY + 40.f, "副線路由", G.LanePreset(1), 1,
+            0.6f + 0.4f * sinf(t * 2.2f + 1.1f), GetRouteTheme(G.LanePreset(1), 1).sideLabel);
+    }
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -190,19 +477,24 @@ void DrawThreatMap(Game& G) {
     if (mx < 0.01f) return;
     auto o = G.MapOrigin();
 
-    for (auto& pc : PATH_CELLS) {
-        float v = G.threatMap.Get(pc.gx, pc.gy);
-        if (v < 0.01f) continue;
-        float norm = std::min(1.f, v / mx);
-        Color heatCol = {
-            (unsigned char)(norm*255),(unsigned char)((1.f-norm)*120),
-            (unsigned char)((1.f-norm)*200),(unsigned char)(40+norm*120)
-        };
-        float px=o.x+pc.gx*CELL,py=o.y+pc.gy*CELL;
-        DrawRectangle((int)px+2,(int)py+2,CELL-4,CELL-4,heatCol);
-        if (norm > 0.6f) {
-            char buf[8]; snprintf(buf,8,"%.0f",v);
-            DTC(buf,(int)(px+CELL*0.5f),(int)(py+CELL*0.5f),FS_TINY,AlphaOf(WHITE,(int)(160*norm)));
+    for (int lane = 0; lane < G.ActiveLaneCount(); lane++) {
+        for (auto& pc : G.LaneCells(lane)) {
+            float v = G.threatMap.Get(pc.gx, pc.gy);
+            if (v < 0.01f) continue;
+            float norm = std::min(1.f, v / mx);
+            Color heatCol = {
+                (unsigned char)(norm*255),(unsigned char)((1.f-norm)*120),
+                (unsigned char)((1.f-norm)*200),(unsigned char)(40+norm*120)
+            };
+            float px=o.x+pc.gx*CELL,py=o.y+pc.gy*CELL;
+            DrawRectangle((int)px+2,(int)py+2,CELL-4,CELL-4,heatCol);
+            DrawCircleV({px + CELL * 0.5f, py + CELL * 0.5f}, 9.f + norm * 17.f, AlphaOf(COL_THREAT, (int)(20 + norm * 55)));
+            DrawCircleLinesV({px + CELL * 0.5f, py + CELL * 0.5f}, 12.f + norm * 18.f, AlphaOf(WHITE, (int)(22 + norm * 78)));
+            DrawLineEx({px + 10.f, py + CELL - 10.f}, {px + CELL - 10.f, py + 10.f}, 1.3f, AlphaOf(COL_THREAT, (int)(35 + norm * 70)));
+            if (norm > 0.6f) {
+                char buf[8]; snprintf(buf,8,"%.0f",v);
+                DTC(buf,(int)(px+CELL*0.5f),(int)(py+CELL*0.5f),FS_TINY,AlphaOf(WHITE,(int)(160*norm)));
+            }
         }
     }
 
@@ -213,6 +505,7 @@ void DrawThreatMap(Game& G) {
         float n=i/100.f;
         DrawRectangle(lx+i,ly,1,14,{(unsigned char)(n*255),(unsigned char)((1.f-n)*120),(unsigned char)((1.f-n)*200),200});
     }
+    DrawRectangleLinesEx({(float)lx - 2.f, (float)ly - 2.f, 104.f, 18.f}, 1.f, AlphaOf(COL_THREAT, 126));
     DTX("低",(float)(lx-24),(float)ly,FS_TINY,AlphaOf(WHITE,160));
     DTX("高",(float)(lx+102),(float)ly,FS_TINY,AlphaOf(WHITE,160));
 }
@@ -233,7 +526,11 @@ void DrawAIHints(Game& G) {
         Color bgCol=TDef(h.suggest).col; bgCol.a=(unsigned char)(pulse*35);
         DrawRectangle((int)px+3,(int)py+3,CELL-6,CELL-6,bgCol);
         Color bdCol=COL_AI; bdCol.a=alpha;
+        DrawCircleV({px + CELL * 0.5f, py + CELL * 0.5f}, CELL * (0.38f + 0.06f * pulse), AlphaOf(COL_AI, 14 + (int)(pulse * 20)));
+        DrawCircleLinesV({px + CELL * 0.5f, py + CELL * 0.5f}, CELL * (0.42f + 0.05f * pulse), AlphaOf(COL_AI, (int)(90 + pulse * 80)));
         DrawRectangleLinesEx({px+2,py+2,(float)CELL-4,(float)CELL-4},2.f,bdCol);
+        DrawCornerBrackets(px + 5.f, py + 5.f, (float)CELL - 10.f, (float)CELL - 10.f, 8.f, AlphaOf(TDef(h.suggest).col, 150));
+        DrawLineEx({px + 8.f, py + CELL - 9.f}, {px + CELL - 8.f, py + 9.f}, 1.f, AlphaOf(COL_AI, 70));
         DTX("AI",px+4,py+3,FS_TINY,AlphaOf(COL_AI,(int)(pulse*220)));
         DTC(TDef(h.suggest).sym,(int)(px+CELL/2),(int)(py+CELL/2+4),FS_SMALL,AlphaOf(TDef(h.suggest).col,(int)(pulse*200)));
 
@@ -242,6 +539,7 @@ void DrawAIHints(Game& G) {
             float tw=MCN(h.reason.c_str(),FS_TINY)+12;
             float tx=px+CELL/2-tw/2,ty=py-26;
             DrawRectangle((int)tx-2,(int)ty-2,(int)tw+4,22,AlphaOf({4,9,18,255},220));
+            DrawRectangleGradientH((int)tx-2,(int)ty-2,(int)tw+4,22,AlphaOf(COL_AI,30),AlphaOf(TDef(h.suggest).col,18));
             DrawRectangleLinesEx({tx-2,ty-2,tw+4,22},1.f,AlphaOf(COL_AI,180));
             DTX(h.reason.c_str(),tx+4,ty+2,FS_TINY,AlphaOf(COL_AI,230));
         }
@@ -259,9 +557,20 @@ void DrawConnections(Game& G) {
             if (!dst) continue;
             Vector2 src=G.CC(tw.gx,tw.gy), d=G.CC(dst->gx,dst->gy);
             Color sc=TDef(tw.type).col; sc.a=(unsigned char)(60+tw.sig*110);
+            DrawLineEx(src,d,8.f+tw.sig*5.f,AlphaOf(sc, 22 + (int)(tw.sig * 30)));
             DrawLineEx(src,d,2.f+tw.sig*2.5f,sc);
+            DrawLineEx(src,d,1.f,AlphaOf(WHITE, 24 + (int)(tw.sig * 44)));
 
             Vector2 dir=Vector2Normalize(Vector2Subtract(d,src));
+            float len = Vector2Distance(src, d);
+            Vector2 normal={-dir.y, dir.x};
+            for (int node = 1; node <= 2; node++) {
+                float k = fmodf(t*(0.42f + tw.sig * 0.35f) + tw.id*0.21f + node*0.34f, 1.f);
+                Vector2 dot={src.x+(d.x-src.x)*k + normal.x * (node == 1 ? 3.f : -3.f),
+                             src.y+(d.y-src.y)*k + normal.y * (node == 1 ? 3.f : -3.f)};
+                DrawCircleV(dot, 2.5f + tw.sig * 2.f, AlphaOf(WHITE, 80 + (int)(tw.sig * 120)));
+                DrawCircleV(dot, 6.f + tw.sig * 3.f, AlphaOf(sc, 28 + (int)(tw.sig * 55)));
+            }
             float aT=fmodf(t*0.7f+tw.id*0.25f,1.f);
             Vector2 mid={src.x+(d.x-src.x)*aT,src.y+(d.y-src.y)*aT};
             float ang=atan2f(dir.y,dir.x),al=11.f,aw=0.45f;
@@ -269,6 +578,11 @@ void DrawConnections(Game& G) {
             DrawTriangle(mid,
                 {mid.x+al*cosf(ang+aw+3.14f),mid.y+al*sinf(ang+aw+3.14f)},
                 {mid.x+al*cosf(ang-aw+3.14f),mid.y+al*sinf(ang-aw+3.14f)},ac);
+            if (len > CELL * 1.8f) {
+                Vector2 labelPos={src.x+(d.x-src.x)*0.5f+normal.x*10.f, src.y+(d.y-src.y)*0.5f+normal.y*10.f};
+                char sb[12]; snprintf(sb, 12, "%.0f%%", tw.sig * 100.f);
+                DTC(sb, (int)labelPos.x, (int)labelPos.y, FS_TINY, AlphaOf(sc, 120));
+            }
         }
     }
 }
@@ -293,12 +607,23 @@ void DrawPulses(Game& G) {
 void DrawTower(Game& G, Tower& t, bool sel) {
     Vector2 ctr=G.CC(t.gx,t.gy);
     float px=(float)PANEL_L+t.gx*CELL, py=(float)TOPBAR_H+t.gy*CELL;
+    float time = (float)GetTime();
 
     // ── CPU 特殊繪製 ─────────────────────────────────────────────
     if (t.type == TType::CPU) {
         float glow=10.f+8.f*sinf((float)GetTime()*2.5f);
         float cpuR=G.cpuHp/100.f;
         Color cpuCol=(cpuR>0.5f)?COL_CPU:(cpuR>0.25f)?ORANGE:RED;
+        float danger = 1.f - cpuR;
+        for (int ring = 0; ring < 3; ring++) {
+            float rr = CELL * (0.56f + ring * 0.16f) + sinf(time * (2.1f + ring) + ring) * 4.f;
+            DrawCircleLinesV(ctr, rr, AlphaOf(cpuCol, (int)(55 + danger * 105) / (ring + 1)));
+        }
+        if (danger > 0.35f) {
+            float flick = 0.5f + 0.5f * sinf(time * 12.f);
+            DrawRectangleLinesEx({px - 8.f, py - 8.f, (float)CELL + 16.f, (float)CELL + 16.f}, 2.f,
+                AlphaOf(RED, (int)(80 + flick * 120)));
+        }
         for (int i=3;i>=1;i--) {
             Color gc=cpuCol; gc.a=(unsigned char)(12*i);
             float ext=glow*i*0.5f;
@@ -306,6 +631,7 @@ void DrawTower(Game& G, Tower& t, bool sel) {
         }
         DrawRectangleRounded({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,Color{6,20,35,255});
         DrawRectangleRoundedLines({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,cpuCol);
+        DrawMicroTicks(px + 4.f, py + 4.f, (float)CELL - 8.f, (float)CELL - 8.f, cpuCol);
         DTC("CPU",(int)ctr.x,(int)ctr.y-8,FS_MED,cpuCol);
         char buf[8]; snprintf(buf,8,"%.0f%%",G.cpuHp);
         DTC(buf,(int)ctr.x,(int)ctr.y+14,FS_SMALL,cpuCol);
@@ -315,6 +641,12 @@ void DrawTower(Game& G, Tower& t, bool sel) {
     TowerDef& def=TDef(t.type);
     Color fill=def.col; fill.a=(unsigned char)((0.15f+t.sig*0.85f)*65);
     Color border=def.col; border.a=(unsigned char)(150+t.sig*100);
+
+    DrawCircleV(ctr, CELL * 0.48f, AlphaOf(def.col, 16 + (int)(t.sig * 24.f)));
+    DrawCircleLinesV(ctr, CELL * 0.48f + 2.f * sinf(time * 2.2f + t.id), AlphaOf(def.col, 45 + (int)(t.sig * 55.f)));
+    DrawRoundBox(px + 4.f, py + 4.f, (float)CELL - 8.f, (float)CELL - 8.f, 9.f,
+                 AlphaOf(Color{2, 8, 16, 255}, 215), AlphaOf(def.col, 70), 1.2f);
+    DrawCornerBrackets(px + 8.f, py + 8.f, (float)CELL - 16.f, (float)CELL - 16.f, 9.f, AlphaOf(def.col, 95));
 
     if (t.upgradeFlash > 0) {
         Color ufc=WHITE; ufc.a=(unsigned char)(200*t.upgradeFlash);
@@ -334,8 +666,50 @@ void DrawTower(Game& G, Tower& t, bool sel) {
         }
     }
 
-    if (t.type == TType::PERCEPTRON) DrawHex(ctr,(float)CELL*0.42f,fill,border);
-    else DrawRoundBox(px+5,py+5,(float)CELL-10,(float)CELL-10,6,fill,border,2.f);
+    if (t.type == TType::PERCEPTRON) {
+        DrawHex(ctr,(float)CELL*0.42f,AlphaOf(fill, 150),border);
+        DrawHex(ctr,(float)CELL*0.25f,AlphaOf(COL_AI, 28 + (int)(t.sig * 55.f)),AlphaOf(def.col, 130));
+        int layer=CalcPCTLayer(G,t.id);
+        Color layerCol=(layer==1)?COL_PERC:(layer==2)?COL_AI:COL_STAR;
+        for (int i = 0; i < layer; i++) {
+            float rr = CELL * (0.34f + i * 0.085f) + 2.f * sinf(time * 2.6f + i + t.id);
+            DrawCircleLinesV(ctr, rr, AlphaOf(layerCol, 54 - i * 10));
+        }
+    } else {
+        DrawRoundBox(px+8,py+8,(float)CELL-16,(float)CELL-16,8,fill,border,2.f);
+        DrawRoundBox(px+14,py+14,(float)CELL-28,(float)CELL-28,6,AlphaOf(BG, 190),AlphaOf(def.col, 92),1.f);
+    }
+
+    if (t.type == TType::SENSOR) {
+        float scan = 0.55f + 0.45f * sinf(time * 3.4f + t.id);
+        DrawCircleLinesV(ctr, CELL * (0.22f + scan * 0.16f), AlphaOf(COL_SENSOR, 90));
+        DrawLineEx({ctr.x - 10.f, ctr.y}, {ctr.x + 10.f, ctr.y}, 1.4f, AlphaOf(COL_SENSOR, 135));
+        DrawLineEx({ctr.x, ctr.y - 10.f}, {ctr.x, ctr.y + 10.f}, 1.4f, AlphaOf(COL_SENSOR, 135));
+    }
+
+    if (t.type == TType::CANNON) {
+        Vector2 aim = { cosf(time * 0.7f + t.id), sinf(time * 0.7f + t.id) };
+        float best = 9999.f;
+        for (auto& e : G.enemies) {
+            float d = Dist({(float)t.gx, (float)t.gy}, G.EnemyGrid(e));
+            if (d <= t.range && d < best) {
+                best = d;
+                Vector2 ep = G.EnemyWorld(e);
+                aim = Vector2Normalize(Vector2Subtract(ep, ctr));
+            }
+        }
+        Vector2 muzzle = {ctr.x + aim.x * CELL * 0.34f, ctr.y + aim.y * CELL * 0.34f};
+        Vector2 back   = {ctr.x - aim.x * CELL * 0.12f, ctr.y - aim.y * CELL * 0.12f};
+        DrawLineEx(back, muzzle, 9.f, AlphaOf(COL_CANNON, 70));
+        DrawLineEx(back, muzzle, 4.f, AlphaOf(COL_CANNON, 210));
+        DrawCircleV(muzzle, 5.f + t.sig * 2.f, AlphaOf(WHITE, 165));
+    }
+
+    if (t.type == TType::NAND || t.type == TType::AND || t.type == TType::OR || t.type == TType::XOR) {
+        float p = 0.5f + 0.5f * sinf(time * 2.8f + t.id * 0.4f);
+        DrawLineEx({px + 14.f, ctr.y}, {px + CELL - 14.f, ctr.y}, 1.4f, AlphaOf(def.col, 85 + (int)(80 * p)));
+        DrawLineEx({ctr.x, py + 14.f}, {ctr.x, py + CELL - 14.f}, 1.0f, AlphaOf(def.col, 60));
+    }
 
     if (sel) {
         float pulse=0.85f+0.15f*sinf((float)GetTime()*5.f);
@@ -358,7 +732,7 @@ void DrawTower(Game& G, Tower& t, bool sel) {
         DTX(lb,px+CELL-22,py+4,FS_TINY,AlphaOf(lc,220));
     }
 
-    DTC(def.sym,(int)ctr.x,(int)ctr.y-8,FS_SMALL,border);
+    DTC(def.sym,(int)ctr.x,(int)ctr.y-8,FS_SMALL,AlphaOf(border, 245));
     for (int lv=0;lv<t.level;lv++) DrawPoly({px+8+lv*11.f,py+(float)CELL-16.f},5,5.f,0.f,COL_STAR);
 
     int bx=(int)px+6,by=(int)py+CELL-10,bw=CELL-12,bh=7;
@@ -378,6 +752,7 @@ void DrawTower(Game& G, Tower& t, bool sel) {
             if (t.activeCd<=0) {
                 float p2=0.6f+0.4f*sinf((float)GetTime()*5.f);
                 DrawRectangleLinesEx({(float)abx,(float)aby,(float)abw,(float)abh},1.f,{100,255,180,(unsigned char)(180*p2)});
+                DrawCircleLinesV(ctr, CELL * (0.53f + p2 * 0.04f), AlphaOf(Color{100,255,180,255}, (int)(70 * p2)));
             }
         }
     }
@@ -423,9 +798,17 @@ void DrawGhostTower(Game& G, int gx, int gy) {
 void DrawEnemies(Game& G) {
     float t = (float)GetTime();
     for (auto& e : G.enemies) {
-        Vector2 p=G.EnemyWorld(e);
-        bool fl=(e.flashTimer>0);
-        Color base,ring; float sz=14.f;
+        Vector2 p = G.EnemyWorld(e);
+        bool fl = (e.flashTimer > 0);
+        const PathPreset& routePreset = G.LanePreset(e.pathIdx);
+        RouteVisualTheme laneTheme = GetRouteTheme(routePreset, e.pathIdx);
+        float travel = 0.f;
+        if (!G.EnemyLaneCells(e).empty()) {
+            travel = Clamp(e.pathPos / (float)std::max(1, (int)G.EnemyLaneCells(e).size()), 0.f, 1.f);
+        }
+
+        Color base, ring;
+        float sz = 14.f;
         switch (e.type) {
             case EType::BASIC:   base=COL_VIRUS;   ring={255, 80,120,200}; sz=14.f; break;
             case EType::FAST:    base=COL_FAST;    ring={255,220, 80,200}; sz=11.f; break;
@@ -434,6 +817,44 @@ void DrawEnemies(Game& G) {
             case EType::BOSS:    base=COL_BOSS;    ring={200, 80,255,220}; sz=26.f; break;
         }
         if (fl) { base=WHITE; ring=WHITE; }
+        
+        if (e.flashTimer > 0) {
+            float f = e.flashTimer;
+            base = LerpColor(base, WHITE, f);
+            ring = LerpColor(ring, WHITE, f);
+        }
+
+        if (e.tag == EnemyTag::BRUTE)  { ring = DrawEnemyTagColor(e.tag); sz += 2.f; }
+        if (e.tag == EnemyTag::SWIFT)  { base = AlphaOf(base, 220); }
+        if (e.tag == EnemyTag::BOUNTY) { ring = DrawEnemyTagColor(e.tag); }
+
+        Vector2 sideDir = RouteAdvanceDir(routePreset.entrySide);
+        Vector2 routeDot = {p.x - sideDir.x * (sz + 4.f), p.y - sideDir.y * (sz + 4.f)};
+        if (e.type == EType::FAST || e.tag == EnemyTag::SWIFT) {
+            for (int tr = 1; tr <= 3; tr++) {
+                Vector2 tail = {p.x - sideDir.x * (sz + tr * 9.f), p.y - sideDir.y * (sz + tr * 9.f)};
+                DrawCircleV(tail, std::max(2.f, sz * (0.42f - tr * 0.07f)), AlphaOf(base, 42 - tr * 9));
+            }
+            DrawLineEx({p.x - sideDir.x * (sz + 26.f), p.y - sideDir.y * (sz + 26.f)}, p, 2.f, AlphaOf(base, 72));
+        }
+        if (e.type == EType::BOSS) {
+            float bossPulse = 0.55f + 0.45f * sinf(t * ((e.bossState == BossState::RAMPAGE) ? 7.f : 3.f));
+            Color bossAura = (e.bossState == BossState::RAMPAGE) ? RED : (e.bossState == BossState::EVADE) ? YELLOW : COL_BOSS;
+            DrawCircleV(p, sz + 30.f + bossPulse * 8.f, AlphaOf(bossAura, 14 + (int)(bossPulse * 18)));
+            DrawCircleLinesV(p, sz + 24.f + bossPulse * 10.f, AlphaOf(bossAura, 88 + (int)(bossPulse * 80)));
+            DrawCircleLinesV(p, sz + 37.f + bossPulse * 14.f, AlphaOf(bossAura, 44));
+        }
+        if (e.tag == EnemyTag::BOUNTY) {
+            float bp = 0.5f + 0.5f * sinf(t * 5.2f + e.id);
+            DrawCircleLinesV(p, sz + 13.f + bp * 4.f, AlphaOf(COL_STAR, 140));
+            DrawLineEx({p.x - sz - 8.f, p.y - sz - 8.f}, {p.x - sz + 3.f, p.y - sz - 8.f}, 1.5f, AlphaOf(COL_STAR, 155));
+            DrawLineEx({p.x + sz + 8.f, p.y + sz + 8.f}, {p.x + sz - 3.f, p.y + sz + 8.f}, 1.5f, AlphaOf(COL_STAR, 155));
+        }
+        DrawCircleV(p, sz + 11.f, AlphaOf(laneTheme.accent, 16));
+        DrawCircleV(p, sz + 6.f, AlphaOf(base, 34));
+        DrawCircleV(routeDot, 4.5f, AlphaOf(laneTheme.accent, 230));
+        DrawCircleLinesV(routeDot, 7.f, AlphaOf(laneTheme.glow, 120));
+        DrawCircleLinesV(p, sz + 4.f, AlphaOf(laneTheme.accent, 75));
 
         Vector2 pts[6];
         for (int i=0;i<6;i++) {
@@ -442,27 +863,63 @@ void DrawEnemies(Game& G) {
         }
         for (int i=0;i<6;i++) DrawTriangle(p,pts[i],pts[(i+1)%6],AlphaOf(base,fl?220:160));
         for (int i=0;i<6;i++) DrawLineV(pts[i],pts[(i+1)%6],ring);
+        DrawCircleV(p, std::max(3.5f, sz * 0.24f), AlphaOf(WHITE, fl ? 190 : 82));
+        DrawCircleLinesV(p, sz + 1.5f, AlphaOf(ring, 95));
 
         if (e.stealth) {
             float st=0.5f+0.5f*sinf(t*4.f+e.id);
             DrawCircleLinesV(p,sz+4.f,AlphaOf(COL_FAST,(int)(80*st)));
+            DrawCircleLinesV({p.x + 2.f * sinf(t * 9.f), p.y},sz+9.f,AlphaOf(COL_FAST,(int)(45*st)));
         }
         if (e.marked) {
             float mp2=0.7f+0.3f*sinf(t*6.f);
             DrawCircleLinesV(p,sz+6.f,AlphaOf(COL_XOR,(int)(180*mp2)));
+            DrawLineEx({p.x - sz - 6.f, p.y}, {p.x + sz + 6.f, p.y}, 1.2f, AlphaOf(COL_XOR, (int)(120 * mp2)));
+            DrawLineEx({p.x, p.y - sz - 6.f}, {p.x, p.y + sz + 6.f}, 1.2f, AlphaOf(COL_XOR, (int)(95 * mp2)));
+        }
+        if (e.spawnFx > 0.f) {
+            float sf = e.spawnFx / 0.65f;
+            Color sc = (e.tag == EnemyTag::NONE) ? laneTheme.accent : DrawEnemyTagColor(e.tag);
+            DrawCircleLinesV(p, sz + 14.f * (1.f - sf), AlphaOf(sc, (int)(180 * sf)));
+            DrawCircleLinesV(p, sz + 20.f * (1.f - sf), AlphaOf(sc, (int)(90 * sf)));
         }
         if (e.shielded && e.shieldHp > 0.f) {
             float sp2=0.6f+0.4f*sinf(t*5.f+e.id);
+            float shieldRatio = e.maxHp > 0.f ? Clamp(e.shieldHp / std::max(1.f, e.maxHp * 0.25f), 0.f, 1.f) : 1.f;
+            DrawCircleV(p, sz + 14.f, AlphaOf(Color{100,180,255,255}, (int)(18 + shieldRatio * 24)));
             DrawCircleLinesV(p,sz+9.f, AlphaOf(Color{150,220,255,255},(int)(200*sp2)));
             DrawCircleLinesV(p,sz+11.f,AlphaOf(Color{100,180,255,255},(int)( 80*sp2)));
+            DrawLineEx({p.x - sz - 8.f, p.y - sz - 2.f}, {p.x + sz + 8.f, p.y + sz + 2.f}, 1.1f,
+                AlphaOf(Color{180,235,255,255}, (int)(90 * sp2)));
         }
 
-        int bw=(int)(sz*2)+4,bh=5;
-        int bx=(int)(p.x-bw/2),by=(int)(p.y-sz-10);
-        float hpR=e.hp/e.maxHp;
-        DrawRectangle(bx,by,bw,bh,Color{0,0,0,160});
-        Color hpC=(hpR>0.6f)?GREEN:(hpR>0.3f)?ORANGE:RED;
-        DrawRectangle(bx,by,(int)(bw*hpR),bh,hpC);
+        int bw = (int)(sz * 2) + 10;
+        int bh = 5;
+        int bx = (int)(p.x - bw / 2);
+        int by = (int)(p.y - sz - 12);
+        float hpR = e.hp / e.maxHp;
+        DrawRectangle(bx, by, bw, bh, AlphaOf(laneTheme.fill, 205));
+        Color hpC = (hpR > 0.6f) ? GREEN : (hpR > 0.3f) ? ORANGE : RED;
+        DrawRectangle(bx, by, (int)(bw * hpR), bh, hpC);
+        DrawRectangle(bx, by + 7, bw, 3, AlphaOf(laneTheme.fillSoft, 180));
+        DrawRectangle(bx, by + 7, (int)(bw * travel), 3, AlphaOf(laneTheme.accent, 220));
+
+        float chipW = MCN(laneTheme.shortLabel, FS_TINY) + 12.f;
+        float chipX = p.x - chipW * 0.5f;
+        float chipY = (float)by - 17.f;
+        DrawRoundBox(chipX, chipY, chipW, 13.f, 4.f,
+            AlphaOf(laneTheme.fill, 220), AlphaOf(laneTheme.accent, 160), 1.f);
+        DTC(laneTheme.shortLabel, (int)p.x, (int)(chipY + 6.5f), FS_TINY, laneTheme.text);
+
+        if (e.tag != EnemyTag::NONE) {
+            const char* tagTxt = DrawEnemyTagName(e.tag);
+            Color tagCol = DrawEnemyTagColor(e.tag);
+            float tw = MCN(tagTxt, FS_TINY) + 12.f;
+            float tx = p.x - tw * 0.5f;
+            float ty = chipY - 18.f;
+            DrawRoundBox(tx, ty, tw, 14.f, 4.f, AlphaOf(tagCol, 28), AlphaOf(tagCol, 180), 1.f);
+            DTC(tagTxt, (int)p.x, (int)(ty + 7.f), FS_TINY, tagCol);
+        }
 
         if (e.type==EType::BOSS) {
             const char* stateLabel=
@@ -487,17 +944,38 @@ void DrawEnemies(Game& G) {
 // ══════════════════════════════════════════════════════════════════
 void DrawBullets(Game& G) {
     for (auto& b : G.bullets) {
-        DrawCircleV(b.pos,b.splash?8.f:5.f,b.col);
-        Color gc=b.col; gc.a=80;
-        DrawCircleV(b.pos,b.splash?14.f:9.f,gc);
+        float speed = sqrtf(b.vel.x * b.vel.x + b.vel.y * b.vel.y);
+        Vector2 dir = (speed > 0.001f) ? Vector2{ b.vel.x / speed, b.vel.y / speed } : Vector2{ 1.f, 0.f };
+        float trailLen = b.splash ? 50.f : (b.crit ? 46.f : 34.f);
+        float outerW   = b.splash ? 12.f : (b.crit ? 9.f : 6.f);
+        float coreW    = b.splash ? 4.5f : (b.crit ? 3.5f : 2.5f);
+        Vector2 tail   = { b.pos.x - dir.x * trailLen, b.pos.y - dir.y * trailLen };
+        Vector2 mid    = { b.pos.x - dir.x * trailLen * 0.55f, b.pos.y - dir.y * trailLen * 0.55f };
+
+        DrawLineEx(tail, b.pos, outerW, AlphaOf(b.col, b.crit ? 82 : 58));
+        DrawLineEx(mid,  b.pos, coreW,  AlphaOf(b.col, b.crit ? 230 : 190));
+        if (b.crit) DrawLineEx(mid, b.pos, 1.4f, AlphaOf(WHITE, 220));
+
+        DrawCircleV(b.pos, b.splash ? 16.f : (b.crit ? 13.f : 9.f), AlphaOf(b.col, b.crit ? 92 : 70));
+        DrawCircleV(b.pos, b.splash ? 7.f  : (b.crit ? 6.f  : 4.f), b.crit ? AlphaOf(WHITE, 235) : b.col);
     }
 }
 
 void DrawParticles(Game& G) {
     for (auto& p : G.particles) {
-        float alpha=p.life/p.maxLife;
-        Color c=p.col; c.a=(unsigned char)(200*alpha);
-        DrawCircleV(p.pos,p.radius*alpha,c);
+        float alpha = Clamp(p.life / p.maxLife, 0.f, 1.f);
+        float grow  = 1.f - alpha;
+
+        if (p.radius >= 14.f) {
+            float r = p.radius * (0.38f + grow * 0.92f);
+            DrawCircleV(p.pos, r, AlphaOf(p.col, (int)(24 * alpha)));
+            DrawCircleLinesV(p.pos, r, AlphaOf(p.col, (int)(155 * alpha)));
+            DrawCircleLinesV(p.pos, r * 0.62f, AlphaOf(WHITE, (int)(42 * alpha)));
+        } else {
+            float glowR = p.radius * (1.25f + grow * 0.75f);
+            DrawCircleV(p.pos, glowR, AlphaOf(p.col, (int)(58 * alpha)));
+            DrawCircleV(p.pos, std::max(1.5f, p.radius * alpha), AlphaOf(p.col, (int)(210 * alpha)));
+        }
     }
 }
 

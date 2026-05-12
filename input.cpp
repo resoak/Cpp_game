@@ -70,6 +70,25 @@ void HandleInput(Game& G) {
     }
     if (G.paused) return;
 
+    if (G.phase == Game::TRAINING) {
+        if (IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_KP_1)) { ApplyTrainingChoice(G, 0); return; }
+        if (IsKeyPressed(KEY_TWO) || IsKeyPressed(KEY_KP_2)) { ApplyTrainingChoice(G, 1); return; }
+        if (IsKeyPressed(KEY_THREE) || IsKeyPressed(KEY_KP_3)) { ApplyTrainingChoice(G, 2); return; }
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
+            mp.x >= LEFT_CTRL_X && mp.x < LEFT_CTRL_X + LEFT_CTRL_W) {
+            int startY = TOPBAR_H + 76;
+            for (int i = 0; i < G.trainingChoiceCount; i++) {
+                int by = startY + i * (TRAIN_CARD_H + TRAIN_CARD_GAP);
+                if (mp.y >= by && mp.y < by + TRAIN_CARD_H) {
+                    ApplyTrainingChoice(G, i);
+                    return;
+                }
+            }
+        }
+        return;
+    }
+
     // ── 技能觸發 [Q] ─────────────────────────────────────────────
     if (IsKeyPressed(KEY_Q) && G.selectedId >= 0) {
         Tower* st = G.FindTower(G.selectedId);
@@ -98,13 +117,11 @@ void HandleInput(Game& G) {
         TType::SENSOR, TType::PERCEPTRON, TType::AND, TType::OR,
         TType::XOR,    TType::NAND,       TType::CANNON
     };
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && mp.x < PANEL_L) {
-        constexpr int BTN_H_SM   = 56;
-        constexpr int BTN_GAP_SM = 3;
-
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
+        mp.x >= LEFT_CTRL_X && mp.x < LEFT_CTRL_X + LEFT_CTRL_W) {
         for (int i = 0; i < 7; i++) {
-            int by = G.btnY0 + i * (BTN_H_SM + BTN_GAP_SM);
-            if (mp.y >= by && mp.y < by + BTN_H_SM) {
+            int by = G.btnY0 + i * (LEFT_TOWER_BTN_H + LEFT_TOWER_BTN_GAP);
+            if (mp.y >= by && mp.y < by + LEFT_TOWER_BTN_H) {
                 TType tt  = ORDER[i];
                 G.placing = (G.placing == tt) ? TType::NONE : tt;
                 G.selectedId = -1;
@@ -112,7 +129,7 @@ void HandleInput(Game& G) {
                 return;
             }
         }
-        if (mp.y >= G.waveBtnY && mp.y < G.waveBtnY + 58 &&
+        if (mp.y >= G.waveBtnY && mp.y < G.waveBtnY + LEFT_WAVE_BTN_H &&
             G.phase == Game::BUILD) {
             StartWave(G);
             return;

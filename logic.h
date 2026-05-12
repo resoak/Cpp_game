@@ -19,4 +19,5 @@ void  UpdateBossAI(Game& G, Enemy& boss, float dt);
 
 void  SpawnEnemy(Game& G);
 void  StartWave(Game& G);
+void  ApplyTrainingChoice(Game& G, int choiceIdx);
 void  Update(Game& G, float dt);

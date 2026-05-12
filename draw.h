@@ -10,6 +10,19 @@ void DrawRoundBox(float x, float y, float w, float h, float r,
                   Color fill, Color border, float bw = 1.5f);
 void DrawHex(Vector2 c, float r, Color fill, Color border);
 
+struct RouteVisualTheme {
+    Color       accent;
+    Color       glow;
+    Color       fill;
+    Color       fillSoft;
+    Color       text;
+    const char* sideLabel;
+    const char* shortLabel;
+};
+
+Color            LerpColor(Color a, Color b, float t);
+RouteVisualTheme GetRouteTheme(const PathPreset& preset, int laneSlot = 0);
+
 // ── 世界層 ───────────────────────────────────────────────────────
 void DrawStars(Game& G);
 void DrawPath(Game& G);
