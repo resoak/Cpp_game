@@ -31,6 +31,13 @@ constexpr int LEFT_TOWER_BTN_GAP = 7;
 constexpr int LEFT_WAVE_BTN_H   = 54;
 constexpr int TRAIN_CARD_H      = 72;
 constexpr int TRAIN_CARD_GAP    = 14;
+constexpr int MENU_FRAME_W      = 1120;
+constexpr int MENU_FRAME_H      = 430;
+constexpr int MENU_FRAME_OFFSET_Y = 270;
+constexpr int MENU_ACTION_INSET = 26;
+constexpr int MENU_ACTION_Y_OFFSET = 318;
+constexpr int MENU_ACTION_H     = 80;
+constexpr int MENU_ACTION_GAP   = 20;
 
 // ── 列舉型別 ─────────────────────────────────────────────────────
 enum class TType { SENSOR, PERCEPTRON, AND, OR, XOR, CANNON, CPU, NAND, NONE };

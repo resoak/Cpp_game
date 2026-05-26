@@ -135,7 +135,7 @@ void DrawRoundBox(float x, float y, float w, float h, float r,
                   Color fill, Color border, float bw) {
     float rr = r / std::min(w, h) * 2;
     DrawRectangleRounded({x, y, w, h}, rr, 8, fill);
-    DrawRectangleRoundedLines({x, y, w, h}, rr, 8, bw, border);
+    DrawRectangleRoundedLinesEx({x, y, w, h}, rr, 8, bw, border);
 }
 
 void DrawHex(Vector2 c, float r, Color fill, Color border) {
@@ -258,16 +258,25 @@ void DrawPath(Game& G) {
         return Clamp(furthest, 0.f, 1.f);
     };
 
+    constexpr float routeCardW = 308.f;
+    constexpr float routeCardH = 46.f;
+    constexpr float routeCardGapX = 18.f;
+    constexpr float routeCardGapY = 58.f;
+    constexpr float routeTextX = 106.f;
+
     auto drawRouteCard = [&](float x, float y, const char* header, const PathPreset& preset,
-                             int laneSlot, float pulse, const char* detail) {
+                              int laneSlot, float pulse, const char* detail) {
         RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
-        DrawRoundBox(x, y, 210.f, 34.f, 8.f,
+        DrawRoundBox(x, y, routeCardW, routeCardH, 9.f,
             AlphaOf(theme.fillSoft, 210),
             AlphaOf(theme.accent, (int)(110 + 70 * pulse)), 1.5f);
-        DTX(header, x + 10.f, y + 6.f, FS_TINY, AlphaOf(theme.accent, 230));
-        DTX(preset.name, x + 68.f, y + 5.f, FS_SMALL, theme.text);
-        DTX(detail, x + 68.f, y + 19.f, FS_TINY, AlphaOf(theme.glow, 170));
-        DTX(theme.shortLabel, x + 10.f, y + 18.f, FS_TINY, AlphaOf(theme.glow, 220));
+        DrawRectangleGradientH((int)x + 2, (int)y + 2, (int)routeCardW - 4, (int)routeCardH - 4,
+            AlphaOf(theme.accent, 10), AlphaOf(theme.fill, 2));
+        DrawLineEx({x + 16.f, y + 16.f}, {x + 40.f, y + 16.f}, 1.2f, AlphaOf(theme.accent, 96));
+        DTX(header, x + 14.f, y + 8.f, FS_TINY, AlphaOf(theme.accent, 224));
+        DTX(preset.name, x + routeTextX, y + 9.f, FS_SMALL, theme.text);
+        DTX(detail, x + routeTextX, y + 27.f, FS_TINY, AlphaOf(theme.glow, 156));
+        DTX(theme.shortLabel, x + 14.f, y + 27.f, FS_TINY, AlphaOf(theme.glow, 194));
     };
 
     // ── 下波路線預覽 ─────────────────────────────────────────────
@@ -298,8 +307,8 @@ void DrawPath(Game& G) {
 
         int cols = (previewCount <= 2) ? previewCount : 3;
         int rows = (previewCount + cols - 1) / cols;
-        float gridW = cols * 210.f + (cols - 1) * 12.f;
-        float cardY = o.y + MAP_H - 42.f - (rows - 1) * 38.f;
+        float gridW = cols * routeCardW + (cols - 1) * routeCardGapX;
+        float cardY = o.y + MAP_H - 30.f - routeCardH - (rows - 1) * routeCardGapY;
         DTC("下波輪換預告", (int)(o.x + MAP_W * 0.5f), (int)(cardY - 16.f), FS_SMALL,
             AlphaOf({255, 220, 150, 255}, (int)(200 + pulse * 40)));
 
@@ -310,8 +319,8 @@ void DrawPath(Game& G) {
             int col = lane % cols;
             int row = lane / cols;
             const PathPreset& preset = GetPathPreset(G.nextPreviewPaths[lane]);
-            drawRouteCard(o.x + MAP_W * 0.5f - gridW * 0.5f + col * 222.f,
-                cardY + row * 38.f, header, preset, lane, pulse,
+            drawRouteCard(o.x + MAP_W * 0.5f - gridW * 0.5f + col * (routeCardW + routeCardGapX),
+                cardY + row * routeCardGapY, header, preset, lane, pulse,
                 GetRouteTheme(preset, lane).sideLabel);
         }
     }
@@ -331,7 +340,7 @@ void DrawPath(Game& G) {
             float py = o.y + pc.gy * CELL;
             DrawRectangleRounded({px + 1.f, py + 1.f, (float)CELL - 2.f, (float)CELL - 2.f}, 0.18f, 8, AlphaOf(theme.fill, 215));
             DrawRectangleRounded({px + 5.f, py + 5.f, (float)CELL - 10.f, (float)CELL - 10.f}, 0.20f, 8, AlphaOf(theme.fillSoft, 245));
-            DrawRectangleRoundedLines({px + 6.f, py + 6.f, (float)CELL - 12.f, (float)CELL - 12.f}, 0.22f, 8, 1.f, AlphaOf(theme.glow, 40));
+            DrawRectangleRoundedLinesEx({px + 6.f, py + 6.f, (float)CELL - 12.f, (float)CELL - 12.f}, 0.22f, 8, 1.f, AlphaOf(theme.glow, 40));
 
             switch (preset.entrySide) {
                 case PathEntrySide::LEFT:
@@ -348,17 +357,17 @@ void DrawPath(Game& G) {
                     break;
             }
 
-            if (((pc.gx + pc.gy + preset.family) % 3) == 0) {
+            if (((pc.gx + pc.gy + preset.family) % 5) == 0) {
                 DrawLineEx({px + 11.f, py + CELL - 10.f}, {px + CELL - 10.f, py + 11.f}, 2.f,
-                    AlphaOf(theme.glow, 48));
+                    AlphaOf(theme.glow, 32));
             }
 
-            if (((pc.gx * 2 + pc.gy + laneSlot) % 4) == 0) {
+            if (((pc.gx * 2 + pc.gy + laneSlot) % 6) == 0) {
                 DrawLineEx({px + 12.f, py + 14.f}, {px + CELL - 12.f, py + 14.f}, 1.f, AlphaOf(theme.accent, 46));
-                DrawLineEx({px + 12.f, py + CELL - 14.f}, {px + CELL - 12.f, py + CELL - 14.f}, 1.f, AlphaOf(theme.glow, 32));
+                DrawLineEx({px + 12.f, py + CELL - 14.f}, {px + CELL - 12.f, py + CELL - 14.f}, 1.f, AlphaOf(theme.glow, 24));
             }
 
-            DrawCircle((int)(px + CELL * 0.5f), (int)(py + CELL * 0.5f), 3.f, AlphaOf(theme.accent, 120));
+            DrawCircle((int)(px + CELL * 0.5f), (int)(py + CELL * 0.5f), 2.4f, AlphaOf(theme.accent, 96));
             DrawRectangleLinesEx({px + 1.f, py + 1.f, (float)CELL - 2.f, (float)CELL - 2.f}, 1.5f,
                 AlphaOf(theme.glow, 78));
         }
@@ -399,11 +408,11 @@ void DrawPath(Game& G) {
             {entryTip.x - 14.f * cosf(entryAng + 0.55f), entryTip.y - 14.f * sinf(entryAng + 0.55f)},
             AlphaOf(theme.accent, 210));
 
-        float tagW = MCN(theme.sideLabel, FS_TINY) + 26.f;
+        float tagW = MCN(theme.sideLabel, FS_TINY) + 34.f;
         float tagX = entryCenter.x - tagW * 0.5f;
-        float tagY = entryCenter.y - CELL * 0.72f;
-        DrawRoundBox(tagX, tagY, tagW, 20.f, 6.f, AlphaOf(theme.fill, 230), AlphaOf(theme.accent, 160), 1.2f);
-        DTC(theme.sideLabel, (int)entryCenter.x, (int)(tagY + 10.f), FS_TINY, theme.text);
+        float tagY = entryCenter.y - CELL * 0.84f;
+        DrawRoundBox(tagX, tagY, tagW, 24.f, 7.f, AlphaOf(theme.fill, 228), AlphaOf(theme.accent, 150), 1.2f);
+        DTC(theme.sideLabel, (int)entryCenter.x, (int)(tagY + 12.f), FS_TINY, theme.text);
 
         Vector2 cpu = G.CC(CPU_GX, CPU_GY);
         Vector2 end = {o.x + (cells.back().gx + 0.5f) * CELL, o.y + (cells.back().gy + 0.5f) * CELL};
@@ -416,9 +425,9 @@ void DrawPath(Game& G) {
         if (count > 0) {
             char cb[16];
             snprintf(cb, 16, "x%d", count);
-            DrawRoundBox(end.x - 18.f, end.y - 12.f, 36.f, 18.f, 6.f,
-                AlphaOf(theme.fill, 220), AlphaOf(theme.accent, 170), 1.2f);
-            DTC(cb, (int)end.x, (int)end.y - 3, FS_TINY, theme.text);
+            DrawRoundBox(end.x - 21.f, end.y - 13.f, 42.f, 20.f, 6.f,
+                AlphaOf(theme.fill, 220), AlphaOf(theme.accent, 158), 1.2f);
+            DTC(cb, (int)end.x, (int)end.y - 2, FS_TINY, theme.text);
         }
     };
 
@@ -476,7 +485,7 @@ void DrawPath(Game& G) {
         DrawLine((int)o.x,(int)(o.y+y*CELL),(int)(o.x+COLS*CELL),(int)(o.y+y*CELL),c);
     }
 
-    float routeCardY = o.y + 8.f;
+    float routeCardY = o.y + 12.f;
     int laneCount = G.ActiveLaneCount();
     int cols = (laneCount <= 3) ? 1 : 2;
     for (int lane = 0; lane < laneCount; lane++) {
@@ -484,7 +493,7 @@ void DrawPath(Game& G) {
         snprintf(header, 24, "路線%d路由", lane + 1);
         int col = lane % cols;
         int row = lane / cols;
-        drawRouteCard(o.x + 8.f + col * 222.f, routeCardY + row * 40.f, header,
+        drawRouteCard(o.x + 8.f + col * (routeCardW + routeCardGapX), routeCardY + row * routeCardGapY, header,
             G.LanePreset(lane), lane, 0.6f + 0.4f * sinf(t * 2.2f + lane * 0.7f),
             GetRouteTheme(G.LanePreset(lane), lane).sideLabel);
     }
@@ -652,7 +661,7 @@ void DrawTower(Game& G, Tower& t, bool sel) {
             DrawRectangleRounded({px+3.f-ext,py+3.f-ext,(float)CELL-6+ext*2,(float)CELL-6+ext*2},0.25f,8,gc);
         }
         DrawRectangleRounded({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,Color{6,20,35,255});
-        DrawRectangleRoundedLines({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,1.f,cpuCol);
+        DrawRectangleRoundedLinesEx({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,1.f,cpuCol);
         DrawMicroTicks(px + 4.f, py + 4.f, (float)CELL - 8.f, (float)CELL - 8.f, cpuCol);
         DTC("CPU",(int)ctr.x,(int)ctr.y-8,FS_MED,cpuCol);
         char buf[8]; snprintf(buf,8,"%.0f%%",G.cpuHp);

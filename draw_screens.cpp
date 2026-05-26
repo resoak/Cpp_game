@@ -92,22 +92,22 @@ void DrawMenu(Game& G) {
     DrawStars(G);
     DrawScreenGrid(0, 0, VIRT_W, VIRT_H, t, COL_SENSOR);
 
-    int frameW = 1120, frameH = 390;
+    int frameW = MENU_FRAME_W, frameH = MENU_FRAME_H;
     int fx = cx - frameW / 2;
-    int fy = cy - 250;
+    int fy = cy - MENU_FRAME_OFFSET_Y;
 
-    DrawLine(96, fy - 28, VIRT_W - 96, fy - 28, AlphaOf(COL_SENSOR, 28));
-    DrawLine(96, fy + frameH + 28, VIRT_W - 96, fy + frameH + 28, AlphaOf(COL_SENSOR, 20));
+    DrawLine(96, fy - 34, VIRT_W - 96, fy - 34, AlphaOf(COL_SENSOR, 28));
+    DrawLine(96, fy + frameH + 34, VIRT_W - 96, fy + frameH + 34, AlphaOf(COL_SENSOR, 20));
     DrawHudFrame((float)fx, (float)fy, (float)frameW, (float)frameH, 16.f,
                  AlphaOf(BG, 212), AlphaOf(COL_CPU, 82), COL_SENSOR);
 
-    DrawRoundBox((float)fx + 22, (float)fy + 92, (float)frameW - 44, 150.f, 10.f,
+    DrawRoundBox((float)fx + 26, (float)fy + 98, (float)frameW - 52, 182.f, 10.f,
                  AlphaOf(COL_SENSOR, 10), AlphaOf(COL_SENSOR, 36), 1.1f);
-    int actionY = fy + 264;
-    int actionH = 72;
-    int actionGap = 14;
-    int actionW = (frameW - 44 - actionGap) / 2;
-    int startX = fx + 22;
+    int actionY = fy + MENU_ACTION_Y_OFFSET;
+    int actionH = MENU_ACTION_H;
+    int actionGap = MENU_ACTION_GAP;
+    int actionW = (frameW - MENU_ACTION_INSET * 2 - actionGap) / 2;
+    int startX = fx + MENU_ACTION_INSET;
     int tutorialX = startX + actionW + actionGap;
     DrawRoundBox((float)startX, (float)actionY, (float)actionW, (float)actionH, 12.f,
                  AlphaOf(COL_PERC, 14), AlphaOf(COL_PERC, 96), 1.7f);
@@ -125,33 +125,50 @@ void DrawMenu(Game& G) {
     }
 
     float tp=0.90f+0.10f*sinf(t*1.8f);
-    DTC("邏輯閘防禦戰",                          cx,fy+54,FS_BIG, AlphaOf(COL_CPU,   (int)(244*tp)));
-    DTC("Logic Gate Defense  v3.0 + AI Edition", cx,fy+114,FS_MED, AlphaOf(COL_SENSOR,156));
+    DTC("邏輯閘防禦戰", cx, fy + 58, FS_BIG, AlphaOf(COL_CPU, (int)(244 * tp)));
+    DTC("用邏輯閘與感知器排出自動防線，擋下衝向 CPU 的病毒。", cx, fy + 114, FS_MED, AlphaOf(COL_SENSOR, 156));
 
-    const char* feats[] = {
-        "★ 神經網路訊號傳播","★ 感知器多層學習+loss圖","★ Boss 狀態機 AI",
-        "★ 威脅熱圖視覺化",  "★ 雙路徑+預告系統",      "★ 主動技能+NAND閘"
+    struct MenuFeature {
+        const char* title;
+        const char* desc;
+        Color       col;
     };
-    for (int i=0;i<6;i++) {
-        int   col=i%3,row=i/3;
-        int   bx=fx+54+col*344, by=fy+120+row*54;
-        float fp=0.72f+0.28f*sinf(t*1.6f+i*0.6f);
-        Color fc = (row == 0) ? COL_AI : COL_SENSOR;
-        DrawLineEx({(float)bx, (float)by + 13.f}, {(float)bx + 22.f, (float)by + 13.f}, 1.8f, AlphaOf(fc, 128));
-        DrawCircleV({(float)bx + 28.f, (float)by + 13.f}, 2.5f, AlphaOf(fc, (int)(138 * fp)));
-        DTX(feats[i], (float)bx + 42, (float)by, FS_SMALL, AlphaOf(fc, (int)(148 * fp)));
+    MenuFeature feats[] = {
+        {"訊號鏈防線", "SENSOR → 邏輯閘 → 砲塔", COL_SENSOR},
+        {"感知器學習", "跨波調整權重與 loss", COL_PERC},
+        {"多線路口", "輪換路線與入口壓力", COL_AI},
+        {"主動技能", "EMP、超頻、破甲、標記", COL_CANNON},
+    };
+    int featX = fx + 42;
+    int featY = fy + 152;
+    int featGap = 20;
+    int featW = (frameW - 84 - featGap) / 2;
+    int featH = 56;
+    for (int i = 0; i < 4; i++) {
+        int col = i % 2;
+        int row = i / 2;
+        int bx = featX + col * (featW + featGap);
+        int by = featY + row * (featH + 20);
+        float fp = 0.72f + 0.28f * sinf(t * 1.6f + i * 0.6f);
+        Color fc = feats[i].col;
+        DrawRoundBox((float)bx, (float)by, (float)featW, (float)featH, 9.f,
+                     AlphaOf(fc, 10), AlphaOf(fc, 72), 1.2f);
+        DrawLineEx({(float)bx + 18.f, (float)by + 27.f}, {(float)bx + 42.f, (float)by + 27.f}, 1.8f,
+                   AlphaOf(fc, (int)(120 * fp)));
+        DTX(feats[i].title, (float)bx + 56.f, (float)by + 10.f, FS_SMALL, AlphaOf(fc, 220));
+        DTX(feats[i].desc, (float)bx + 56.f, (float)by + 32.f, FS_TINY, AlphaOf(WHITE, 150));
     }
 
     float sp=0.82f+0.18f*sinf(t*3.2f);
-    DTC("開始遊戲", startX + actionW / 2, fy + 292, FS_LARGE, AlphaOf(COL_PERC, (int)(238 * sp)));
-    DTC("[ENTER / SPACE]", startX + actionW / 2, fy + 326, FS_TINY, AlphaOf(WHITE, 112));
-    DTC("教學關卡", tutorialX + actionW / 2, fy + 292, FS_LARGE, AlphaOf(COL_AI, (int)(224 * sp)));
-    DTC("[T] 選擇章節", tutorialX + actionW / 2, fy + 326, FS_TINY, AlphaOf(WHITE, 112));
-    DTC("[H] 查看說明", cx, fy + 358, FS_MED, AlphaOf(WHITE, 98));
-
+    DTC("開始遊戲", startX + actionW / 2, actionY + 29, FS_LARGE, AlphaOf(COL_PERC, (int)(238 * sp)));
+    DTC("[ENTER / SPACE]", startX + actionW / 2, actionY + 62, FS_TINY, AlphaOf(WHITE, 112));
+    DTC("教學關卡", tutorialX + actionW / 2, actionY + 29, FS_LARGE, AlphaOf(COL_AI, (int)(224 * sp)));
+    DTC("[T] 選擇章節", tutorialX + actionW / 2, actionY + 62, FS_TINY, AlphaOf(WHITE, 112));
     if (G.highScore > 0) {
-        char hs[40]; snprintf(hs,40,"歷史最高分：%d",G.highScore);
-        DTC(hs,cx,fy+372,FS_MED,AlphaOf(COL_STAR,172));
+        char hs[96]; snprintf(hs,96,"[H] 查看說明  ·  歷史最高分：%d",G.highScore);
+        DTC(hs,cx,fy+404,FS_MED,AlphaOf(COL_STAR,172));
+    } else {
+        DTC("[H] 查看說明", cx, fy + 404, FS_MED, AlphaOf(WHITE, 98));
     }
 
     DTX("v3.0+AI  Powered by Raylib",16,(float)(VIRT_H-28),FS_TINY,AlphaOf(WHITE,50));
@@ -183,77 +200,111 @@ void DrawMenu(Game& G) {
 //  DrawHelp
 // ══════════════════════════════════════════════════════════════════
 void DrawHelp() {
-    int boxX = PANEL_L + 80;
-    int boxY = TOPBAR_H + 40;
-    int boxW = MAP_W - 160;
-    int boxH = MAP_H - 80;
+    int boxX = PANEL_L + 52;
+    int boxY = TOPBAR_H + 30;
+    int boxW = MAP_W - 104;
+    int boxH = MAP_H - 60;
+    int cx = boxX + boxW / 2;
 
-    DrawRectangle(boxX, boxY, boxW, boxH, Color{4,9,18,240});
-    DrawRectangleLinesEx(
-        {(float)boxX,(float)boxY,(float)boxW,(float)boxH},
-        2.f,COL_SENSOR
-    );
+    DrawHudFrame((float)boxX, (float)boxY, (float)boxW, (float)boxH, 14.f,
+                 AlphaOf(BG, 238), AlphaOf(COL_SENSOR, 94), COL_SENSOR);
+    DrawScreenGrid(boxX + 12, boxY + 12, boxW - 24, boxH - 24, (float)GetTime(), COL_SENSOR);
 
-    int cx=PANEL_L+MAP_W/2, y=TOPBAR_H+72;
-    DTC("── 操作說明 ──",cx,y,FS_LARGE,COL_CPU); y+=40;
-    DrawLine(boxX + 42, y - 10, boxX + boxW - 42, y - 10, AlphaOf(COL_SENSOR, 44));
+    DTX("HELP", (float)boxX + 26.f, (float)boxY + 18.f, FS_TINY, AlphaOf(COL_SENSOR, 210));
+    DTX("TACTICAL REFERENCE", (float)boxX + boxW - 298.f, (float)boxY + 18.f, FS_TINY, AlphaOf(COL_AI, 180));
+    DTC("操作與系統重點", cx, boxY + 58, FS_LARGE, COL_CPU);
+    DTC("先建立訊號鏈，再觀察路線與敵情，補強高壓入口。", cx, boxY + 96, FS_TINY, AlphaOf(WHITE, 154));
 
-    struct HelpRow { const char* key; const char* desc; Color col; };
-    HelpRow rows[] = {
-        {"點擊左側按鈕","選擇元件（再按取消）",        WHITE     },
-        {"點擊地圖空格","放置元件",                     WHITE     },
-        {"[C]",         "進入連線模式",                 COL_SENSOR},
-        {"[U]",         "升級選取元件",                 COL_PERC  },
-        {"[Q]",         "發動主動技能（選取元件後）",   COL_AI    },
-        {"[DEL]",       "移除選取元件（退款50%）",      COL_CANNON},
-        {"[空白/ENTER]","發動下一波次",                 COL_PERC  },
-        {"[T]",         "切換威脅熱圖",                 COL_AI    },
-        {"[A]",         "切換 AI 顧問提示",             COL_AI    },
-        {"[P]",         "暫停/繼續",                    WHITE     },
-        {"[H]",         "說明",                         WHITE     },
-        {"[F11]",       "全螢幕切換",                   WHITE     },
+    struct HelpRow {
+        const char* key;
+        const char* desc;
+        Color       col;
     };
-    for (auto& r : rows) {
-        float kw=MCN(r.key,FS_SMALL);
-        int kx=PANEL_L+196, dx=kx+80;
-        DTX(r.key, (float)(kx-(int)kw/2-30),(float)y,FS_SMALL,AlphaOf(COL_AND,220));
-        DTX(r.desc,(float)dx,               (float)y+2.f,FS_TINY,AlphaOf(r.col, 174));
-        y+=26;
-    }
-
-    y+=8;
-    DTC("── AI 與關卡說明 ──",cx,y,FS_MED,COL_AI); y+=30;
-    DrawLine(boxX + 42, y - 8, boxX + boxW - 42, y - 8, AlphaOf(COL_AI, 38));
-
-    struct AIRow { const char* title; const char* desc; };
-    AIRow aiRows[] = {
-        {"感知器學習",  "每波結束以下游砲塔射程覆蓋率為目標，對 w1/w2/bias 執行 Delta Rule 更新"},
-        {"感知器層數",  "感知器串接形成多層網路（L1/L2/L3），右側面板顯示 loss 折線圖"},
-        {"威脅熱圖",    "擊殺位置累積熱度，跨波衰減 15%，Boss 貢獻 8x"},
-        {"Boss 狀態機", "偵測前方高威脅→EVADE加速x2.0；血量<30%永久RAMPAGE x2.8"},
-        {"Boss 分裂",   "Boss 降至 50% HP 時立即召喚 3 隻精英，務必保留火力！"},
-        {"精英護盾",    "Wave 10+ 精英帶護盾（25% HP），護盾破碎前傷害全吸收"},
-        {"波次事件",    "蜂群/裝甲洪流/霧戰/精英突擊/護衛Boss/再生軍/神速"},
-        {"通訊中斷",    "感測器範圍縮減至 30%，必須依賴感知器網路辨識目標"},
-        {"變異體",      "HP x2、速度 x1.3、無裝甲、帶再生，爆發傷害才能壓制"},
-        {"圍城艦",      "單隻 HP x8、裝甲 0.8 的超重坦，需集中全火力穿甲"},
-        {"路線輪換",    "每 3 波自動換路線（共 11 條），訓練期間顯示下波路線預告"},
-        {"雙路進攻",    "Wave 8 起開通第二條路徑，敵人交替從兩路進攻"},
-        {"主動技能",    "選取元件後按 [Q]：SENSOR=EMP暫停，OR=超頻，CANNON=超砲等"},
-        {"NAND閘",      "非AND閘：後期反制裝甲利器，配合主動技能可破甲歸零"},
+    struct HelpBullet {
+        const char* title;
+        const char* desc;
+        Color       col;
     };
-    int leftColX = PANEL_L + 100;
-    int rightColX = PANEL_L + MAP_W / 2 + 26;
-    for (int i = 0; i < (int)(sizeof(aiRows) / sizeof(aiRows[0])); i++) {
-        int col = (i < 7) ? 0 : 1;
-        int row = (i < 7) ? i : (i - 7);
-        int ax = (col == 0) ? leftColX : rightColX;
-        int ay = y + row * 42;
-        DTX(aiRows[i].title, (float)ax, (float)ay, FS_TINY, AlphaOf(COL_AI, 220));
-        DTX(aiRows[i].desc,  (float)(ax + 18), (float)(ay + 18), FS_TINY, AlphaOf(WHITE, 148));
-    }
+    auto drawSectionCard = [&](int x, int y, int w, int h, const char* title, Color accent) {
+        DrawRoundBox((float)x, (float)y, (float)w, (float)h, 10.f,
+                     AlphaOf(accent, 10), AlphaOf(accent, 74), 1.3f);
+        DTX(title, (float)x + 20.f, (float)y + 16.f, FS_SMALL, AlphaOf(accent, 222));
+        DrawLine(x + 20, y + 50, x + w - 20, y + 50, AlphaOf(accent, 40));
+    };
+    auto drawControlCard = [&](int x, int y, int w, int h, const char* title,
+                               const HelpRow* rows, int count, Color accent) {
+        drawSectionCard(x, y, w, h, title, accent);
+        for (int i = 0; i < count; i++) {
+            int rowY = y + 68 + i * 34;
+            DTX(rows[i].key, (float)x + 20.f, (float)rowY, FS_TINY, AlphaOf(rows[i].col, 220));
+            DTX(rows[i].desc, (float)x + 160.f, (float)rowY, FS_TINY, AlphaOf(WHITE, 164));
+        }
+    };
+    auto drawBulletCard = [&](int x, int y, int w, int h, const char* title,
+                              const HelpBullet* bullets, int count, Color accent) {
+        drawSectionCard(x, y, w, h, title, accent);
+        for (int i = 0; i < count; i++) {
+            int rowY = y + 68 + i * 34;
+            DrawCircleV({(float)x + 24.f, (float)rowY + 10.f}, 3.5f, AlphaOf(bullets[i].col, 220));
+            DTX(bullets[i].title, (float)x + 38.f, (float)rowY, FS_TINY, AlphaOf(bullets[i].col, 220));
+            DTX(bullets[i].desc, (float)x + 154.f, (float)rowY, FS_TINY, AlphaOf(WHITE, 154));
+        }
+    };
 
-    DTC("點擊任意處或按 [H]/[ESC] 關閉",cx,TOPBAR_H+MAP_H-60,FS_MED,AlphaOf(WHITE,118));
+    HelpRow buildRows[] = {
+        {"左側按鈕", "選元件；再按一次可取消", WHITE},
+        {"已有元件", "點擊查看資訊", WHITE},
+        {"地圖空格", "放置元件", WHITE},
+        {"[C]", "進入連線模式", COL_SENSOR},
+        {"[U]", "升級選取元件", COL_PERC},
+        {"[DEL]", "移除並退回 50%", COL_CANNON},
+        {"[ESC]", "取消放置或連線", WHITE},
+        {"[空白]", "發動下一波", COL_PERC},
+    };
+    HelpRow battleRows[] = {
+        {"[Q]", "發動選取元件的主動技能", COL_AI},
+        {"[T]", "切換威脅熱圖", COL_AI},
+        {"[A]", "切換 AI 顧問提示", COL_AI},
+        {"[P]", "暫停 / 繼續", WHITE},
+        {"[H]", "開關說明頁", WHITE},
+        {"[F11]", "切換全螢幕", WHITE},
+    };
+    HelpBullet systemRows[] = {
+        {"感知器", "每波依覆蓋率更新權重，右側可看 loss", COL_PERC},
+        {"多層網路", "感知器可串接成多層訊號鏈", COL_AI},
+        {"熱圖", "擊殺熱度會累積，跨波逐漸衰減", COL_CANNON},
+        {"路線", "每 3 波輪換；Wave 7 開放入口，10/16/30 逐步多線", COL_SENSOR},
+        {"入口態勢", "上方看路線，右側看入口壓力與敵情", COL_CPU},
+        {"訓練", "短暫凍結戰場，從左欄三選一獎勵", COL_AND},
+    };
+    HelpBullet enemyRows[] = {
+        {"精英", "Wave 10 起帶護盾，需集中火力", COL_ELITE},
+        {"Boss", "50% 召精英，30% 進入狂暴", COL_BOSS},
+        {"事件", "蜂群、裝甲、霧戰、突擊、再生、神速", COL_CANNON},
+        {"通訊中斷", "感測器範圍大幅縮小", COL_SENSOR},
+        {"變異體", "高血、高速、帶再生，需爆發壓制", COL_OR},
+        {"圍城艦", "超重裝甲目標，靠破甲與集火處理", COL_AND},
+    };
+
+    int cardGap = 28;
+    int cardW = (boxW - 82) / 2;
+    int topY = boxY + 136;
+    int topH = 308;
+    int bottomY = topY + topH + cardGap;
+    int bottomH = 270;
+    int leftX = boxX + 28;
+    int rightX = leftX + cardW + cardGap;
+
+    drawControlCard(leftX, topY, cardW, topH, "建造與指令", buildRows,
+                    (int)(sizeof(buildRows) / sizeof(buildRows[0])), COL_AND);
+    drawControlCard(rightX, topY, cardW, topH, "戰鬥與介面", battleRows,
+                    (int)(sizeof(battleRows) / sizeof(battleRows[0])), COL_AI);
+    drawBulletCard(leftX, bottomY, cardW, bottomH, "核心系統", systemRows,
+                   (int)(sizeof(systemRows) / sizeof(systemRows[0])), COL_SENSOR);
+    drawBulletCard(rightX, bottomY, cardW, bottomH, "敵人與事件", enemyRows,
+                   (int)(sizeof(enemyRows) / sizeof(enemyRows[0])), COL_CANNON);
+
+    DTC("按 [H] / [ESC] 或點擊任意處關閉", cx, boxY + boxH - 38, FS_MED, AlphaOf(WHITE, 118));
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -268,46 +319,50 @@ void DrawGameOver(Game& G) {
     DrawRectangle(ox, oy, MAP_W, MAP_H, AlphaOf(RED, 24));
     DrawScreenGrid(ox, oy, MAP_W, MAP_H, t, RED);
 
-    int panelW = 760, panelH = 540;
+    int panelW = 820, panelH = 748;
     int px = cx - panelW / 2;
-    int py = oy + 118;
+    int py = oy + 66;
     DrawHudFrame((float)px, (float)py, (float)panelW, (float)panelH, 16.f,
                  AlphaOf(BG, 224), AlphaOf(RED, 108), Color{255, 168, 148, 255});
     DTX("SYSTEM FAILURE", (float)px + 28, (float)py + 18, FS_TINY, AlphaOf(RED, 210));
     DTX("CORE BREACHED // DEFENSE GRID LOST", (float)px + panelW - 418, (float)py + 18, FS_TINY, AlphaOf(COL_SENSOR, 150));
 
     float rp=0.75f+0.25f*sinf(t*4.f);
-    DTC("防線崩潰",cx,py+68,FS_BIG,AlphaOf(RED,(int)(240*rp)));
-    DTC("核心節點失守，戰術網路離線",cx,py+116,FS_SMALL,AlphaOf(COL_SENSOR,150));
+    DTC("防線崩潰",cx,py+74,FS_BIG,AlphaOf(RED,(int)(240*rp)));
+    DTC("核心節點失守，戰術網路離線",cx,py+126,FS_SMALL,AlphaOf(COL_SENSOR,150));
 
-    int statY = py + 148;
-    int statW = 214;
-    DrawRoundBox((float)px + 28, (float)statY, (float)statW, 90.f, 10.f,
+    int statY = py + 176;
+    int statGap = 26;
+    int statW = (panelW - 64 - statGap * 2) / 3;
+    int statH = 106;
+    int statX = px + 32;
+    DrawRoundBox((float)statX, (float)statY, (float)statW, (float)statH, 10.f,
                  AlphaOf(COL_AND, 10), AlphaOf(COL_AND, 72), 1.5f);
-    DrawRoundBox((float)px + 273, (float)statY, (float)statW, 90.f, 10.f,
+    DrawRoundBox((float)(statX + statW + statGap), (float)statY, (float)statW, (float)statH, 10.f,
                  AlphaOf(COL_PERC, 10), AlphaOf(COL_PERC, 72), 1.5f);
-    DrawRoundBox((float)px + 518, (float)statY, (float)statW, 90.f, 10.f,
+    DrawRoundBox((float)(statX + (statW + statGap) * 2), (float)statY, (float)statW, (float)statH, 10.f,
                  AlphaOf(COL_STAR, 10), AlphaOf(COL_STAR, 72), 1.5f);
 
     char sbuf[64]; snprintf(sbuf,64,"%d",G.score);
-    DTX("最終分數", (float)px + 44, (float)statY + 12, FS_TINY, AlphaOf(COL_AND, 220));
-    DTX(sbuf,       (float)px + 44, (float)statY + 38, FS_TITLE, COL_AND);
+    DTX("最終分數", (float)statX + 18.f, (float)statY + 14.f, FS_TINY, AlphaOf(COL_AND, 220));
+    DTX(sbuf,       (float)statX + 18.f, (float)statY + 44.f, FS_TITLE, COL_AND);
 
     char wb[48]; snprintf(wb,48,"%d 波",G.wave);
-    DTX("撐過波次", (float)px + 289, (float)statY + 12, FS_TINY, AlphaOf(COL_PERC, 220));
-    DTX(wb,        (float)px + 289, (float)statY + 38, FS_TITLE, AlphaOf(COL_PERC, 230));
+    DTX("撐過波次", (float)(statX + statW + statGap) + 18.f, (float)statY + 14.f, FS_TINY, AlphaOf(COL_PERC, 220));
+    DTX(wb,        (float)(statX + statW + statGap) + 18.f, (float)statY + 44.f, FS_TITLE, AlphaOf(COL_PERC, 230));
 
-    DTX("紀錄狀態", (float)px + 534, (float)statY + 12, FS_TINY, AlphaOf(COL_STAR, 220));
+    float recordX = (float)(statX + (statW + statGap) * 2) + 18.f;
+    DTX("紀錄狀態", recordX, (float)statY + 14.f, FS_TINY, AlphaOf(COL_STAR, 220));
     if (G.score>=G.highScore && G.highScore>0) {
-        DTX("新紀錄！", (float)px + 534, (float)statY + 40, FS_LARGE, COL_STAR);
+        DTX("新紀錄！", recordX, (float)statY + 46.f, FS_LARGE, COL_STAR);
     } else {
         char hs[48]; snprintf(hs,48,"最高 %d",G.highScore);
-        DTX(hs, (float)px + 534, (float)statY + 40, FS_LARGE, AlphaOf(COL_STAR,180));
+        DTX(hs, recordX, (float)statY + 46.f, FS_LARGE, AlphaOf(COL_STAR,180));
     }
 
-    int routeY = py + 268;
+    int routeY = py + 324;
     DTC("路線威脅摘要", cx, routeY, FS_MED, AlphaOf(COL_CPU, 220));
-    routeY += 30;
+    routeY += 36;
 
     bool showRouteMetric = G.intel.adapted;
     int laneCount = G.ActiveLaneCount();
@@ -315,24 +370,24 @@ void DrawGameOver(Game& G) {
     if (laneCount > 1) {
         int cols = (laneCount <= 2) ? laneCount : 3;
         int rows = (laneCount + cols - 1) / cols;
-        int gap = 12;
-        int cardW = (panelW - 56 - gap * (cols - 1)) / cols;
+        int gap = 16;
+        int cardW = (panelW - 64 - gap * (cols - 1)) / cols;
         for (int lane = 0; lane < laneCount; lane++) {
             char header[16];
             snprintf(header, 16, "路線%d", lane + 1);
             int col = lane % cols;
             int row = lane / cols;
-            DrawRouteSummaryCard(px + 28 + col * (cardW + gap), routeY + row * 92, cardW, header,
+            DrawRouteSummaryCard(px + 32 + col * (cardW + gap), routeY + row * 98, cardW, header,
                                  G.LanePreset(lane), lane, G.intel.pathSurvRate[lane],
                                  showRouteMetric, showRouteMetric && preferredLane == lane);
         }
-        routeY += rows * 92;
+        routeY += rows * 98;
     } else {
         float livePressure = LanePressureScreen(G, 0);
         float routeMetric = showRouteMetric ? G.intel.pathSurvRate[0] : livePressure;
-        DrawRouteSummaryCard(px + 28, routeY, panelW - 56, "當前路線", G.LanePreset(0), 0,
+        DrawRouteSummaryCard(px + 32, routeY, panelW - 64, "當前路線", G.LanePreset(0), 0,
                              routeMetric, showRouteMetric, true);
-        routeY += 96;
+        routeY += 102;
     }
 
     if (showRouteMetric) {
@@ -369,25 +424,25 @@ void DrawGameOver(Game& G) {
     for (auto& tw : G.towers) {
         if (tw.type==TType::PERCEPTRON) { pctCount++; avgLoss+=tw.learner.lastLoss; }
     }
-    int aiY = py + 404;
-    DrawRoundBox((float)px + 28, (float)aiY, (float)panelW - 56, 78.f, 10.f,
+    int aiY = routeY + 36;
+    DrawRoundBox((float)px + 32, (float)aiY, (float)panelW - 64, 78.f, 10.f,
                  AlphaOf(COL_AI, 10), AlphaOf(COL_AI, 70), 1.3f);
-    DTX("AI 收斂摘要", (float)px + 44, (float)aiY + 12, FS_TINY, AlphaOf(COL_AI, 210));
+    DTX("AI 收斂摘要", (float)px + 50, (float)aiY + 12, FS_TINY, AlphaOf(COL_AI, 210));
     if (pctCount > 0) {
         avgLoss /= pctCount;
         char aib[64]; snprintf(aib,64,"感知器 %d 個 | 平均 loss %.4f",pctCount,avgLoss);
-        DTX(aib,(float)px + 44,(float)aiY + 34,FS_SMALL,AlphaOf(COL_AI,188));
+        DTX(aib,(float)px + 50,(float)aiY + 34,FS_SMALL,AlphaOf(COL_AI,188));
         const char* grade=
             (avgLoss<0.05f)?"神經網路已收斂":
             (avgLoss<0.15f)?"學習中，再多幾波":
                             "需要更多感知器或連線";
-        DTX(grade,(float)px + 44,(float)aiY + 58,FS_TINY,AlphaOf(COL_AI,158));
+        DTX(grade,(float)px + 50,(float)aiY + 58,FS_TINY,AlphaOf(COL_AI,158));
     } else {
         DTC("未部署感知器節點",cx,aiY+39,FS_SMALL,AlphaOf(COL_AI,150));
     }
 
     float pp=0.86f+0.14f*sinf(t*4.f);
-    DrawRoundBox((float)cx - 278.f, (float)py + panelH - 60.f, 556.f, 44.f, 10.f,
+    DrawRoundBox((float)cx - 278.f, (float)py + panelH - 66.f, 556.f, 46.f, 10.f,
                  AlphaOf(WHITE, 10), AlphaOf(WHITE, 92), 1.5f);
-    DTC("[R] 重新開始    [ENTER] 主選單",cx,py+panelH-38,FS_LARGE,AlphaOf(Color{220,220,220,255},(int)(228*pp)));
+    DTC("[R] 重新開始    [ENTER] 主選單",cx,py+panelH-42,FS_LARGE,AlphaOf(Color{220,220,220,255},(int)(228*pp)));
 }

@@ -38,6 +38,57 @@ enum class TutorialObjectiveKind {
 };
 
 constexpr int TUTORIAL_LESSON_COUNT = (int)TutorialLessonId::COUNT;
+constexpr int TUTORIAL_SELECT_COLS = 3;
+constexpr int TUTORIAL_SELECT_CARD_W = 398;
+constexpr int TUTORIAL_SELECT_CARD_H = 188;
+constexpr int TUTORIAL_SELECT_GAP_X = 34;
+constexpr int TUTORIAL_SELECT_GAP_Y = 30;
+constexpr int TUTORIAL_SELECT_GRID_W =
+    TUTORIAL_SELECT_COLS * TUTORIAL_SELECT_CARD_W +
+    (TUTORIAL_SELECT_COLS - 1) * TUTORIAL_SELECT_GAP_X;
+constexpr int TUTORIAL_SELECT_GRID_X = (VIRT_W - TUTORIAL_SELECT_GRID_W) / 2;
+constexpr int TUTORIAL_SELECT_GRID_Y = 250;
+constexpr int TUTORIAL_EXIT_PANEL_W = 860;
+constexpr int TUTORIAL_EXIT_PANEL_H = 340;
+constexpr int TUTORIAL_EXIT_BUTTON_W = 208;
+constexpr int TUTORIAL_EXIT_BUTTON_H = 60;
+constexpr int TUTORIAL_EXIT_BUTTON_GAP = 26;
+constexpr int TUTORIAL_EXIT_BUTTON_Y_OFFSET = 206;
+
+inline Rectangle TutorialLessonCardRect(int index) {
+    int col = index % TUTORIAL_SELECT_COLS;
+    int row = index / TUTORIAL_SELECT_COLS;
+    return {
+        (float)(TUTORIAL_SELECT_GRID_X + col * (TUTORIAL_SELECT_CARD_W + TUTORIAL_SELECT_GAP_X)),
+        (float)(TUTORIAL_SELECT_GRID_Y + row * (TUTORIAL_SELECT_CARD_H + TUTORIAL_SELECT_GAP_Y)),
+        (float)TUTORIAL_SELECT_CARD_W,
+        (float)TUTORIAL_SELECT_CARD_H
+    };
+}
+
+inline Rectangle TutorialExitPromptPanelRect() {
+    return {
+        (float)(VIRT_W / 2 - TUTORIAL_EXIT_PANEL_W / 2),
+        (float)(VIRT_H / 2 - TUTORIAL_EXIT_PANEL_H / 2),
+        (float)TUTORIAL_EXIT_PANEL_W,
+        (float)TUTORIAL_EXIT_PANEL_H
+    };
+}
+
+inline Rectangle TutorialExitPromptButtonRect(int index) {
+    index = std::max(0, std::min(2, index));
+    Rectangle panel = TutorialExitPromptPanelRect();
+    float totalW =
+        3.f * (float)TUTORIAL_EXIT_BUTTON_W +
+        2.f * (float)TUTORIAL_EXIT_BUTTON_GAP;
+    float startX = panel.x + (panel.width - totalW) * 0.5f;
+    return {
+        startX + index * (TUTORIAL_EXIT_BUTTON_W + TUTORIAL_EXIT_BUTTON_GAP),
+        panel.y + (float)TUTORIAL_EXIT_BUTTON_Y_OFFSET,
+        (float)TUTORIAL_EXIT_BUTTON_W,
+        (float)TUTORIAL_EXIT_BUTTON_H
+    };
+}
 
 struct TutorialLessonInfo {
     TutorialLessonId id;
