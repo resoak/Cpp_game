@@ -52,14 +52,14 @@ void HandleInput(Game& G) {
             return;
         }
         int cx = VIRT_W / 2, cy = VIRT_H / 2;
-        int frameW = 1120;
+        int frameW = MENU_FRAME_W;
         int fx = cx - frameW / 2;
-        int fy = cy - 250;
-        int actionY = fy + 264;
-        int actionH = 72;
-        int actionGap = 14;
-        int actionW = (frameW - 44 - actionGap) / 2;
-        Rectangle startBtn = {(float)fx + 22.f, (float)actionY, (float)actionW, (float)actionH};
+        int fy = cy - MENU_FRAME_OFFSET_Y;
+        int actionY = fy + MENU_ACTION_Y_OFFSET;
+        int actionH = MENU_ACTION_H;
+        int actionGap = MENU_ACTION_GAP;
+        int actionW = (frameW - MENU_ACTION_INSET * 2 - actionGap) / 2;
+        Rectangle startBtn = {(float)fx + (float)MENU_ACTION_INSET, (float)actionY, (float)actionW, (float)actionH};
         Rectangle tutorialBtn = {startBtn.x + actionW + actionGap, (float)actionY, (float)actionW, (float)actionH};
 
         if (IsKeyPressed(KEY_H))                                G.showHelp = true;
@@ -96,11 +96,11 @@ void HandleInput(Game& G) {
             return;
         }
         if (IsKeyPressed(KEY_UP)) {
-            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson - 3);
+            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson - TUTORIAL_SELECT_COLS);
             return;
         }
         if (IsKeyPressed(KEY_DOWN)) {
-            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson + 3);
+            G.tutorial.selectedLesson = ClampTutorialLessonIndex(G.tutorial.selectedLesson + TUTORIAL_SELECT_COLS);
             return;
         }
         if (IsKeyPressed(KEY_LEFT)) {
@@ -129,21 +129,8 @@ void HandleInput(Game& G) {
         }
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            int gridX = 150;
-            int gridY = 210;
-            int cardW = 500;
-            int cardH = 180;
-            int gapX = 60;
-            int gapY = 34;
             for (int i = 0; i < TUTORIAL_LESSON_COUNT; i++) {
-                int col = i % 3;
-                int row = i / 3;
-                Rectangle card = {
-                    (float)(gridX + col * (cardW + gapX)),
-                    (float)(gridY + row * (cardH + gapY)),
-                    (float)cardW,
-                    (float)cardH
-                };
+                Rectangle card = TutorialLessonCardRect(i);
                 if (CheckCollisionPointRec(mp, card)) {
                     picked = i;
                     break;

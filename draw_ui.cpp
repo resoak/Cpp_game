@@ -47,37 +47,40 @@ static void DrawPanelScan(float x, float y, float w, float h, Color col, float p
 }
 
 static void DrawCardTicks(float x, float y, float w, float h, Color col) {
-    DrawLineEx({x + 10.f, y + 9.f}, {x + 34.f, y + 9.f}, 1.f, AlphaOf(col, 92));
-    DrawLineEx({x + 10.f, y + 9.f}, {x + 10.f, y + 22.f}, 1.f, AlphaOf(col, 70));
-    DrawLineEx({x + w - 10.f, y + h - 9.f}, {x + w - 34.f, y + h - 9.f}, 1.f, AlphaOf(col, 76));
-    DrawLineEx({x + w - 10.f, y + h - 9.f}, {x + w - 10.f, y + h - 22.f}, 1.f, AlphaOf(col, 56));
+    DrawLineEx({x + 12.f, y + 10.f}, {x + 30.f, y + 10.f}, 1.f, AlphaOf(col, 72));
+    DrawLineEx({x + 12.f, y + 10.f}, {x + 12.f, y + 20.f}, 1.f, AlphaOf(col, 54));
+    DrawLineEx({x + w - 12.f, y + h - 10.f}, {x + w - 30.f, y + h - 10.f}, 1.f, AlphaOf(col, 60));
+    DrawLineEx({x + w - 12.f, y + h - 10.f}, {x + w - 12.f, y + h - 20.f}, 1.f, AlphaOf(col, 46));
 }
 
 static void DrawRouteUiCard(int x, int y, int w, const char* header, const PathPreset& preset,
                             int laneSlot, int enemyCount, float pressure, bool preview) {
     RouteVisualTheme theme = GetRouteTheme(preset, laneSlot);
     float pulse = 0.65f + 0.35f * sinf((float)GetTime() * 2.4f + laneSlot * 0.8f + preset.family * 0.35f);
+    constexpr float cardH = 60.f;
+    constexpr float labelX = 14.f;
+    constexpr float textX = 104.f;
 
-    DrawRoundBox((float)x, (float)y, (float)w, 52.f, 8.f,
+    DrawRoundBox((float)x, (float)y, (float)w, cardH, 9.f,
         AlphaOf(theme.fillSoft, 220),
         AlphaOf(theme.accent, (int)(120 + pulse * 70)), 1.4f);
-    DrawRectangleGradientH(x + 2, y + 2, w - 4, 48, AlphaOf(theme.accent, 16), AlphaOf(theme.fill, 4));
-    DrawPanelScan((float)x + 4.f, (float)y + 4.f, (float)w - 8.f, 44.f, theme.glow,
+    DrawRectangleGradientH(x + 2, y + 2, w - 4, (int)cardH - 4, AlphaOf(theme.accent, 10), AlphaOf(theme.fill, 2));
+    DrawPanelScan((float)x + 5.f, (float)y + 5.f, (float)w - 10.f, cardH - 12.f, theme.glow,
         fmodf((float)GetTime() * 0.18f + laneSlot * 0.33f, 1.f));
-    DrawCardTicks((float)x, (float)y, (float)w, 52.f, theme.accent);
-    DTX(header, (float)x + 12, (float)y + 7, FS_TINY, AlphaOf(theme.accent, 230));
-    DTX(theme.shortLabel, (float)x + 12, (float)y + 25, FS_TINY, AlphaOf(theme.glow, 215));
-    DTX(preset.name, (float)x + 84, (float)y + 7, FS_SMALL, theme.text);
-    DTX(theme.sideLabel, (float)x + 84, (float)y + 26, FS_TINY, AlphaOf(theme.glow, 165));
+    DrawCardTicks((float)x, (float)y, (float)w, cardH, theme.accent);
+    DTX(header, (float)x + labelX, (float)y + 9, FS_TINY, AlphaOf(theme.accent, 226));
+    DTX(theme.shortLabel, (float)x + labelX, (float)y + 32, FS_TINY, AlphaOf(theme.glow, 198));
+    DTX(preset.name, (float)x + textX, (float)y + 10, FS_SMALL, theme.text);
+    DTX(theme.sideLabel, (float)x + textX, (float)y + 33, FS_TINY, AlphaOf(theme.glow, 156));
 
     if (!preview) {
         char eb[16];
         snprintf(eb, 16, "x%d", enemyCount);
-        DTX(eb, (float)(x + w - 40), (float)y + 7, FS_TINY, AlphaOf(theme.text, 215));
-        DrawRectangle(x + 84, y + 41, w - 108, 4, AlphaOf(theme.fill, 170));
-        DrawRectangle(x + 84, y + 41, (int)((w - 108) * pressure), 4, AlphaOf(theme.accent, 230));
-        float hi = x + 84 + (w - 108) * Clamp(pressure, 0.f, 1.f);
-        DrawCircleV({hi, (float)y + 43.f}, 4.f, AlphaOf(theme.glow, 150));
+        DTX(eb, (float)(x + w - 44), (float)y + 10, FS_TINY, AlphaOf(theme.text, 210));
+        DrawRectangle(x + (int)textX, y + 48, w - (int)textX - 18, 5, AlphaOf(theme.fill, 156));
+        DrawRectangle(x + (int)textX, y + 48, (int)((w - (int)textX - 18) * pressure), 5, AlphaOf(theme.accent, 224));
+        float hi = x + textX + (w - textX - 18.f) * Clamp(pressure, 0.f, 1.f);
+        DrawCircleV({hi, (float)y + 50.f}, 4.2f, AlphaOf(theme.glow, 136));
     }
 }
 
@@ -227,42 +230,44 @@ void DrawRightPanel(Game& G) {
         int iy = py0 + 70;
 
         DTC("入口態勢", cx, iy, FS_MED, AlphaOf(COL_CPU, 220)); iy += 28;
+        const int routeCardStep = 66;
         for (int lane = 0; lane < laneCount; lane++) {
             char header[24];
             snprintf(header, 24, "當前%s", LaneLabel(lane));
-            DrawRouteUiCard(rx + 10, iy, PANEL_R - 20, header, G.LanePreset(lane), lane,
+            DrawRouteUiCard(rx + 8, iy, PANEL_R - 16, header, G.LanePreset(lane), lane,
                 CountLaneEnemiesUi(G, lane), LanePressureUi(G, lane), false);
-            iy += 54;
+            iy += routeCardStep;
         }
 
         if (G.hasPlannedRouteChange) {
             int previewCount = std::max(1, std::min(MAX_LANES, G.nextPreviewLaneCount));
-            int previewH = 28 + previewCount * 54 + 8;
-            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, (float)previewH, 8,
+            int previewH = 36 + previewCount * routeCardStep + 10;
+            DrawRoundBox((float)rx + 6, (float)iy, (float)PANEL_R - 12, (float)previewH, 8,
                 AlphaOf({255, 205, 120, 255}, 9), AlphaOf({255, 205, 120, 255}, 56), 1.3f);
-            DTC("下次輪換", cx, iy + 14, FS_TINY, AlphaOf({255, 220, 160, 255}, 220));
-            iy += 26;
+            DTC("下次輪換", cx, iy + 16, FS_TINY, AlphaOf({255, 220, 160, 255}, 220));
+            iy += 34;
             for (int lane = 0; lane < previewCount; lane++) {
                 if (G.nextPreviewPaths[lane] < 0) continue;
                 char header[24];
                 snprintf(header, 24, "下波%s", LaneLabel(lane));
-                DrawRouteUiCard(rx + 14, iy, PANEL_R - 28, header,
+                DrawRouteUiCard(rx + 12, iy, PANEL_R - 24, header,
                     GetPathPreset(G.nextPreviewPaths[lane]), lane, 0, 0.f, true);
-                iy += 54;
+                iy += routeCardStep;
             }
-            iy += 6;
+            iy += 8;
         }
 
         if (G.currentIncident != Game::Incident::NONE && G.incidentTimer > 0.f) {
             Color ic = IncidentUiColor(G.currentIncident);
-            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, 48.f, 8.f,
+            DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, 54.f, 8.f,
                          AlphaOf(ic, 16), AlphaOf(ic, 95), 1.2f);
-            DTC("突發事件", cx, iy + 13, FS_TINY, AlphaOf(ic, 220));
+            DTC("突發事件", cx, iy + 15, FS_TINY, AlphaOf(ic, 220));
             char ib[64]; snprintf(ib, 64, "%s  %.0fs", G.incidentName.c_str(), std::max(0.f, G.incidentTimer));
-            DTC(ib, cx, iy + 32, FS_TINY, AlphaOf(WHITE, 165));
-            iy += 60;
+            DTC(ib, cx, iy + 35, FS_TINY, AlphaOf(WHITE, 165));
+            iy += 68;
         }
 
+        iy += 16;
         DTC("敵情分析", cx, iy, FS_MED, AlphaOf({255, 100, 100, 255}, 220)); iy += 34;
 
         if (!I.adapted) {
@@ -298,32 +303,32 @@ void DrawRightPanel(Game& G) {
         iy += 6;
 
         if (laneCount > 1) {
-            int routeBoxH = 34 + laneCount * 28;
+            int routeBoxH = 40 + laneCount * 34;
             DrawRoundBox((float)rx + 8, (float)iy, (float)PANEL_R - 16, (float)routeBoxH, 6,
                          AlphaOf({255,180,60,255}, 8), AlphaOf({255,180,60,255}, 50), 1.5f);
-            DTC("路線威脅", cx, iy + 14, FS_TINY, AlphaOf({255,200,80,255}, 200)); iy += 28;
+            DTC("路線威脅", cx, iy + 16, FS_TINY, AlphaOf({255,200,80,255}, 200)); iy += 32;
 
             int preferredLane = I.PreferredPath(laneCount);
             for (int i = 0; i < laneCount; i++) {
                 const PathPreset& preset = G.LanePreset(i);
                 RouteVisualTheme theme = GetRouteTheme(preset, i);
                 float surv = I.pathSurvRate[i];
-                int   barW = (int)((PANEL_R - 138) * surv);
+                int   barW = (int)((PANEL_R - 156) * surv);
                 bool  pref = (preferredLane == i);
                 Color pc   = pref ? theme.accent : AlphaOf(theme.accent, 150);
 
                 char label[24]; snprintf(label, 24, "%s%s", LaneLabel(i), pref ? " ▶" : "");
-                DTX(label, (float)rx + 12, (float)iy, FS_TINY, pc);
-                DTX(preset.name, (float)rx + 72, (float)iy, FS_TINY, theme.text);
-                DrawRectangle(rx + 72, iy + 13, PANEL_R - 138, 10, AlphaOf(theme.fill, 190));
-                if (barW > 0) DrawRectangle(rx + 72, iy + 13, barW, 10, AlphaOf(pc, 220));
+                DTX(label, (float)rx + 14, (float)iy, FS_TINY, pc);
+                DTX(preset.name, (float)rx + 88, (float)iy, FS_TINY, theme.text);
+                DrawRectangle(rx + 88, iy + 16, PANEL_R - 156, 10, AlphaOf(theme.fill, 184));
+                if (barW > 0) DrawRectangle(rx + 88, iy + 16, barW, 10, AlphaOf(pc, 216));
 
                 char pct[12]; snprintf(pct, 12, "%2.0f%%", surv * 100.f);
-                DTX(theme.sideLabel, (float)rx + 12, (float)iy + 13, FS_TINY, AlphaOf(theme.glow, 150));
-                DTX(pct, (float)(rx + PANEL_R - 34), (float)iy + 11, FS_TINY, AlphaOf(pc, 220));
-                iy += 28;
+                DTX(theme.sideLabel, (float)rx + 14, (float)iy + 15, FS_TINY, AlphaOf(theme.glow, 144));
+                DTX(pct, (float)(rx + PANEL_R - 40), (float)iy + 13, FS_TINY, AlphaOf(pc, 216));
+                iy += 34;
             }
-            iy += 6;
+            iy += 8;
         }
 
         // ── 學習狀態摘要 ─────────────────────────────────────────
@@ -515,26 +520,26 @@ void DrawTopBar(Game& G) {
         int enemyCount = CountLaneEnemiesUi(G, laneSlot);
         float pressure = LanePressureUi(G, laneSlot);
 
-        DrawRoundBox((float)x, (float)y, (float)w, 24.f, 6.f,
+        DrawRoundBox((float)x, (float)y, (float)w, 28.f, 7.f,
             AlphaOf(theme.fillSoft, 220), AlphaOf(theme.accent, 150), 1.2f);
-        DTX(header, (float)x + 8, (float)y + 4, FS_TINY, AlphaOf(theme.accent, 220));
-        DTX(preset.name, (float)x + 58, (float)y + 4, FS_TINY, theme.text);
+        DTX(header, (float)x + 10, (float)y + 5, FS_TINY, AlphaOf(theme.accent, 220));
+        DTX(preset.name, (float)x + 68, (float)y + 5, FS_TINY, theme.text);
 
         char eb[12];
         snprintf(eb, 12, "x%d", enemyCount);
-        DTX(eb, (float)x + w - 34, (float)y + 4, FS_TINY, AlphaOf(theme.text, 210));
-        DrawRectangle(x + 58, y + 18, w - 96, 3, AlphaOf(theme.fill, 170));
-        DrawRectangle(x + 58, y + 18, (int)((w - 96) * pressure), 3, AlphaOf(theme.accent, 230));
+        DTX(eb, (float)x + w - 36, (float)y + 5, FS_TINY, AlphaOf(theme.text, 210));
+        DrawRectangle(x + 68, y + 21, w - 108, 4, AlphaOf(theme.fill, 164));
+        DrawRectangle(x + 68, y + 21, (int)((w - 108) * pressure), 4, AlphaOf(theme.accent, 226));
     };
 
     int routeCount = G.ActiveLaneCount();
-    int badgeGap = 8;
+    int badgeGap = 10;
     if (routeCount <= 4) {
-        int badgeW = (routeCount <= 2) ? 188 : 150;
+        int badgeW = (routeCount <= 2) ? 210 : 168;
         int routeStripW = routeCount * badgeW + (routeCount - 1) * badgeGap;
         int routeStartX = VIRT_W / 2 - routeStripW / 2;
         for (int lane = 0; lane < routeCount; lane++) {
-            drawTopRouteBadge(routeStartX + lane * (badgeW + badgeGap), 38, badgeW,
+            drawTopRouteBadge(routeStartX + lane * (badgeW + badgeGap), 34, badgeW,
                 LaneLabel(lane), G.LanePreset(lane), lane);
         }
     } else {
@@ -547,15 +552,15 @@ void DrawTopBar(Game& G) {
         }
         const PathPreset& preset = G.LanePreset(prefLane);
         RouteVisualTheme theme = GetRouteTheme(preset, prefLane);
-        int badgeW = 236;
+        int badgeW = 272;
         int x = VIRT_W / 2 - badgeW / 2;
-        DrawRoundBox((float)x, 38.f, (float)badgeW, 24.f, 6.f,
+        DrawRoundBox((float)x, 34.f, (float)badgeW, 28.f, 7.f,
             AlphaOf(theme.fillSoft, 220), AlphaOf(theme.accent, 150), 1.2f);
         char summary[64];
         snprintf(summary, 64, "多線 x%d  敵%d  高壓%s", routeCount, totalEnemies, LaneLabel(prefLane));
-        DTX(summary, (float)x + 10, 42.f, FS_TINY, theme.text);
-        DrawRectangle(x + 10, 56, badgeW - 20, 3, AlphaOf(theme.fill, 170));
-        DrawRectangle(x + 10, 56, (int)((badgeW - 20) * maxPressure), 3, AlphaOf(theme.accent, 230));
+        DTX(summary, (float)x + 12, 39.f, FS_TINY, theme.text);
+        DrawRectangle(x + 12, 54, badgeW - 24, 4, AlphaOf(theme.fill, 164));
+        DrawRectangle(x + 12, 54, (int)((badgeW - 24) * maxPressure), 4, AlphaOf(theme.accent, 226));
     }
 
     int leftInfoX = VIRT_W / 2 - 360;
@@ -679,7 +684,7 @@ void DrawBotBar(Game& G) {
     DrawLine(0,by,VIRT_W,by,PANEL_BD);
     const char* hint=
         (G.phase == Game::TRAINING)
-        ? "[1][2][3] 選擇訓練獎勵  [滑鼠] 點選卡片  [P]暫停  [H]說明  [F11]全螢幕"
-        : "[空白]發動  [C]連線  [U]升級  [Q]主動技能  [DEL]移除  [T]熱圖  [A]AI提示  [P]暫停  [H]說明  [F11]全螢幕";
+        ? "訓練：[1][2][3] / 滑鼠選獎勵  ・  [P] 暫停  ・  [H] 說明  ・  [F11] 全螢幕"
+        : "建造：[滑鼠] 放置  ・  [空白] 發動  ・  [C] 連線  ・  [U] 升級  ・  [Q] 技能  ・  [DEL] 移除  ・  [H] 說明  ・  [F11] 全螢幕";
     DTC(hint,VIRT_W/2,by+BOTBAR_H/2,FS_TINY,AlphaOf(WHITE,120));
 }

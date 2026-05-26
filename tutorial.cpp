@@ -418,9 +418,9 @@ bool HandleTutorialInput(Game& G) {
             return true;
         }
 
-        Rectangle resumeBtn = {(float)(VIRT_W / 2 - 300), (float)(VIRT_H / 2 + 84), 180.f, 48.f};
-        Rectangle selectBtn = {(float)(VIRT_W / 2 - 90),  (float)(VIRT_H / 2 + 84), 180.f, 48.f};
-        Rectangle menuBtn   = {(float)(VIRT_W / 2 + 120), (float)(VIRT_H / 2 + 84), 180.f, 48.f};
+        Rectangle resumeBtn = TutorialExitPromptButtonRect(0);
+        Rectangle selectBtn = TutorialExitPromptButtonRect(1);
+        Rectangle menuBtn   = TutorialExitPromptButtonRect(2);
         bool clickedButton = false;
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
             if (CheckCollisionPointRec(mp, resumeBtn)) {
@@ -867,48 +867,71 @@ void DrawTutorialSelect(Game& G) {
     DrawRectangleGradientV(0, 0, VIRT_W, VIRT_H, Color{3, 7, 14, 255}, Color{8, 18, 35, 255});
     DrawStars(G);
 
-    DTC("教學關卡", cx, 92, FS_BIG, AlphaOf(COL_CPU, 232));
-    DTC("選擇想練習的主題；所有章節都可自由進入", cx, 142, FS_MED, AlphaOf(WHITE, 130));
+    DTC("教學關卡", cx, 90, FS_BIG, AlphaOf(COL_CPU, 232));
+    DTC("先挑主題，再用短波次練一個重點。", cx, 138, FS_MED, AlphaOf(WHITE, 138));
 
-    int gridX = 150;
-    int gridY = 210;
-    int cardW = 500;
-    int cardH = 180;
-    int gapX = 60;
-    int gapY = 34;
+    int summaryX = TUTORIAL_SELECT_GRID_X;
+    int summaryY = 180;
+    int summaryW = TUTORIAL_SELECT_GRID_W;
+    DrawRoundBox((float)summaryX, (float)summaryY, (float)summaryW, 56.f, 10.f,
+                 AlphaOf(BG, 212), AlphaOf(COL_SENSOR, 62), 1.2f);
+    const char* summaryLabels[] = {"章節", "節奏", "進入"};
+    const char* summaryValues[] = {"9 個主題", "每章 2-3 分鐘", "數字 / 點擊 / Enter"};
+    for (int i = 0; i < 3; i++) {
+        int sectionX = summaryX + i * (summaryW / 3);
+        int sectionW = summaryW / 3;
+        DTC(summaryLabels[i], sectionX + sectionW / 2, summaryY + 17, FS_TINY, AlphaOf(COL_SENSOR, 185));
+        DTC(summaryValues[i], sectionX + sectionW / 2, summaryY + 40, FS_TINY, AlphaOf(WHITE, 152));
+        if (i < 2) {
+            DrawLine(sectionX + sectionW, summaryY + 12, sectionX + sectionW, summaryY + 44, AlphaOf(COL_SENSOR, 38));
+        }
+    }
 
     for (int i = 0; i < TUTORIAL_LESSON_COUNT; i++) {
         const TutorialLessonInfo& lesson = GetTutorialLessonInfo(i);
-        int col = i % 3;
-        int row = i / 3;
-        int x = gridX + col * (cardW + gapX);
-        int y = gridY + row * (cardH + gapY);
+        Rectangle card = TutorialLessonCardRect(i);
+        int x = (int)card.x;
+        int y = (int)card.y;
+        int cardW = (int)card.width;
+        int cardH = (int)card.height;
         bool selected = (G.tutorial.selectedLesson == i);
         float pulse = 0.78f + 0.22f * sinf(t * 3.f + i * 0.7f);
         Color border = selected ? AlphaOf(lesson.col, (int)(210 * pulse)) : AlphaOf(lesson.col, 86);
         Color fill = selected ? AlphaOf(lesson.col, 28) : AlphaOf(lesson.col, 12);
 
         DrawRoundBox((float)x, (float)y, (float)cardW, (float)cardH, 10.f, fill, border, selected ? 2.4f : 1.2f);
+        DrawRectangleGradientH(x + 2, y + 2, cardW - 4, cardH - 4, AlphaOf(lesson.col, selected ? 18 : 8), AlphaOf(BG, 0));
         char idx[8];
         snprintf(idx, 8, "%d", i + 1);
-        DrawCircleV({(float)x + 34.f, (float)y + 34.f}, 17.f, AlphaOf(lesson.col, selected ? 190 : 112));
+        DrawCircleV({(float)x + 34.f, (float)y + 34.f}, 16.f, AlphaOf(lesson.col, selected ? 190 : 112));
         DTC(idx, x + 34, y + 34, FS_TINY, BG);
-        DTX(lesson.title, (float)x + 64.f, (float)y + 22.f, FS_MED, AlphaOf(lesson.col, 230));
-        DTX(lesson.focus, (float)x + 22.f, (float)y + 64.f, FS_TINY, AlphaOf(COL_SENSOR, 180));
-        DTX(lesson.enemy, (float)x + 220.f, (float)y + 64.f, FS_TINY, AlphaOf(COL_CANNON, 170));
-        DTX(lesson.duration, (float)x + cardW - 96.f, (float)y + 64.f, FS_TINY, AlphaOf(WHITE, 120));
-        DTX(lesson.desc, (float)x + 22.f, (float)y + 104.f, FS_TINY, AlphaOf(WHITE, 158));
+        DTX(lesson.title, (float)x + 62.f, (float)y + 20.f, FS_MED, AlphaOf(lesson.col, 230));
+
+        DrawRoundBox((float)x + cardW - 120.f, (float)y + 18.f, 102.f, 26.f, 5.f,
+                     AlphaOf(WHITE, 6), AlphaOf(WHITE, 82), 1.f);
+        DTC(lesson.duration, x + cardW - 69, y + 31, FS_TINY, AlphaOf(WHITE, 145));
+
+        DTX("核心", (float)x + 20.f, (float)y + 68.f, FS_TINY, AlphaOf(lesson.col, 196));
+        DTX(lesson.focus, (float)x + 82.f, (float)y + 68.f, FS_TINY, AlphaOf(WHITE, 174));
+        DTX("敵情", (float)x + 20.f, (float)y + 98.f, FS_TINY, AlphaOf(COL_CANNON, 176));
+        DTX(lesson.enemy, (float)x + 82.f, (float)y + 98.f, FS_TINY, AlphaOf(WHITE, 164));
+        DTX(lesson.desc, (float)x + 20.f, (float)y + 134.f, FS_TINY, AlphaOf(WHITE, 152));
+
+        int footerY = y + cardH - 42;
+        DrawLine(x + 20, footerY - 12, x + cardW - 20, footerY - 12, AlphaOf(lesson.col, selected ? 68 : 28));
         if (G.tutorial.completedLessons[i]) {
-            DrawRoundBox((float)x + cardW - 126.f, (float)y + 134.f, 98.f, 24.f, 5.f,
+            DrawRoundBox((float)x + cardW - 116.f, (float)footerY - 2.f, 96.f, 24.f, 5.f,
                          AlphaOf(COL_PERC, 30), AlphaOf(COL_PERC, 135), 1.f);
-            DTC("已完成", x + cardW - 77, y + 146, FS_TINY, AlphaOf(COL_PERC, 210));
+            DTC("已完成", x + cardW - 68, footerY + 10, FS_TINY, AlphaOf(COL_PERC, 210));
         } else {
-            DTX("未完成", (float)x + cardW - 102.f, (float)y + 140.f, FS_TINY, AlphaOf(WHITE, 72));
+            DrawRoundBox((float)x + cardW - 116.f, (float)footerY - 2.f, 96.f, 24.f, 5.f,
+                         AlphaOf(WHITE, 5), AlphaOf(WHITE, 36), 1.f);
+            DTC("未完成", x + cardW - 68, footerY + 10, FS_TINY, AlphaOf(WHITE, 110));
         }
-        DTX("按數字鍵或點擊進入", (float)x + 22.f, (float)y + 140.f, FS_TINY, AlphaOf(WHITE, selected ? 150 : 80));
+        DTX("點擊或按數字鍵進入", (float)x + 20.f, (float)footerY + 2.f, FS_TINY, AlphaOf(WHITE, selected ? 150 : 96));
     }
 
-    DTC("[ENTER] 進入選取章節   [ESC] 返回主選單   [H] 說明", cx, VIRT_H - 72, FS_MED, AlphaOf(WHITE, 118));
+    DTC("[1-9 / 點擊] 直接進入   [方向鍵 + Enter] 切換   [H] 說明   [ESC] 返回", cx, VIRT_H - 60, FS_MED, AlphaOf(WHITE, 118));
 }
 
 void DrawTutorialOverlay(Game& G) {
@@ -947,29 +970,28 @@ void DrawTutorialOverlay(Game& G) {
 
     if (G.tutorial.exitPromptOpen) {
         DrawRectangle(0, 0, VIRT_W, VIRT_H, AlphaOf(BLACK, 150));
-        int bx = VIRT_W / 2 - 390;
-        int by = VIRT_H / 2 - 138;
-        int bw = 780;
-        int bh = 300;
-        DrawRoundBox((float)bx, (float)by, (float)bw, (float)bh, 12.f,
+        Rectangle panel = TutorialExitPromptPanelRect();
+        int bx = (int)panel.x;
+        int by = (int)panel.y;
+        int bw = (int)panel.width;
+        int bh = (int)panel.height;
+        DrawRoundBox(panel.x, panel.y, panel.width, panel.height, 12.f,
                      AlphaOf(BG, 238), AlphaOf(lesson.col, 150), 2.f);
-        DTC("離開教學？", VIRT_W / 2, by + 58, FS_LARGE, AlphaOf(lesson.col, 230));
+        DTC("離開教學？", VIRT_W / 2, by + 66, FS_LARGE, AlphaOf(lesson.col, 230));
         DTC("目前章節進度尚未保存。你可以繼續、回章節選單，或回主選單。",
-            VIRT_W / 2, by + 104, FS_TINY, AlphaOf(WHITE, 150));
+            VIRT_W / 2, by + 122, FS_TINY, AlphaOf(WHITE, 150));
 
         const char* labels[] = {"繼續", "章節選單", "主選單"};
         Color cols[] = {COL_PERC, COL_AI, COL_CANNON};
-        int btnW = 180;
-        int btnH = 48;
-        int startX = VIRT_W / 2 - 300;
         for (int i = 0; i < 3; i++) {
-            int px = startX + i * 210;
+            Rectangle btn = TutorialExitPromptButtonRect(i);
             bool sel = (G.tutorial.exitPromptChoice == i);
-            DrawRoundBox((float)px, (float)(VIRT_H / 2 + 84), (float)btnW, (float)btnH, 8.f,
+            DrawRoundBox(btn.x, btn.y, btn.width, btn.height, 8.f,
                          AlphaOf(cols[i], sel ? 36 : 16), AlphaOf(cols[i], sel ? 210 : 90), sel ? 2.2f : 1.2f);
-            DTC(labels[i], px + btnW / 2, VIRT_H / 2 + 108, FS_MED, AlphaOf(cols[i], sel ? 240 : 170));
+            DTC(labels[i], (int)(btn.x + btn.width * 0.5f), (int)(btn.y + btn.height * 0.5f), FS_MED,
+                AlphaOf(cols[i], sel ? 240 : 170));
         }
         DTC("[Enter] 確認   [Esc] 取消   [方向鍵/Tab] 切換",
-            VIRT_W / 2, by + bh - 42, FS_TINY, AlphaOf(WHITE, 110));
+            VIRT_W / 2, by + bh - 46, FS_TINY, AlphaOf(WHITE, 110));
     }
 }
