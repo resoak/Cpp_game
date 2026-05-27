@@ -564,7 +564,7 @@ void DrawTopBar(Game& G) {
     }
 
     int leftInfoX = VIRT_W / 2 - 360;
-    if (G.hasPlannedRouteChange) {
+    if (G.hasPlannedRouteChange && G.phase != Game::TRAINING) {
         char preview[96];
         int previewCount = std::max(1, std::min(MAX_LANES, G.nextPreviewLaneCount));
         if (previewCount >= 5) {
@@ -646,10 +646,7 @@ void DrawTopBar(Game& G) {
         rightCursorBottom -= 6;
     }
 
-    if (G.phase == Game::TRAINING) {
-        char tb[32]; snprintf(tb, 32, "選擇獎勵 %.1fs", std::max(0.f, G.trainingTimer));
-        DTX(tb, (float)leftInfoX, 24.f, FS_TINY, AlphaOf(COL_SENSOR, 220));
-    } else if (G.phase == Game::FIGHT && G.waveTelegraphTimer > 0.f) {
+    if (G.phase == Game::FIGHT && G.waveTelegraphTimer > 0.f) {
         char ib[32]; snprintf(ib, 32, "敵潮接近 %.1fs", std::max(0.f, G.waveTelegraphTimer));
         DTX(ib, (float)leftInfoX, 24.f, FS_TINY, AlphaOf(Color{255, 180, 90, 255}, 230));
     }
