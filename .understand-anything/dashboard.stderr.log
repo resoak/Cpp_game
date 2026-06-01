@@ -1,0 +1,88 @@
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)
+[understand-anything] Failed to sanitise graph file: SyntaxError: Unexpected token '﻿', "﻿{
+    "l"... is not valid JSON
+    at JSON.parse (<anonymous>)
+    at file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/packages/dashboard/node_modules/.vite-temp/vite.config.ts.timestamp-1780308924549-771a4142821098.mjs:228:32
+    at call (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19166:7)
+    at next (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19110:5)
+    at app.handle (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:19113:3)
+    at Server.app (file:///C:/Users/RS/.understand-anything/repo/understand-anything-plugin/node_modules/.pnpm/vite@6.4.2_@types+node@25.5_0d8b9fc8f6a3ad5fa60288b3f185e45a/node_modules/vite/dist/node/chunks/dep-Dq2t6Dq0.js:18978:37)
+    at Server.emit (node:events:509:28)
+    at parserOnIncoming (node:_http_server:1213:12)
+    at HTTPParser.parserOnHeadersComplete (node:_http_common:125:17)

@@ -1,0 +1,6223 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "LogicGateDefense",
+    "languages": [
+      "gitignore",
+      "cmake",
+      "cpp",
+      "binary",
+      "markdown"
+    ],
+    "frameworks": [
+      "raylib",
+      "CMake"
+    ],
+    "description": "以邏輯閘、感知器與多路徑敵人 AI 為核心的 C++17/raylib 塔防遊戲。",
+    "analyzedAt": "2026-06-01T10:09:29.802Z",
+    "gitCommitHash": "63b4a4bef82c638dfeaf7d991e31efbda0377292"
+  },
+  "nodes": [
+    {
+      "id": "config:.gitignore",
+      "type": "config",
+      "name": ".gitignore",
+      "filePath": ".gitignore",
+      "summary": "版本控制忽略規則，排除執行檔、CMake/build 產物、IDE 設定與系統雜訊。",
+      "tags": [
+        "設定"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "config:CMakeLists.txt",
+      "type": "config",
+      "name": "CMakeLists.txt",
+      "filePath": "CMakeLists.txt",
+      "summary": "CMake 建置設定，定義 LogicGateDefense 專案、lgd 執行檔、raylib 依賴與 font.ttf 複製/安裝流程。",
+      "tags": [
+        "設定",
+        "build"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:constants.h",
+      "type": "file",
+      "name": "constants.h",
+      "filePath": "constants.h",
+      "summary": "集中定義遊戲常數、畫面尺寸、顏色、塔與敵人的列舉，以及塔資料介面。",
+      "tags": [
+        "C++"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:draw_screens.cpp",
+      "type": "file",
+      "name": "draw_screens.cpp",
+      "filePath": "draw_screens.cpp",
+      "summary": "繪製主選單、教學選擇、說明與遊戲結束等畫面。",
+      "tags": [
+        "C++",
+        "rendering"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:draw_ui.cpp",
+      "type": "file",
+      "name": "draw_ui.cpp",
+      "filePath": "draw_ui.cpp",
+      "summary": "繪製 HUD 與面板資訊，包含塔選擇、路線狀態、敵人情報、NN 建議與底部提示。",
+      "tags": [
+        "C++",
+        "rendering"
+      ],
+      "complexity": "complex",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:draw_world.cpp",
+      "type": "file",
+      "name": "draw_world.cpp",
+      "filePath": "draw_world.cpp",
+      "summary": "繪製世界層內容：路徑、塔、敵人、子彈、粒子、威脅熱圖、訊號脈衝與 AI 提示。",
+      "tags": [
+        "C++",
+        "rendering"
+      ],
+      "complexity": "complex",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:draw.h",
+      "type": "file",
+      "name": "draw.h",
+      "filePath": "draw.h",
+      "summary": "宣告世界、UI、畫面與教學繪圖 API，以及路線視覺主題工具。",
+      "tags": [
+        "C++",
+        "rendering"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:font.cpp",
+      "type": "file",
+      "name": "font.cpp",
+      "filePath": "font.cpp",
+      "summary": "載入中文字型並設定全域 Font 狀態，支援執行時字型資源。",
+      "tags": [
+        "C++",
+        "font"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:font.h",
+      "type": "file",
+      "name": "font.h",
+      "filePath": "font.h",
+      "summary": "宣告中文字型全域狀態與文字繪製輔助函式。",
+      "tags": [
+        "C++",
+        "font"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "resource:font.ttf",
+      "type": "resource",
+      "name": "font.ttf",
+      "filePath": "font.ttf",
+      "summary": "執行時中文字型資源，由 CMake 複製到輸出目錄並由 font.cpp 載入。",
+      "tags": [
+        "資源",
+        "font"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:game.cpp",
+      "type": "file",
+      "name": "game.cpp",
+      "filePath": "game.cpp",
+      "summary": "實作 Game 狀態工具、重置、升級、提示產生、感知器訓練與防禦建議模型訓練。",
+      "tags": [
+        "C++",
+        "state"
+      ],
+      "complexity": "complex",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:game.h",
+      "type": "file",
+      "name": "game.h",
+      "filePath": "game.h",
+      "summary": "宣告 Game 聚合狀態、遊戲階段、事件/事故、連線驗證、升級與 AI 訓練 API。",
+      "tags": [
+        "C++",
+        "state"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:globals.cpp",
+      "type": "file",
+      "name": "globals.cpp",
+      "filePath": "globals.cpp",
+      "summary": "定義全域縮放、偏移與震動狀態。",
+      "tags": [
+        "C++"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:globals.h",
+      "type": "file",
+      "name": "globals.h",
+      "filePath": "globals.h",
+      "summary": "宣告虛擬解析度縮放、畫面偏移與滑鼠座標轉換工具。",
+      "tags": [
+        "C++"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:input.cpp",
+      "type": "file",
+      "name": "input.cpp",
+      "filePath": "input.cpp",
+      "summary": "處理鍵盤與滑鼠互動，包含選單、教學、建塔、連線、升級、技能與波次啟動。",
+      "tags": [
+        "C++",
+        "input"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:input.h",
+      "type": "file",
+      "name": "input.h",
+      "filePath": "input.h",
+      "summary": "宣告 Game 輸入處理入口。",
+      "tags": [
+        "C++",
+        "input"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:logic.cpp",
+      "type": "file",
+      "name": "logic.cpp",
+      "filePath": "logic.cpp",
+      "summary": "實作主要遊戲模擬：訊號網路、戰鬥、敵人波次、路線重規劃、Boss AI、技能與回合學習。",
+      "tags": [
+        "C++",
+        "gameplay"
+      ],
+      "complexity": "complex",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:logic.h",
+      "type": "file",
+      "name": "logic.h",
+      "filePath": "logic.h",
+      "summary": "宣告訊號傳播、敵人生成、波次啟動、技能、傷害倍率與主更新流程。",
+      "tags": [
+        "C++",
+        "gameplay"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:main.cpp",
+      "type": "file",
+      "name": "main.cpp",
+      "filePath": "main.cpp",
+      "summary": "應用程式入口，初始化 raylib 視窗、字型、路徑與 Game 狀態，並在主迴圈中協調輸入、更新與繪圖。",
+      "tags": [
+        "C++",
+        "entrypoint"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:path.cpp",
+      "type": "file",
+      "name": "path.cpp",
+      "filePath": "path.cpp",
+      "summary": "定義路線 preset 與 active lane 狀態，並建置路徑格與路線遮罩。",
+      "tags": [
+        "C++",
+        "routing"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:path.h",
+      "type": "file",
+      "name": "path.h",
+      "filePath": "path.h",
+      "summary": "宣告路線 preset、多 lane 資料結構與路徑查詢/建置函式。",
+      "tags": [
+        "C++",
+        "routing"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "專案主要文件，說明遊戲玩法、操作、建置方式、專案結構與常見問題。",
+      "tags": [
+        "文件"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "file:structs.h",
+      "type": "file",
+      "name": "structs.h",
+      "filePath": "structs.h",
+      "summary": "定義遊戲世界的核心資料模型，包含塔、敵人、子彈、粒子、威脅圖與 AI/NN 結構。",
+      "tags": [
+        "C++"
+      ],
+      "complexity": "complex",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:tower_data.cpp",
+      "type": "file",
+      "name": "tower_data.cpp",
+      "filePath": "tower_data.cpp",
+      "summary": "集中定義各塔型的成本、標籤、說明、升級階層與顏色等 metadata。",
+      "tags": [
+        "C++"
+      ],
+      "complexity": "simple",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:tutorial.cpp",
+      "type": "file",
+      "name": "tutorial.cpp",
+      "filePath": "tutorial.cpp",
+      "summary": "實作教學劇本、教學輸入、目標追蹤、教學波次與 overlay/選擇畫面。",
+      "tags": [
+        "C++",
+        "tutorial"
+      ],
+      "complexity": "complex",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "file:tutorial.h",
+      "type": "file",
+      "name": "tutorial.h",
+      "filePath": "tutorial.h",
+      "summary": "宣告教學 lesson、目標、步驟、runtime 狀態與教學流程 API。",
+      "tags": [
+        "C++",
+        "tutorial"
+      ],
+      "complexity": "moderate",
+      "languageNotes": "C++ 檔案透過標頭 include 建立模組依賴，主要以 Game 聚合狀態在各系統間傳遞。"
+    },
+    {
+      "id": "class:constants.h:TType",
+      "type": "class",
+      "name": "TType",
+      "filePath": "constants.h",
+      "summary": "TType 是 constants.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:constants.h:EType",
+      "type": "class",
+      "name": "EType",
+      "filePath": "constants.h",
+      "summary": "EType 是 constants.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:constants.h:BossState",
+      "type": "class",
+      "name": "BossState",
+      "filePath": "constants.h",
+      "summary": "BossState 是 constants.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:constants.h:TierInfo",
+      "type": "class",
+      "name": "TierInfo",
+      "filePath": "constants.h",
+      "summary": "TierInfo 是 constants.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:constants.h:TowerDef",
+      "type": "class",
+      "name": "TowerDef",
+      "filePath": "constants.h",
+      "summary": "TowerDef 是 constants.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:constants.h:AlphaOf",
+      "type": "function",
+      "name": "AlphaOf",
+      "filePath": "constants.h",
+      "summary": "AlphaOf 是 constants.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:constants.h:Sigmoid",
+      "type": "function",
+      "name": "Sigmoid",
+      "filePath": "constants.h",
+      "summary": "Sigmoid 是 constants.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:constants.h:SigmoidDeriv",
+      "type": "function",
+      "name": "SigmoidDeriv",
+      "filePath": "constants.h",
+      "summary": "SigmoidDeriv 是 constants.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:constants.h:Dist",
+      "type": "function",
+      "name": "Dist",
+      "filePath": "constants.h",
+      "summary": "Dist 是 constants.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:constants.h:TDef",
+      "type": "function",
+      "name": "TDef",
+      "filePath": "constants.h",
+      "summary": "TDef 是 constants.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:draw_screens.cpp:MenuFeature",
+      "type": "class",
+      "name": "MenuFeature",
+      "filePath": "draw_screens.cpp",
+      "summary": "MenuFeature 是 draw_screens.cpp 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:draw_screens.cpp:HelpRow",
+      "type": "class",
+      "name": "HelpRow",
+      "filePath": "draw_screens.cpp",
+      "summary": "HelpRow 是 draw_screens.cpp 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:draw_screens.cpp:HelpBullet",
+      "type": "class",
+      "name": "HelpBullet",
+      "filePath": "draw_screens.cpp",
+      "summary": "HelpBullet 是 draw_screens.cpp 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_screens.cpp:LanePressureScreen",
+      "type": "function",
+      "name": "LanePressureScreen",
+      "filePath": "draw_screens.cpp",
+      "summary": "LanePressureScreen 是 draw_screens.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_screens.cpp:DrawHudFrame",
+      "type": "function",
+      "name": "DrawHudFrame",
+      "filePath": "draw_screens.cpp",
+      "summary": "DrawHudFrame 是 draw_screens.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_screens.cpp:DrawScreenGrid",
+      "type": "function",
+      "name": "DrawScreenGrid",
+      "filePath": "draw_screens.cpp",
+      "summary": "DrawScreenGrid 是 draw_screens.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_screens.cpp:DrawRouteSummaryCard",
+      "type": "function",
+      "name": "DrawRouteSummaryCard",
+      "filePath": "draw_screens.cpp",
+      "summary": "DrawRouteSummaryCard 是 draw_screens.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_screens.cpp:DrawMenu",
+      "type": "function",
+      "name": "DrawMenu",
+      "filePath": "draw_screens.cpp",
+      "summary": "DrawMenu 是 draw_screens.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_screens.cpp:DrawHelp",
+      "type": "function",
+      "name": "DrawHelp",
+      "filePath": "draw_screens.cpp",
+      "summary": "DrawHelp 是 draw_screens.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_screens.cpp:DrawGameOver",
+      "type": "function",
+      "name": "DrawGameOver",
+      "filePath": "draw_screens.cpp",
+      "summary": "DrawGameOver 是 draw_screens.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:LaneLabel",
+      "type": "function",
+      "name": "LaneLabel",
+      "filePath": "draw_ui.cpp",
+      "summary": "LaneLabel 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:CountLaneEnemiesUi",
+      "type": "function",
+      "name": "CountLaneEnemiesUi",
+      "filePath": "draw_ui.cpp",
+      "summary": "CountLaneEnemiesUi 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:LanePressureUi",
+      "type": "function",
+      "name": "LanePressureUi",
+      "filePath": "draw_ui.cpp",
+      "summary": "LanePressureUi 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:IncidentUiColor",
+      "type": "function",
+      "name": "IncidentUiColor",
+      "filePath": "draw_ui.cpp",
+      "summary": "IncidentUiColor 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:DrawPanelScan",
+      "type": "function",
+      "name": "DrawPanelScan",
+      "filePath": "draw_ui.cpp",
+      "summary": "DrawPanelScan 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:DrawCardTicks",
+      "type": "function",
+      "name": "DrawCardTicks",
+      "filePath": "draw_ui.cpp",
+      "summary": "DrawCardTicks 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:DrawRouteUiCard",
+      "type": "function",
+      "name": "DrawRouteUiCard",
+      "filePath": "draw_ui.cpp",
+      "summary": "DrawRouteUiCard 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:DrawLeftPanel",
+      "type": "function",
+      "name": "DrawLeftPanel",
+      "filePath": "draw_ui.cpp",
+      "summary": "DrawLeftPanel 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:DrawRightPanel",
+      "type": "function",
+      "name": "DrawRightPanel",
+      "filePath": "draw_ui.cpp",
+      "summary": "DrawRightPanel 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:DrawTopBar",
+      "type": "function",
+      "name": "DrawTopBar",
+      "filePath": "draw_ui.cpp",
+      "summary": "DrawTopBar 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_ui.cpp:DrawBotBar",
+      "type": "function",
+      "name": "DrawBotBar",
+      "filePath": "draw_ui.cpp",
+      "summary": "DrawBotBar 是 draw_ui.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawEnemyTagName",
+      "type": "function",
+      "name": "DrawEnemyTagName",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawEnemyTagName 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawEnemyTagColor",
+      "type": "function",
+      "name": "DrawEnemyTagColor",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawEnemyTagColor 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:LerpColor",
+      "type": "function",
+      "name": "LerpColor",
+      "filePath": "draw_world.cpp",
+      "summary": "LerpColor 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:RouteAdvanceDir",
+      "type": "function",
+      "name": "RouteAdvanceDir",
+      "filePath": "draw_world.cpp",
+      "summary": "RouteAdvanceDir 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:RouteSideLabel",
+      "type": "function",
+      "name": "RouteSideLabel",
+      "filePath": "draw_world.cpp",
+      "summary": "RouteSideLabel 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:RouteShortLabel",
+      "type": "function",
+      "name": "RouteShortLabel",
+      "filePath": "draw_world.cpp",
+      "summary": "RouteShortLabel 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:GetRouteTheme",
+      "type": "function",
+      "name": "GetRouteTheme",
+      "filePath": "draw_world.cpp",
+      "summary": "GetRouteTheme 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawRoundBox",
+      "type": "function",
+      "name": "DrawRoundBox",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawRoundBox 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawHex",
+      "type": "function",
+      "name": "DrawHex",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawHex 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawCornerBrackets",
+      "type": "function",
+      "name": "DrawCornerBrackets",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawCornerBrackets 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawScanSweep",
+      "type": "function",
+      "name": "DrawScanSweep",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawScanSweep 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawMicroTicks",
+      "type": "function",
+      "name": "DrawMicroTicks",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawMicroTicks 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawWorldBackdrop",
+      "type": "function",
+      "name": "DrawWorldBackdrop",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawWorldBackdrop 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawStars",
+      "type": "function",
+      "name": "DrawStars",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawStars 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawPath",
+      "type": "function",
+      "name": "DrawPath",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawPath 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawThreatMap",
+      "type": "function",
+      "name": "DrawThreatMap",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawThreatMap 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawAIHints",
+      "type": "function",
+      "name": "DrawAIHints",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawAIHints 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawConnections",
+      "type": "function",
+      "name": "DrawConnections",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawConnections 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawPulses",
+      "type": "function",
+      "name": "DrawPulses",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawPulses 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawTower",
+      "type": "function",
+      "name": "DrawTower",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawTower 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawGhostTower",
+      "type": "function",
+      "name": "DrawGhostTower",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawGhostTower 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawEnemies",
+      "type": "function",
+      "name": "DrawEnemies",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawEnemies 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawBullets",
+      "type": "function",
+      "name": "DrawBullets",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawBullets 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawParticles",
+      "type": "function",
+      "name": "DrawParticles",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawParticles 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:draw_world.cpp:DrawFloats",
+      "type": "function",
+      "name": "DrawFloats",
+      "filePath": "draw_world.cpp",
+      "summary": "DrawFloats 是 draw_world.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:draw.h:RouteVisualTheme",
+      "type": "class",
+      "name": "RouteVisualTheme",
+      "filePath": "draw.h",
+      "summary": "RouteVisualTheme 是 draw.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:font.cpp:LoadChineseFont",
+      "type": "function",
+      "name": "LoadChineseFont",
+      "filePath": "font.cpp",
+      "summary": "LoadChineseFont 是 font.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:font.h:MCN",
+      "type": "function",
+      "name": "MCN",
+      "filePath": "font.h",
+      "summary": "MCN 是 font.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:font.h:DTX",
+      "type": "function",
+      "name": "DTX",
+      "filePath": "font.h",
+      "summary": "DTX 是 font.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:font.h:DTC",
+      "type": "function",
+      "name": "DTC",
+      "filePath": "font.h",
+      "summary": "DTC 是 font.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.cpp:Game::RollEvent",
+      "type": "function",
+      "name": "Game::RollEvent",
+      "filePath": "game.cpp",
+      "summary": "Game::RollEvent 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::EventName",
+      "type": "function",
+      "name": "Game::EventName",
+      "filePath": "game.cpp",
+      "summary": "Game::EventName 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::RollIncident",
+      "type": "function",
+      "name": "Game::RollIncident",
+      "filePath": "game.cpp",
+      "summary": "Game::RollIncident 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::IncidentName",
+      "type": "function",
+      "name": "Game::IncidentName",
+      "filePath": "game.cpp",
+      "summary": "Game::IncidentName 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:SegmentCoverage",
+      "type": "function",
+      "name": "SegmentCoverage",
+      "filePath": "game.cpp",
+      "summary": "SegmentCoverage 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:ComputeCoverageSegments",
+      "type": "function",
+      "name": "ComputeCoverageSegments",
+      "filePath": "game.cpp",
+      "summary": "ComputeCoverageSegments 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:FindNearbyBuildSlot",
+      "type": "function",
+      "name": "FindNearbyBuildSlot",
+      "filePath": "game.cpp",
+      "summary": "FindNearbyBuildSlot 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:ScreenToGrid",
+      "type": "function",
+      "name": "ScreenToGrid",
+      "filePath": "game.cpp",
+      "summary": "ScreenToGrid 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::WouldCycle",
+      "type": "function",
+      "name": "Game::WouldCycle",
+      "filePath": "game.cpp",
+      "summary": "Game::WouldCycle 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::ValidateConnect",
+      "type": "function",
+      "name": "Game::ValidateConnect",
+      "filePath": "game.cpp",
+      "summary": "Game::ValidateConnect 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::ApplyTowerStats",
+      "type": "function",
+      "name": "Game::ApplyTowerStats",
+      "filePath": "game.cpp",
+      "summary": "Game::ApplyTowerStats 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::UpgradeTower",
+      "type": "function",
+      "name": "Game::UpgradeTower",
+      "filePath": "game.cpp",
+      "summary": "Game::UpgradeTower 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::SpawnParticles",
+      "type": "function",
+      "name": "Game::SpawnParticles",
+      "filePath": "game.cpp",
+      "summary": "Game::SpawnParticles 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::AddFloat",
+      "type": "function",
+      "name": "Game::AddFloat",
+      "filePath": "game.cpp",
+      "summary": "Game::AddFloat 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::SetMsg",
+      "type": "function",
+      "name": "Game::SetMsg",
+      "filePath": "game.cpp",
+      "summary": "Game::SetMsg 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::Shake",
+      "type": "function",
+      "name": "Game::Shake",
+      "filePath": "game.cpp",
+      "summary": "Game::Shake 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::InitStars",
+      "type": "function",
+      "name": "Game::InitStars",
+      "filePath": "game.cpp",
+      "summary": "Game::InitStars 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::GenerateAIHints",
+      "type": "function",
+      "name": "Game::GenerateAIHints",
+      "filePath": "game.cpp",
+      "summary": "Game::GenerateAIHints 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::TrainPerceptrons",
+      "type": "function",
+      "name": "Game::TrainPerceptrons",
+      "filePath": "game.cpp",
+      "summary": "Game::TrainPerceptrons 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::TrainDefenseNN",
+      "type": "function",
+      "name": "Game::TrainDefenseNN",
+      "filePath": "game.cpp",
+      "summary": "Game::TrainDefenseNN 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:game.cpp:Game::Reset",
+      "type": "function",
+      "name": "Game::Reset",
+      "filePath": "game.cpp",
+      "summary": "Game::Reset 是 game.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "class:game.h:Game",
+      "type": "class",
+      "name": "Game",
+      "filePath": "game.h",
+      "summary": "Game 是 game.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:game.h:WaveEvent",
+      "type": "class",
+      "name": "WaveEvent",
+      "filePath": "game.h",
+      "summary": "WaveEvent 是 game.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:game.h:Incident",
+      "type": "class",
+      "name": "Incident",
+      "filePath": "game.h",
+      "summary": "Incident 是 game.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:game.h:Phase",
+      "type": "class",
+      "name": "Phase",
+      "filePath": "game.h",
+      "summary": "Phase 是 game.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:game.h:TrainingRewardKind",
+      "type": "class",
+      "name": "TrainingRewardKind",
+      "filePath": "game.h",
+      "summary": "TrainingRewardKind 是 game.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:game.h:TrainingReward",
+      "type": "class",
+      "name": "TrainingReward",
+      "filePath": "game.h",
+      "summary": "TrainingReward 是 game.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:MapOrigin",
+      "type": "function",
+      "name": "MapOrigin",
+      "filePath": "game.h",
+      "summary": "MapOrigin 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:CC",
+      "type": "function",
+      "name": "CC",
+      "filePath": "game.h",
+      "summary": "CC 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:FindTower",
+      "type": "function",
+      "name": "FindTower",
+      "filePath": "game.h",
+      "summary": "FindTower 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:TowerAt",
+      "type": "function",
+      "name": "TowerAt",
+      "filePath": "game.h",
+      "summary": "TowerAt 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:FindEnemy",
+      "type": "function",
+      "name": "FindEnemy",
+      "filePath": "game.h",
+      "summary": "FindEnemy 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:IsPath",
+      "type": "function",
+      "name": "IsPath",
+      "filePath": "game.h",
+      "summary": "IsPath 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:IsLaneActive",
+      "type": "function",
+      "name": "IsLaneActive",
+      "filePath": "game.h",
+      "summary": "IsLaneActive 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:ActiveLaneCount",
+      "type": "function",
+      "name": "ActiveLaneCount",
+      "filePath": "game.h",
+      "summary": "ActiveLaneCount 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:ResolveLaneSlot",
+      "type": "function",
+      "name": "ResolveLaneSlot",
+      "filePath": "game.h",
+      "summary": "ResolveLaneSlot 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:LanePreset",
+      "type": "function",
+      "name": "LanePreset",
+      "filePath": "game.h",
+      "summary": "LanePreset 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:LanePresetIdx",
+      "type": "function",
+      "name": "LanePresetIdx",
+      "filePath": "game.h",
+      "summary": "LanePresetIdx 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:LaneCells",
+      "type": "function",
+      "name": "LaneCells",
+      "filePath": "game.h",
+      "summary": "LaneCells 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:IsLanePathCell",
+      "type": "function",
+      "name": "IsLanePathCell",
+      "filePath": "game.h",
+      "summary": "IsLanePathCell 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:EnemyLaneCells",
+      "type": "function",
+      "name": "EnemyLaneCells",
+      "filePath": "game.h",
+      "summary": "EnemyLaneCells 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:EnemyWorld",
+      "type": "function",
+      "name": "EnemyWorld",
+      "filePath": "game.h",
+      "summary": "EnemyWorld 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:game.h:EnemyGrid",
+      "type": "function",
+      "name": "EnemyGrid",
+      "filePath": "game.h",
+      "summary": "EnemyGrid 是 game.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:globals.h:VirtualMouse",
+      "type": "function",
+      "name": "VirtualMouse",
+      "filePath": "globals.h",
+      "summary": "VirtualMouse 是 globals.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:input.cpp:DebugJumpToWave",
+      "type": "function",
+      "name": "DebugJumpToWave",
+      "filePath": "input.cpp",
+      "summary": "DebugJumpToWave 是 input.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:input.cpp:HandleInput",
+      "type": "function",
+      "name": "HandleInput",
+      "filePath": "input.cpp",
+      "summary": "HandleInput 是 input.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:logic.cpp:EnemyTagName",
+      "type": "function",
+      "name": "EnemyTagName",
+      "filePath": "logic.cpp",
+      "summary": "EnemyTagName 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:EnemyTagColor",
+      "type": "function",
+      "name": "EnemyTagColor",
+      "filePath": "logic.cpp",
+      "summary": "EnemyTagColor 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:EmitVfxRing",
+      "type": "function",
+      "name": "EmitVfxRing",
+      "filePath": "logic.cpp",
+      "summary": "EmitVfxRing 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:EmitMuzzleVfx",
+      "type": "function",
+      "name": "EmitMuzzleVfx",
+      "filePath": "logic.cpp",
+      "summary": "EmitMuzzleVfx 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:EmitImpactVfx",
+      "type": "function",
+      "name": "EmitImpactVfx",
+      "filePath": "logic.cpp",
+      "summary": "EmitImpactVfx 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:AssignEnemyTag",
+      "type": "function",
+      "name": "AssignEnemyTag",
+      "filePath": "logic.cpp",
+      "summary": "AssignEnemyTag 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:FindTrainingUpgradeTarget",
+      "type": "function",
+      "name": "FindTrainingUpgradeTarget",
+      "filePath": "logic.cpp",
+      "summary": "FindTrainingUpgradeTarget 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:BuildTrainingChoices",
+      "type": "function",
+      "name": "BuildTrainingChoices",
+      "filePath": "logic.cpp",
+      "summary": "BuildTrainingChoices 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:WaveRotatesRoutes",
+      "type": "function",
+      "name": "WaveRotatesRoutes",
+      "filePath": "logic.cpp",
+      "summary": "WaveRotatesRoutes 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:IncidentDuration",
+      "type": "function",
+      "name": "IncidentDuration",
+      "filePath": "logic.cpp",
+      "summary": "IncidentDuration 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:IncidentColor",
+      "type": "function",
+      "name": "IncidentColor",
+      "filePath": "logic.cpp",
+      "summary": "IncidentColor 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:TriggerIncident",
+      "type": "function",
+      "name": "TriggerIncident",
+      "filePath": "logic.cpp",
+      "summary": "TriggerIncident 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:DynamicLaneCountForWave",
+      "type": "function",
+      "name": "DynamicLaneCountForWave",
+      "filePath": "logic.cpp",
+      "summary": "DynamicLaneCountForWave 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:LaneCountForWave",
+      "type": "function",
+      "name": "LaneCountForWave",
+      "filePath": "logic.cpp",
+      "summary": "LaneCountForWave 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:RouteReplanCreditForLaneCount",
+      "type": "function",
+      "name": "RouteReplanCreditForLaneCount",
+      "filePath": "logic.cpp",
+      "summary": "RouteReplanCreditForLaneCount 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:BalancedWaveCountForLanes",
+      "type": "function",
+      "name": "BalancedWaveCountForLanes",
+      "filePath": "logic.cpp",
+      "summary": "BalancedWaveCountForLanes 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:SpawnIntervalForWave",
+      "type": "function",
+      "name": "SpawnIntervalForWave",
+      "filePath": "logic.cpp",
+      "summary": "SpawnIntervalForWave 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:BlackoutSensorRangeMultiplier",
+      "type": "function",
+      "name": "BlackoutSensorRangeMultiplier",
+      "filePath": "logic.cpp",
+      "summary": "BlackoutSensorRangeMultiplier 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:RouteThresholdNotice",
+      "type": "function",
+      "name": "RouteThresholdNotice",
+      "filePath": "logic.cpp",
+      "summary": "RouteThresholdNotice 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:RoutePoolSupportsAllEntrySides",
+      "type": "function",
+      "name": "RoutePoolSupportsAllEntrySides",
+      "filePath": "logic.cpp",
+      "summary": "RoutePoolSupportsAllEntrySides 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:RoutePoolOpensAtWave",
+      "type": "function",
+      "name": "RoutePoolOpensAtWave",
+      "filePath": "logic.cpp",
+      "summary": "RoutePoolOpensAtWave 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:EntrySideIndex",
+      "type": "function",
+      "name": "EntrySideIndex",
+      "filePath": "logic.cpp",
+      "summary": "EntrySideIndex 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:EntrySideFromIndex",
+      "type": "function",
+      "name": "EntrySideFromIndex",
+      "filePath": "logic.cpp",
+      "summary": "EntrySideFromIndex 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:CurrentRoutePlan",
+      "type": "function",
+      "name": "CurrentRoutePlan",
+      "filePath": "logic.cpp",
+      "summary": "CurrentRoutePlan 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:RouteAllowedForWave",
+      "type": "function",
+      "name": "RouteAllowedForWave",
+      "filePath": "logic.cpp",
+      "summary": "RouteAllowedForWave 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:PlanContainsPreset",
+      "type": "function",
+      "name": "PlanContainsPreset",
+      "filePath": "logic.cpp",
+      "summary": "PlanContainsPreset 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:PlanContainsEntrySide",
+      "type": "function",
+      "name": "PlanContainsEntrySide",
+      "filePath": "logic.cpp",
+      "summary": "PlanContainsEntrySide 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:PresetLastUsed",
+      "type": "function",
+      "name": "PresetLastUsed",
+      "filePath": "logic.cpp",
+      "summary": "PresetLastUsed 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:HasPresetForSide",
+      "type": "function",
+      "name": "HasPresetForSide",
+      "filePath": "logic.cpp",
+      "summary": "HasPresetForSide 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:PickEntrySideForSlot",
+      "type": "function",
+      "name": "PickEntrySideForSlot",
+      "filePath": "logic.cpp",
+      "summary": "PickEntrySideForSlot 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:PickPresetForSide",
+      "type": "function",
+      "name": "PickPresetForSide",
+      "filePath": "logic.cpp",
+      "summary": "PickPresetForSide 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:PlanNextRouteSet",
+      "type": "function",
+      "name": "PlanNextRouteSet",
+      "filePath": "logic.cpp",
+      "summary": "PlanNextRouteSet 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:UpdateUpcomingRoutePlan",
+      "type": "function",
+      "name": "UpdateUpcomingRoutePlan",
+      "filePath": "logic.cpp",
+      "summary": "UpdateUpcomingRoutePlan 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:ApplyRoutePlan",
+      "type": "function",
+      "name": "ApplyRoutePlan",
+      "filePath": "logic.cpp",
+      "summary": "ApplyRoutePlan 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:DemolishTowersOnActivePaths",
+      "type": "function",
+      "name": "DemolishTowersOnActivePaths",
+      "filePath": "logic.cpp",
+      "summary": "DemolishTowersOnActivePaths 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:RemoveDanglingTowerConnections",
+      "type": "function",
+      "name": "RemoveDanglingTowerConnections",
+      "filePath": "logic.cpp",
+      "summary": "RemoveDanglingTowerConnections 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:ApplyTrainingChoice",
+      "type": "function",
+      "name": "ApplyTrainingChoice",
+      "filePath": "logic.cpp",
+      "summary": "ApplyTrainingChoice 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:CalcPCTLayer",
+      "type": "function",
+      "name": "CalcPCTLayer",
+      "filePath": "logic.cpp",
+      "summary": "CalcPCTLayer 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:ActivateSkill",
+      "type": "function",
+      "name": "ActivateSkill",
+      "filePath": "logic.cpp",
+      "summary": "ActivateSkill 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:ConnDistance",
+      "type": "function",
+      "name": "ConnDistance",
+      "filePath": "logic.cpp",
+      "summary": "ConnDistance 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:PropagateSignals",
+      "type": "function",
+      "name": "PropagateSignals",
+      "filePath": "logic.cpp",
+      "summary": "PropagateSignals 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:CalcDamageMultiplier",
+      "type": "function",
+      "name": "CalcDamageMultiplier",
+      "filePath": "logic.cpp",
+      "summary": "CalcDamageMultiplier 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:UpdateBossAI",
+      "type": "function",
+      "name": "UpdateBossAI",
+      "filePath": "logic.cpp",
+      "summary": "UpdateBossAI 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:LaneOpeningThreat",
+      "type": "function",
+      "name": "LaneOpeningThreat",
+      "filePath": "logic.cpp",
+      "summary": "LaneOpeningThreat 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:UpdateLegacyPathIntelThreat",
+      "type": "function",
+      "name": "UpdateLegacyPathIntelThreat",
+      "filePath": "logic.cpp",
+      "summary": "UpdateLegacyPathIntelThreat 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:NextSpawnLane",
+      "type": "function",
+      "name": "NextSpawnLane",
+      "filePath": "logic.cpp",
+      "summary": "NextSpawnLane 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:SpawnEnemy",
+      "type": "function",
+      "name": "SpawnEnemy",
+      "filePath": "logic.cpp",
+      "summary": "SpawnEnemy 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:StartWave",
+      "type": "function",
+      "name": "StartWave",
+      "filePath": "logic.cpp",
+      "summary": "StartWave 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:logic.cpp:Update",
+      "type": "function",
+      "name": "Update",
+      "filePath": "logic.cpp",
+      "summary": "Update 是 logic.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "function:main.cpp:main",
+      "type": "function",
+      "name": "main",
+      "filePath": "main.cpp",
+      "summary": "main 是 main.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:MakePreset",
+      "type": "function",
+      "name": "MakePreset",
+      "filePath": "path.cpp",
+      "summary": "MakePreset 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:NormalizeLaneSlot",
+      "type": "function",
+      "name": "NormalizeLaneSlot",
+      "filePath": "path.cpp",
+      "summary": "NormalizeLaneSlot 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:BuildLaneCells",
+      "type": "function",
+      "name": "BuildLaneCells",
+      "filePath": "path.cpp",
+      "summary": "BuildLaneCells 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:NormalizePathPresetIdx",
+      "type": "function",
+      "name": "NormalizePathPresetIdx",
+      "filePath": "path.cpp",
+      "summary": "NormalizePathPresetIdx 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:GetPathPreset",
+      "type": "function",
+      "name": "GetPathPreset",
+      "filePath": "path.cpp",
+      "summary": "GetPathPreset 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:GetActiveLanePresetIdx",
+      "type": "function",
+      "name": "GetActiveLanePresetIdx",
+      "filePath": "path.cpp",
+      "summary": "GetActiveLanePresetIdx 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:GetActiveLanePreset",
+      "type": "function",
+      "name": "GetActiveLanePreset",
+      "filePath": "path.cpp",
+      "summary": "GetActiveLanePreset 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:GetActiveLaneCells",
+      "type": "function",
+      "name": "GetActiveLaneCells",
+      "filePath": "path.cpp",
+      "summary": "GetActiveLaneCells 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:IsActiveLaneCell",
+      "type": "function",
+      "name": "IsActiveLaneCell",
+      "filePath": "path.cpp",
+      "summary": "IsActiveLaneCell 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:IsAnyActivePathCell",
+      "type": "function",
+      "name": "IsAnyActivePathCell",
+      "filePath": "path.cpp",
+      "summary": "IsAnyActivePathCell 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:BuildPresetPathCells",
+      "type": "function",
+      "name": "BuildPresetPathCells",
+      "filePath": "path.cpp",
+      "summary": "BuildPresetPathCells 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:SetActiveLanePreset",
+      "type": "function",
+      "name": "SetActiveLanePreset",
+      "filePath": "path.cpp",
+      "summary": "SetActiveLanePreset 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:BuildPath",
+      "type": "function",
+      "name": "BuildPath",
+      "filePath": "path.cpp",
+      "summary": "BuildPath 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:path.cpp:BuildDualPath",
+      "type": "function",
+      "name": "BuildDualPath",
+      "filePath": "path.cpp",
+      "summary": "BuildDualPath 是 path.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:path.h:PathEntrySide",
+      "type": "class",
+      "name": "PathEntrySide",
+      "filePath": "path.h",
+      "summary": "PathEntrySide 是 path.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:path.h:PathCell",
+      "type": "class",
+      "name": "PathCell",
+      "filePath": "path.h",
+      "summary": "PathCell 是 path.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:path.h:PathPreset",
+      "type": "class",
+      "name": "PathPreset",
+      "filePath": "path.h",
+      "summary": "PathPreset 是 path.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:PerceptronLearner",
+      "type": "class",
+      "name": "PerceptronLearner",
+      "filePath": "structs.h",
+      "summary": "PerceptronLearner 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:ThreatMap",
+      "type": "class",
+      "name": "ThreatMap",
+      "filePath": "structs.h",
+      "summary": "ThreatMap 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:EnemyBrain",
+      "type": "class",
+      "name": "EnemyBrain",
+      "filePath": "structs.h",
+      "summary": "EnemyBrain 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:EnemyIntel",
+      "type": "class",
+      "name": "EnemyIntel",
+      "filePath": "structs.h",
+      "summary": "EnemyIntel 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:DefenseAdvisorNN",
+      "type": "class",
+      "name": "DefenseAdvisorNN",
+      "filePath": "structs.h",
+      "summary": "DefenseAdvisorNN 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:AIHint",
+      "type": "class",
+      "name": "AIHint",
+      "filePath": "structs.h",
+      "summary": "AIHint 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:Tower",
+      "type": "class",
+      "name": "Tower",
+      "filePath": "structs.h",
+      "summary": "Tower 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:EnemyTag",
+      "type": "class",
+      "name": "EnemyTag",
+      "filePath": "structs.h",
+      "summary": "EnemyTag 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:Enemy",
+      "type": "class",
+      "name": "Enemy",
+      "filePath": "structs.h",
+      "summary": "Enemy 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:Bullet",
+      "type": "class",
+      "name": "Bullet",
+      "filePath": "structs.h",
+      "summary": "Bullet 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:SigPulse",
+      "type": "class",
+      "name": "SigPulse",
+      "filePath": "structs.h",
+      "summary": "SigPulse 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:Particle",
+      "type": "class",
+      "name": "Particle",
+      "filePath": "structs.h",
+      "summary": "Particle 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:FloatText",
+      "type": "class",
+      "name": "FloatText",
+      "filePath": "structs.h",
+      "summary": "FloatText 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:structs.h:Star",
+      "type": "class",
+      "name": "Star",
+      "filePath": "structs.h",
+      "summary": "Star 是 structs.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Accumulate",
+      "type": "function",
+      "name": "Accumulate",
+      "filePath": "structs.h",
+      "summary": "Accumulate 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Reset",
+      "type": "function",
+      "name": "Reset",
+      "filePath": "structs.h",
+      "summary": "Reset 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Update",
+      "type": "function",
+      "name": "Update",
+      "filePath": "structs.h",
+      "summary": "Update 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:AddKill",
+      "type": "function",
+      "name": "AddKill",
+      "filePath": "structs.h",
+      "summary": "AddKill 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Get",
+      "type": "function",
+      "name": "Get",
+      "filePath": "structs.h",
+      "summary": "Get 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:GetMax",
+      "type": "function",
+      "name": "GetMax",
+      "filePath": "structs.h",
+      "summary": "GetMax 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Decay",
+      "type": "function",
+      "name": "Decay",
+      "filePath": "structs.h",
+      "summary": "Decay 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Eval",
+      "type": "function",
+      "name": "Eval",
+      "filePath": "structs.h",
+      "summary": "Eval 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Learn",
+      "type": "function",
+      "name": "Learn",
+      "filePath": "structs.h",
+      "summary": "Learn 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:ClampLaneCount",
+      "type": "function",
+      "name": "ClampLaneCount",
+      "filePath": "structs.h",
+      "summary": "ClampLaneCount 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:ResetWave",
+      "type": "function",
+      "name": "ResetWave",
+      "filePath": "structs.h",
+      "summary": "ResetWave 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:LearnFromWave",
+      "type": "function",
+      "name": "LearnFromWave",
+      "filePath": "structs.h",
+      "summary": "LearnFromWave 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:BrainPickPath",
+      "type": "function",
+      "name": "BrainPickPath",
+      "filePath": "structs.h",
+      "summary": "BrainPickPath 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:WeightedType",
+      "type": "function",
+      "name": "WeightedType",
+      "filePath": "structs.h",
+      "summary": "WeightedType 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:PickPath",
+      "type": "function",
+      "name": "PickPath",
+      "filePath": "structs.h",
+      "summary": "PickPath 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:TopTypeName",
+      "type": "function",
+      "name": "TopTypeName",
+      "filePath": "structs.h",
+      "summary": "TopTypeName 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:PreferredPath",
+      "type": "function",
+      "name": "PreferredPath",
+      "filePath": "structs.h",
+      "summary": "PreferredPath 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Forward",
+      "type": "function",
+      "name": "Forward",
+      "filePath": "structs.h",
+      "summary": "Forward 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:Recommend",
+      "type": "function",
+      "name": "Recommend",
+      "filePath": "structs.h",
+      "summary": "Recommend 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:SampleSignal",
+      "type": "function",
+      "name": "SampleSignal",
+      "filePath": "structs.h",
+      "summary": "SampleSignal 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:FlushSample",
+      "type": "function",
+      "name": "FlushSample",
+      "filePath": "structs.h",
+      "summary": "FlushSample 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:structs.h:TickBoss",
+      "type": "function",
+      "name": "TickBoss",
+      "filePath": "structs.h",
+      "summary": "TickBoss 是 structs.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:Obj",
+      "type": "function",
+      "name": "Obj",
+      "filePath": "tutorial.cpp",
+      "summary": "Obj 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:StepsForLesson",
+      "type": "function",
+      "name": "StepsForLesson",
+      "filePath": "tutorial.cpp",
+      "summary": "StepsForLesson 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:CurrentStep",
+      "type": "function",
+      "name": "CurrentStep",
+      "filePath": "tutorial.cpp",
+      "summary": "CurrentStep 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:IsTutorialTowerAllowed",
+      "type": "function",
+      "name": "IsTutorialTowerAllowed",
+      "filePath": "tutorial.cpp",
+      "summary": "IsTutorialTowerAllowed 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:IsTutorialWaveStartAllowed",
+      "type": "function",
+      "name": "IsTutorialWaveStartAllowed",
+      "filePath": "tutorial.cpp",
+      "summary": "IsTutorialWaveStartAllowed 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:TutorialCurrentStepTitle",
+      "type": "function",
+      "name": "TutorialCurrentStepTitle",
+      "filePath": "tutorial.cpp",
+      "summary": "TutorialCurrentStepTitle 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:TutorialCurrentStepHint",
+      "type": "function",
+      "name": "TutorialCurrentStepHint",
+      "filePath": "tutorial.cpp",
+      "summary": "TutorialCurrentStepHint 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:AddTutorialTower",
+      "type": "function",
+      "name": "AddTutorialTower",
+      "filePath": "tutorial.cpp",
+      "summary": "AddTutorialTower 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:ConnectTutorialTowers",
+      "type": "function",
+      "name": "ConnectTutorialTowers",
+      "filePath": "tutorial.cpp",
+      "summary": "ConnectTutorialTowers 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:ConfigureTutorialLanes",
+      "type": "function",
+      "name": "ConfigureTutorialLanes",
+      "filePath": "tutorial.cpp",
+      "summary": "ConfigureTutorialLanes 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:ClampTutorialLessonIndex",
+      "type": "function",
+      "name": "ClampTutorialLessonIndex",
+      "filePath": "tutorial.cpp",
+      "summary": "ClampTutorialLessonIndex 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:GetTutorialLessonInfo",
+      "type": "function",
+      "name": "GetTutorialLessonInfo",
+      "filePath": "tutorial.cpp",
+      "summary": "GetTutorialLessonInfo 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:ClearTutorialSessionWorld",
+      "type": "function",
+      "name": "ClearTutorialSessionWorld",
+      "filePath": "tutorial.cpp",
+      "summary": "ClearTutorialSessionWorld 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:EnterTutorialSelect",
+      "type": "function",
+      "name": "EnterTutorialSelect",
+      "filePath": "tutorial.cpp",
+      "summary": "EnterTutorialSelect 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:StartTutorial",
+      "type": "function",
+      "name": "StartTutorial",
+      "filePath": "tutorial.cpp",
+      "summary": "StartTutorial 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RestartTutorialLesson",
+      "type": "function",
+      "name": "RestartTutorialLesson",
+      "filePath": "tutorial.cpp",
+      "summary": "RestartTutorialLesson 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:AdvanceTutorialStep",
+      "type": "function",
+      "name": "AdvanceTutorialStep",
+      "filePath": "tutorial.cpp",
+      "summary": "AdvanceTutorialStep 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:CompleteTutorialLesson",
+      "type": "function",
+      "name": "CompleteTutorialLesson",
+      "filePath": "tutorial.cpp",
+      "summary": "CompleteTutorialLesson 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RecordTutorialTowerPlaced",
+      "type": "function",
+      "name": "RecordTutorialTowerPlaced",
+      "filePath": "tutorial.cpp",
+      "summary": "RecordTutorialTowerPlaced 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RecordTutorialTowerSelected",
+      "type": "function",
+      "name": "RecordTutorialTowerSelected",
+      "filePath": "tutorial.cpp",
+      "summary": "RecordTutorialTowerSelected 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RecordTutorialConnection",
+      "type": "function",
+      "name": "RecordTutorialConnection",
+      "filePath": "tutorial.cpp",
+      "summary": "RecordTutorialConnection 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RecordTutorialWaveStarted",
+      "type": "function",
+      "name": "RecordTutorialWaveStarted",
+      "filePath": "tutorial.cpp",
+      "summary": "RecordTutorialWaveStarted 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RecordTutorialSkillUsed",
+      "type": "function",
+      "name": "RecordTutorialSkillUsed",
+      "filePath": "tutorial.cpp",
+      "summary": "RecordTutorialSkillUsed 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RecordTutorialEnemyKilled",
+      "type": "function",
+      "name": "RecordTutorialEnemyKilled",
+      "filePath": "tutorial.cpp",
+      "summary": "RecordTutorialEnemyKilled 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:RecordTutorialSurvived",
+      "type": "function",
+      "name": "RecordTutorialSurvived",
+      "filePath": "tutorial.cpp",
+      "summary": "RecordTutorialSurvived 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:ExitTutorial",
+      "type": "function",
+      "name": "ExitTutorial",
+      "filePath": "tutorial.cpp",
+      "summary": "ExitTutorial 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:HandleTutorialInput",
+      "type": "function",
+      "name": "HandleTutorialInput",
+      "filePath": "tutorial.cpp",
+      "summary": "HandleTutorialInput 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:ObjectiveComplete",
+      "type": "function",
+      "name": "ObjectiveComplete",
+      "filePath": "tutorial.cpp",
+      "summary": "ObjectiveComplete 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:UpdateTutorial",
+      "type": "function",
+      "name": "UpdateTutorial",
+      "filePath": "tutorial.cpp",
+      "summary": "UpdateTutorial 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:BuildTutorialScenario",
+      "type": "function",
+      "name": "BuildTutorialScenario",
+      "filePath": "tutorial.cpp",
+      "summary": "BuildTutorialScenario 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:SpawnTutorialEnemy",
+      "type": "function",
+      "name": "SpawnTutorialEnemy",
+      "filePath": "tutorial.cpp",
+      "summary": "SpawnTutorialEnemy 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:DrawTutorialCellHint",
+      "type": "function",
+      "name": "DrawTutorialCellHint",
+      "filePath": "tutorial.cpp",
+      "summary": "DrawTutorialCellHint 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:DrawTutorialMapHints",
+      "type": "function",
+      "name": "DrawTutorialMapHints",
+      "filePath": "tutorial.cpp",
+      "summary": "DrawTutorialMapHints 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:SpawnTutorialWaveForLesson",
+      "type": "function",
+      "name": "SpawnTutorialWaveForLesson",
+      "filePath": "tutorial.cpp",
+      "summary": "SpawnTutorialWaveForLesson 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:StartTutorialWave",
+      "type": "function",
+      "name": "StartTutorialWave",
+      "filePath": "tutorial.cpp",
+      "summary": "StartTutorialWave 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:DrawTutorialSelect",
+      "type": "function",
+      "name": "DrawTutorialSelect",
+      "filePath": "tutorial.cpp",
+      "summary": "DrawTutorialSelect 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.cpp:DrawTutorialOverlay",
+      "type": "function",
+      "name": "DrawTutorialOverlay",
+      "filePath": "tutorial.cpp",
+      "summary": "DrawTutorialOverlay 是 tutorial.cpp 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:Game",
+      "type": "class",
+      "name": "Game",
+      "filePath": "tutorial.h",
+      "summary": "Game 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:TutorialLessonId",
+      "type": "class",
+      "name": "TutorialLessonId",
+      "filePath": "tutorial.h",
+      "summary": "TutorialLessonId 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:TutorialExitTarget",
+      "type": "class",
+      "name": "TutorialExitTarget",
+      "filePath": "tutorial.h",
+      "summary": "TutorialExitTarget 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:TutorialObjectiveKind",
+      "type": "class",
+      "name": "TutorialObjectiveKind",
+      "filePath": "tutorial.h",
+      "summary": "TutorialObjectiveKind 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:TutorialLessonInfo",
+      "type": "class",
+      "name": "TutorialLessonInfo",
+      "filePath": "tutorial.h",
+      "summary": "TutorialLessonInfo 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:TutorialObjective",
+      "type": "class",
+      "name": "TutorialObjective",
+      "filePath": "tutorial.h",
+      "summary": "TutorialObjective 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:TutorialStep",
+      "type": "class",
+      "name": "TutorialStep",
+      "filePath": "tutorial.h",
+      "summary": "TutorialStep 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "class:tutorial.h:TutorialRuntime",
+      "type": "class",
+      "name": "TutorialRuntime",
+      "filePath": "tutorial.h",
+      "summary": "TutorialRuntime 是 tutorial.h 中定義的型別，支援遊戲狀態、資料模型或系統 API。",
+      "tags": [
+        "C++",
+        "型別"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.h:TutorialLessonCardRect",
+      "type": "function",
+      "name": "TutorialLessonCardRect",
+      "filePath": "tutorial.h",
+      "summary": "TutorialLessonCardRect 是 tutorial.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.h:TutorialExitPromptPanelRect",
+      "type": "function",
+      "name": "TutorialExitPromptPanelRect",
+      "filePath": "tutorial.h",
+      "summary": "TutorialExitPromptPanelRect 是 tutorial.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.h:TutorialExitPromptButtonRect",
+      "type": "function",
+      "name": "TutorialExitPromptButtonRect",
+      "filePath": "tutorial.h",
+      "summary": "TutorialExitPromptButtonRect 是 tutorial.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.h:ResetObjectiveCounters",
+      "type": "function",
+      "name": "ResetObjectiveCounters",
+      "filePath": "tutorial.h",
+      "summary": "ResetObjectiveCounters 是 tutorial.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "function:tutorial.h:ResetTransient",
+      "type": "function",
+      "name": "ResetTransient",
+      "filePath": "tutorial.h",
+      "summary": "ResetTransient 是 tutorial.h 中的函式或方法，參與 Logic Gate Defense 的流程控制或系統行為。",
+      "tags": [
+        "C++",
+        "函式"
+      ],
+      "complexity": "simple"
+    },
+    {
+      "id": "module:raylib",
+      "type": "module",
+      "name": "raylib",
+      "summary": "raylib 是本專案的圖形、輸入與視窗基礎函式庫。",
+      "tags": [
+        "external",
+        "graphics"
+      ],
+      "complexity": "moderate"
+    },
+    {
+      "id": "module:LogicGateDefense",
+      "type": "module",
+      "name": "LogicGateDefense",
+      "summary": "LogicGateDefense 是以邏輯閘與機器學習概念設計的塔防遊戲模組。",
+      "tags": [
+        "game",
+        "C++"
+      ],
+      "complexity": "moderate"
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:constants.h",
+      "target": "class:constants.h:TType",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "class:constants.h:EType",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "class:constants.h:BossState",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "class:constants.h:TierInfo",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "class:constants.h:TowerDef",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "function:constants.h:AlphaOf",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "function:constants.h:Sigmoid",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "function:constants.h:SigmoidDeriv",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "function:constants.h:Dist",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "function:constants.h:TDef",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "class:draw_screens.cpp:MenuFeature",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "class:draw_screens.cpp:HelpRow",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "class:draw_screens.cpp:HelpBullet",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "function:draw_screens.cpp:LanePressureScreen",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "function:draw_screens.cpp:DrawHudFrame",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "function:draw_screens.cpp:DrawScreenGrid",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "function:draw_screens.cpp:DrawRouteSummaryCard",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "function:draw_screens.cpp:DrawMenu",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "function:draw_screens.cpp:DrawHelp",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "function:draw_screens.cpp:DrawGameOver",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:LaneLabel",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:CountLaneEnemiesUi",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:LanePressureUi",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:IncidentUiColor",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:DrawPanelScan",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:DrawCardTicks",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:DrawRouteUiCard",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:DrawLeftPanel",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:DrawRightPanel",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:DrawTopBar",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "function:draw_ui.cpp:DrawBotBar",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawEnemyTagName",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawEnemyTagColor",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:LerpColor",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:RouteAdvanceDir",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:RouteSideLabel",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:RouteShortLabel",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:GetRouteTheme",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawRoundBox",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawHex",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawCornerBrackets",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawScanSweep",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawMicroTicks",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawWorldBackdrop",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawStars",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawPath",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawThreatMap",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawAIHints",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawConnections",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawPulses",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawTower",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawGhostTower",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawEnemies",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawBullets",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawParticles",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "function:draw_world.cpp:DrawFloats",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:draw.h",
+      "target": "class:draw.h:RouteVisualTheme",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:font.cpp",
+      "target": "function:font.cpp:LoadChineseFont",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:font.h",
+      "target": "function:font.h:MCN",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:font.h",
+      "target": "function:font.h:DTX",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:font.h",
+      "target": "function:font.h:DTC",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::RollEvent",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::EventName",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::RollIncident",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::IncidentName",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:SegmentCoverage",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:ComputeCoverageSegments",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:FindNearbyBuildSlot",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:ScreenToGrid",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::WouldCycle",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::ValidateConnect",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::ApplyTowerStats",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::UpgradeTower",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::SpawnParticles",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::AddFloat",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::SetMsg",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::Shake",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::InitStars",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::GenerateAIHints",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::TrainPerceptrons",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::TrainDefenseNN",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "function:game.cpp:Game::Reset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "class:game.h:Game",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "class:game.h:WaveEvent",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "class:game.h:Incident",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "class:game.h:Phase",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "class:game.h:TrainingRewardKind",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "class:game.h:TrainingReward",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:MapOrigin",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:CC",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:FindTower",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:TowerAt",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:FindEnemy",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:IsPath",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:IsLaneActive",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:ActiveLaneCount",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:ResolveLaneSlot",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:LanePreset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:LanePresetIdx",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:LaneCells",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:IsLanePathCell",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:EnemyLaneCells",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:EnemyWorld",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:game.h",
+      "target": "function:game.h:EnemyGrid",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:globals.h",
+      "target": "function:globals.h:VirtualMouse",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "function:input.cpp:DebugJumpToWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "function:input.cpp:HandleInput",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:EnemyTagName",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:EnemyTagColor",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:EmitVfxRing",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:EmitMuzzleVfx",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:EmitImpactVfx",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:AssignEnemyTag",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:FindTrainingUpgradeTarget",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:BuildTrainingChoices",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:WaveRotatesRoutes",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:IncidentDuration",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:IncidentColor",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:TriggerIncident",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:DynamicLaneCountForWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:LaneCountForWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:RouteReplanCreditForLaneCount",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:BalancedWaveCountForLanes",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:SpawnIntervalForWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:BlackoutSensorRangeMultiplier",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:RouteThresholdNotice",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:RoutePoolSupportsAllEntrySides",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:RoutePoolOpensAtWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:EntrySideIndex",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:EntrySideFromIndex",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:CurrentRoutePlan",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:RouteAllowedForWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:PlanContainsPreset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:PlanContainsEntrySide",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:PresetLastUsed",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:HasPresetForSide",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:PickEntrySideForSlot",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:PickPresetForSide",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:PlanNextRouteSet",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:UpdateUpcomingRoutePlan",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:ApplyRoutePlan",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:DemolishTowersOnActivePaths",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:RemoveDanglingTowerConnections",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:ApplyTrainingChoice",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:CalcPCTLayer",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:ActivateSkill",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:ConnDistance",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:PropagateSignals",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:CalcDamageMultiplier",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:UpdateBossAI",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:LaneOpeningThreat",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:UpdateLegacyPathIntelThreat",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:NextSpawnLane",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:SpawnEnemy",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:StartWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "function:logic.cpp:Update",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "function:main.cpp:main",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:MakePreset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:NormalizeLaneSlot",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:BuildLaneCells",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:NormalizePathPresetIdx",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:GetPathPreset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:GetActiveLanePresetIdx",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:GetActiveLanePreset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:GetActiveLaneCells",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:IsActiveLaneCell",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:IsAnyActivePathCell",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:BuildPresetPathCells",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:SetActiveLanePreset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:BuildPath",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "function:path.cpp:BuildDualPath",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:path.h",
+      "target": "class:path.h:PathEntrySide",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:path.h",
+      "target": "class:path.h:PathCell",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:path.h",
+      "target": "class:path.h:PathPreset",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:PerceptronLearner",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:ThreatMap",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:EnemyBrain",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:EnemyIntel",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:DefenseAdvisorNN",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:AIHint",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:Tower",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:EnemyTag",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:Enemy",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:Bullet",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:SigPulse",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:Particle",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:FloatText",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "class:structs.h:Star",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Accumulate",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Reset",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Update",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:AddKill",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Get",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:GetMax",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Decay",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Eval",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Learn",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:ClampLaneCount",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:ResetWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:LearnFromWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:BrainPickPath",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:WeightedType",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:PickPath",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:TopTypeName",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:PreferredPath",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Forward",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:Recommend",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:SampleSignal",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:FlushSample",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:structs.h",
+      "target": "function:structs.h:TickBoss",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:Obj",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:StepsForLesson",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:CurrentStep",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:IsTutorialTowerAllowed",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:IsTutorialWaveStartAllowed",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:TutorialCurrentStepTitle",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:TutorialCurrentStepHint",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:AddTutorialTower",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:ConnectTutorialTowers",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:ConfigureTutorialLanes",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:ClampTutorialLessonIndex",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:GetTutorialLessonInfo",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:ClearTutorialSessionWorld",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:EnterTutorialSelect",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:StartTutorial",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RestartTutorialLesson",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:AdvanceTutorialStep",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:CompleteTutorialLesson",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RecordTutorialTowerPlaced",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RecordTutorialTowerSelected",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RecordTutorialConnection",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RecordTutorialWaveStarted",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RecordTutorialSkillUsed",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RecordTutorialEnemyKilled",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:RecordTutorialSurvived",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:ExitTutorial",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:HandleTutorialInput",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:ObjectiveComplete",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:UpdateTutorial",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:BuildTutorialScenario",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:SpawnTutorialEnemy",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:DrawTutorialCellHint",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:DrawTutorialMapHints",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:SpawnTutorialWaveForLesson",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:StartTutorialWave",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:DrawTutorialSelect",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "function:tutorial.cpp:DrawTutorialOverlay",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:Game",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:TutorialLessonId",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:TutorialExitTarget",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:TutorialObjectiveKind",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:TutorialLessonInfo",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:TutorialObjective",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:TutorialStep",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "class:tutorial.h:TutorialRuntime",
+      "type": "contains",
+      "label": "檔案包含此型別",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "function:tutorial.h:TutorialLessonCardRect",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "function:tutorial.h:TutorialExitPromptPanelRect",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "function:tutorial.h:TutorialExitPromptButtonRect",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "function:tutorial.h:ResetObjectiveCounters",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "function:tutorial.h:ResetTransient",
+      "type": "contains",
+      "label": "檔案包含此函式",
+      "weight": 1
+    },
+    {
+      "source": "file:constants.h",
+      "target": "module:raylib",
+      "type": "imports",
+      "label": "使用 raylib.h",
+      "weight": 0.5
+    },
+    {
+      "source": "file:constants.h",
+      "target": "module:raylib",
+      "type": "imports",
+      "label": "使用 raymath.h",
+      "weight": 0.5
+    },
+    {
+      "source": "file:draw_screens.cpp",
+      "target": "file:draw.h",
+      "type": "imports",
+      "label": "include draw.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:draw_ui.cpp",
+      "target": "file:draw.h",
+      "type": "imports",
+      "label": "include draw.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:draw_world.cpp",
+      "target": "file:draw.h",
+      "type": "imports",
+      "label": "include draw.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:draw.h",
+      "target": "file:game.h",
+      "type": "imports",
+      "label": "include game.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:draw.h",
+      "target": "file:logic.h",
+      "type": "imports",
+      "label": "include logic.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:font.cpp",
+      "target": "file:font.h",
+      "type": "imports",
+      "label": "include font.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:font.h",
+      "target": "module:raylib",
+      "type": "imports",
+      "label": "使用 raylib.h",
+      "weight": 0.5
+    },
+    {
+      "source": "file:game.cpp",
+      "target": "file:game.h",
+      "type": "imports",
+      "label": "include game.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:game.h",
+      "target": "file:structs.h",
+      "type": "imports",
+      "label": "include structs.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:game.h",
+      "target": "file:path.h",
+      "type": "imports",
+      "label": "include path.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:game.h",
+      "target": "file:font.h",
+      "type": "imports",
+      "label": "include font.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:game.h",
+      "target": "file:globals.h",
+      "type": "imports",
+      "label": "include globals.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:game.h",
+      "target": "file:tutorial.h",
+      "type": "imports",
+      "label": "include tutorial.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:globals.cpp",
+      "target": "file:globals.h",
+      "type": "imports",
+      "label": "include globals.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:globals.h",
+      "target": "module:raylib",
+      "type": "imports",
+      "label": "使用 raylib.h",
+      "weight": 0.5
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "file:input.h",
+      "type": "imports",
+      "label": "include input.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "file:constants.h",
+      "type": "imports",
+      "label": "include constants.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "file:globals.h",
+      "type": "imports",
+      "label": "include globals.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "file:path.h",
+      "type": "imports",
+      "label": "include path.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "file:logic.h",
+      "type": "imports",
+      "label": "include logic.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "file:tutorial.h",
+      "type": "imports",
+      "label": "include tutorial.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:input.cpp",
+      "target": "module:raylib",
+      "type": "imports",
+      "label": "使用 raylib.h",
+      "weight": 0.5
+    },
+    {
+      "source": "file:input.h",
+      "target": "file:game.h",
+      "type": "imports",
+      "label": "include game.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:input.h",
+      "target": "file:logic.h",
+      "type": "imports",
+      "label": "include logic.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:logic.cpp",
+      "target": "file:logic.h",
+      "type": "imports",
+      "label": "include logic.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:logic.h",
+      "target": "file:game.h",
+      "type": "imports",
+      "label": "include game.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "module:raylib",
+      "type": "imports",
+      "label": "使用 raylib.h",
+      "weight": 0.5
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:constants.h",
+      "type": "imports",
+      "label": "include constants.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:globals.h",
+      "type": "imports",
+      "label": "include globals.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:font.h",
+      "type": "imports",
+      "label": "include font.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:path.h",
+      "type": "imports",
+      "label": "include path.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:game.h",
+      "type": "imports",
+      "label": "include game.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:logic.h",
+      "type": "imports",
+      "label": "include logic.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:draw.h",
+      "type": "imports",
+      "label": "include draw.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:main.cpp",
+      "target": "file:input.h",
+      "type": "imports",
+      "label": "include input.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:path.cpp",
+      "target": "file:path.h",
+      "type": "imports",
+      "label": "include path.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:path.h",
+      "target": "file:constants.h",
+      "type": "imports",
+      "label": "include constants.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:structs.h",
+      "target": "file:constants.h",
+      "type": "imports",
+      "label": "include constants.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:structs.h",
+      "target": "module:raylib",
+      "type": "imports",
+      "label": "使用 raylib.h",
+      "weight": 0.5
+    },
+    {
+      "source": "file:tower_data.cpp",
+      "target": "file:constants.h",
+      "type": "imports",
+      "label": "include constants.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "file:tutorial.h",
+      "type": "imports",
+      "label": "include tutorial.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tutorial.cpp",
+      "target": "file:draw.h",
+      "type": "imports",
+      "label": "include draw.h",
+      "weight": 0.7
+    },
+    {
+      "source": "file:tutorial.h",
+      "target": "file:constants.h",
+      "type": "imports",
+      "label": "include constants.h",
+      "weight": 0.7
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:constants.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:draw_screens.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:draw_ui.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:draw_world.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:draw.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:font.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:font.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:game.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:game.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:globals.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:globals.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:input.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:input.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:logic.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:logic.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:main.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:path.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:path.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:structs.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:tower_data.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:tutorial.cpp",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "file:tutorial.h",
+      "type": "configures",
+      "label": "CMake 編譯此來源檔",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "module:raylib",
+      "type": "depends_on",
+      "label": "CMake 尋找或下載 raylib",
+      "weight": 0.6
+    },
+    {
+      "source": "config:CMakeLists.txt",
+      "target": "resource:font.ttf",
+      "type": "configures",
+      "label": "CMake 複製字型資源",
+      "weight": 0.6
+    },
+    {
+      "source": "module:LogicGateDefense",
+      "target": "file:main.cpp",
+      "type": "contains",
+      "label": "專案入口",
+      "weight": 1
+    },
+    {
+      "source": "document:README.md",
+      "target": "config:.gitignore",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "config:CMakeLists.txt",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:constants.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:draw_screens.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:draw_ui.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:draw_world.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:draw.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:font.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:font.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "resource:font.ttf",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:game.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:game.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:globals.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:globals.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:input.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:input.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:logic.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:logic.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:main.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:path.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:path.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:structs.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:tower_data.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:tutorial.cpp",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:tutorial.h",
+      "type": "documents",
+      "label": "README 描述此專案檔案或資源",
+      "weight": 0.5
+    },
+    {
+      "source": "function:main.cpp:main",
+      "target": "function:input.cpp:HandleInput",
+      "type": "calls",
+      "label": "主迴圈處理輸入",
+      "weight": 0.8
+    },
+    {
+      "source": "function:main.cpp:main",
+      "target": "function:logic.cpp:Update",
+      "type": "calls",
+      "label": "主迴圈更新遊戲",
+      "weight": 0.8
+    },
+    {
+      "source": "function:main.cpp:main",
+      "target": "function:font.cpp:LoadChineseFont",
+      "type": "calls",
+      "label": "啟動時載入中文字型",
+      "weight": 0.8
+    },
+    {
+      "source": "function:main.cpp:main",
+      "target": "function:path.cpp:BuildPath",
+      "type": "calls",
+      "label": "啟動時建立路徑",
+      "weight": 0.8
+    },
+    {
+      "source": "function:input.cpp:HandleInput",
+      "target": "function:logic.cpp:StartWave",
+      "type": "calls",
+      "label": "輸入啟動波次",
+      "weight": 0.8
+    },
+    {
+      "source": "function:input.cpp:HandleInput",
+      "target": "function:logic.cpp:ActivateSkill",
+      "type": "calls",
+      "label": "輸入觸發技能",
+      "weight": 0.8
+    },
+    {
+      "source": "function:logic.cpp:Update",
+      "target": "function:logic.cpp:PropagateSignals",
+      "type": "calls",
+      "label": "更新流程傳播訊號",
+      "weight": 0.8
+    },
+    {
+      "source": "function:logic.cpp:Update",
+      "target": "function:logic.cpp:SpawnEnemy",
+      "type": "calls",
+      "label": "更新流程生成敵人",
+      "weight": 0.8
+    },
+    {
+      "source": "function:logic.cpp:Update",
+      "target": "function:game.cpp:Game::TrainDefenseNN",
+      "type": "calls",
+      "label": "回合訓練防禦建議模型",
+      "weight": 0.8
+    },
+    {
+      "source": "function:logic.cpp:Update",
+      "target": "function:game.cpp:Game::TrainPerceptrons",
+      "type": "calls",
+      "label": "回合訓練感知器",
+      "weight": 0.8
+    },
+    {
+      "source": "function:logic.cpp:Update",
+      "target": "function:game.cpp:Game::GenerateAIHints",
+      "type": "calls",
+      "label": "產生 AI 防禦提示",
+      "weight": 0.8
+    },
+    {
+      "source": "function:tutorial.cpp:StartTutorial",
+      "target": "function:tutorial.cpp:BuildTutorialScenario",
+      "type": "calls",
+      "label": "建立教學情境",
+      "weight": 0.8
+    },
+    {
+      "source": "function:logic.cpp:StartWave",
+      "target": "function:tutorial.cpp:StartTutorialWave",
+      "type": "calls",
+      "label": "教學模式啟動教學波次",
+      "weight": 0.8
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:documentation-and-build",
+      "name": "文件與建置設定",
+      "description": "包含 README、CMake、版本控制忽略規則與執行時資源，定義如何理解、建置與執行專案。",
+      "nodeIds": [
+        "document:README.md",
+        "config:CMakeLists.txt",
+        "config:.gitignore",
+        "resource:font.ttf"
+      ]
+    },
+    {
+      "id": "layer:application-shell",
+      "name": "應用程式入口與全域基礎",
+      "description": "負責 raylib 初始化、主迴圈、字型載入、虛擬解析度與全域畫面狀態。",
+      "nodeIds": [
+        "file:main.cpp",
+        "file:font.h",
+        "file:font.cpp",
+        "file:globals.h",
+        "file:globals.cpp"
+      ]
+    },
+    {
+      "id": "layer:core-domain-model",
+      "name": "核心領域模型",
+      "description": "定義遊戲常數、塔/敵人資料模型、Game 聚合狀態與塔 metadata。",
+      "nodeIds": [
+        "file:constants.h",
+        "file:structs.h",
+        "file:game.h",
+        "file:game.cpp",
+        "file:tower_data.cpp"
+      ]
+    },
+    {
+      "id": "layer:simulation-and-routing",
+      "name": "模擬、戰鬥與路徑系統",
+      "description": "處理訊號傳播、波次、戰鬥、Boss AI、技能、路線 preset 與多 lane 路徑。",
+      "nodeIds": [
+        "file:logic.h",
+        "file:logic.cpp",
+        "file:path.h",
+        "file:path.cpp"
+      ]
+    },
+    {
+      "id": "layer:input-and-interaction",
+      "name": "輸入與互動控制",
+      "description": "處理玩家鍵盤滑鼠操作、建塔、連線、升級、技能與模式切換。",
+      "nodeIds": [
+        "file:input.h",
+        "file:input.cpp"
+      ]
+    },
+    {
+      "id": "layer:rendering-and-ui",
+      "name": "繪圖與使用者介面",
+      "description": "負責世界物件、HUD、面板、選單、說明與結束畫面的呈現。",
+      "nodeIds": [
+        "file:draw.h",
+        "file:draw_world.cpp",
+        "file:draw_ui.cpp",
+        "file:draw_screens.cpp"
+      ]
+    },
+    {
+      "id": "layer:tutorial-system",
+      "name": "教學系統",
+      "description": "提供教學 lesson、目標追蹤、教學情境、教學波次與 overlay UI。",
+      "nodeIds": [
+        "file:tutorial.h",
+        "file:tutorial.cpp"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "專案概覽與建置方式",
+      "description": "先閱讀 README 與 CMake 設定，理解 Logic Gate Defense 的玩法、依賴 raylib、建置流程與執行時字型資源。",
+      "nodeIds": [
+        "document:README.md",
+        "config:CMakeLists.txt",
+        "resource:font.ttf"
+      ],
+      "languageLesson": "C++ 遊戲專案常用 CMake 管理來源檔與外部函式庫，README 則提供領域語彙與操作脈絡。"
+    },
+    {
+      "order": 2,
+      "title": "主迴圈與全域基礎",
+      "description": "從 main.cpp 觀察 raylib 初始化、Game 建立、輸入/更新/繪圖流程，以及字型與虛擬解析度如何支援畫面輸出。",
+      "nodeIds": [
+        "file:main.cpp",
+        "file:font.h",
+        "file:font.cpp",
+        "file:globals.h",
+        "file:globals.cpp"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "核心遊戲狀態與資料模型",
+      "description": "查看 constants、structs、game 與 tower data，理解塔、敵人、AI/NN、威脅圖與 Game 狀態如何被集中管理。",
+      "nodeIds": [
+        "file:constants.h",
+        "file:structs.h",
+        "file:game.h",
+        "file:game.cpp",
+        "file:tower_data.cpp"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "戰鬥模擬與路線規劃",
+      "description": "閱讀 logic 與 path 模組，追蹤訊號傳播、波次、敵人生成、Boss AI、技能與多 lane 路線重規劃。",
+      "nodeIds": [
+        "file:logic.h",
+        "file:logic.cpp",
+        "file:path.h",
+        "file:path.cpp"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "玩家輸入到遊戲行為",
+      "description": "透過 input 模組了解玩家如何放置塔、建立連線、升級、觸發技能、開始波次與操作教學模式。",
+      "nodeIds": [
+        "file:input.h",
+        "file:input.cpp"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "畫面呈現與 HUD",
+      "description": "探索 draw 模組如何分離世界層、HUD/面板與選單畫面，並把 Game 狀態轉換成視覺回饋。",
+      "nodeIds": [
+        "file:draw.h",
+        "file:draw_world.cpp",
+        "file:draw_ui.cpp",
+        "file:draw_screens.cpp"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "教學流程",
+      "description": "最後檢視 tutorial 模組，理解 lesson、objective、runtime 與教學波次如何引導玩家學習各種邏輯元件。",
+      "nodeIds": [
+        "file:tutorial.h",
+        "file:tutorial.cpp"
+      ]
+    }
+  ]
+}
