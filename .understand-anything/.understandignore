@@ -1,0 +1,37 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+# Lines below are suggestions — uncomment to activate.
+# Use ! prefix to force-include something excluded by defaults.
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+#
+# --- From .gitignore (uncomment to exclude) ---
+
+# *.exe
+# cmake-build-*/
+# CMakeFiles/
+# CMakeCache.txt
+# cmake_install.cmake
+# compile_commands.json
+# Makefile
+# *.ninja
+# *.dir/
+# *.o
+# *.obj
+# *.a
+# *.lib
+# *.dll
+# *.pdb
+# *.ilk
+# report/
+# build-debug-routes/
+# build-cmake-*/
+# .DS_Store
+# Thumbs.db
+
+# --- Test file patterns (uncomment to exclude) ---
+
+# *.test.*
+# *.spec.*
+# *.snap

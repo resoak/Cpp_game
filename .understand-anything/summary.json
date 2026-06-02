@@ -1,0 +1,57 @@
+{
+  "project": {
+    "name": "LogicGateDefense",
+    "languages": [
+      "gitignore",
+      "cmake",
+      "cpp",
+      "binary",
+      "markdown"
+    ],
+    "frameworks": [
+      "raylib",
+      "CMake"
+    ],
+    "description": "以邏輯閘、感知器與多路徑敵人 AI 為核心的 C++17/raylib 塔防遊戲。",
+    "analyzedAt": "2026-06-01T10:09:29.802Z",
+    "gitCommitHash": "63b4a4bef82c638dfeaf7d991e31efbda0377292"
+  },
+  "fileCategories": {
+    "code": 22,
+    "config": 2,
+    "docs": 1,
+    "infra": 0,
+    "data": 1,
+    "script": 0,
+    "markup": 0
+  },
+  "nodeTypes": {
+    "config": 2,
+    "file": 22,
+    "resource": 1,
+    "document": 1,
+    "class": 40,
+    "function": 220,
+    "module": 2
+  },
+  "edgeTypes": {
+    "contains": 261,
+    "imports": 45,
+    "configures": 23,
+    "depends_on": 1,
+    "documents": 25,
+    "calls": 13
+  },
+  "layers": [
+    "文件與建置設定",
+    "應用程式入口與全域基礎",
+    "核心領域模型",
+    "模擬、戰鬥與路徑系統",
+    "輸入與互動控制",
+    "繪圖與使用者介面",
+    "教學系統"
+  ],
+  "tourSteps": 7,
+  "nodes": 288,
+  "edges": 368
+}

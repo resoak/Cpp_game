@@ -1,0 +1,3424 @@
+{
+  "version": "1.0.0",
+  "gitCommitHash": "63b4a4bef82c638dfeaf7d991e31efbda0377292",
+  "generatedAt": "2026-06-01T10:11:52.252Z",
+  "files": {
+    "constants.h": {
+      "filePath": "constants.h",
+      "contentHash": "5cc14c7a29347d9304b5e42eea220f6fd271e7f06af4ce1704957e8d9c8dbf7c",
+      "functions": [
+        {
+          "name": "AlphaOf",
+          "params": [
+            "c",
+            "a"
+          ],
+          "returnType": "Color",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "Sigmoid",
+          "params": [
+            "x"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "SigmoidDeriv",
+          "params": [
+            "y"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "Dist",
+          "params": [
+            "a",
+            "b"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "classes": [
+        {
+          "name": "TierInfo",
+          "methods": [],
+          "properties": [
+            "cost",
+            "name",
+            "ability"
+          ],
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "TowerDef",
+          "methods": [],
+          "properties": [
+            "label",
+            "sym",
+            "col",
+            "baseCost",
+            "desc",
+            "tiers"
+          ],
+          "exported": true,
+          "lineCount": 8
+        }
+      ],
+      "imports": [
+        {
+          "source": "raylib.h",
+          "specifiers": [
+            "raylib.h"
+          ]
+        },
+        {
+          "source": "raymath.h",
+          "specifiers": [
+            "raymath.h"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cmath",
+          "specifiers": [
+            "cmath"
+          ]
+        }
+      ],
+      "exports": [
+        "AlphaOf",
+        "Sigmoid",
+        "SigmoidDeriv",
+        "Dist",
+        "TierInfo",
+        "TowerDef"
+      ],
+      "totalLines": 98,
+      "hasStructuralAnalysis": true
+    },
+    "draw_screens.cpp": {
+      "filePath": "draw_screens.cpp",
+      "contentHash": "7dd69267596655d2520df774d9aee494a3eb6a569c0fe13343c613e08050b7fa",
+      "functions": [
+        {
+          "name": "LanePressureScreen",
+          "params": [
+            "G",
+            "laneSlot"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "DrawHudFrame",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "r",
+            "fill",
+            "border",
+            "glow"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "DrawScreenGrid",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "t",
+            "accent"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "DrawRouteSummaryCard",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "header",
+            "preset",
+            "laneSlot",
+            "metric",
+            "showMetric",
+            "highlight"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "DrawMenu",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 111
+        },
+        {
+          "name": "DrawHelp",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 107
+        },
+        {
+          "name": "DrawGameOver",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 136
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "draw.h",
+          "specifiers": [
+            "draw.h"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cmath",
+          "specifiers": [
+            "cmath"
+          ]
+        }
+      ],
+      "exports": [
+        "DrawMenu",
+        "DrawHelp",
+        "DrawGameOver"
+      ],
+      "totalLines": 449,
+      "hasStructuralAnalysis": true
+    },
+    "draw_ui.cpp": {
+      "filePath": "draw_ui.cpp",
+      "contentHash": "89a418026b22dda8abfee13632b4a0cc20b6045081ff387969c726770d7454d8",
+      "functions": [
+        {
+          "name": "CountLaneEnemiesUi",
+          "params": [
+            "G",
+            "laneSlot"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "LanePressureUi",
+          "params": [
+            "G",
+            "laneSlot"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "IncidentUiColor",
+          "params": [
+            "incident"
+          ],
+          "returnType": "Color",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "DrawPanelScan",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "col",
+            "phase"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "DrawCardTicks",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "col"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "DrawRouteUiCard",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "header",
+            "preset",
+            "laneSlot",
+            "enemyCount",
+            "pressure",
+            "preview"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "DrawLeftPanel",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 122
+        },
+        {
+          "name": "DrawRightPanel",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 272
+        },
+        {
+          "name": "DrawTopBar",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 185
+        },
+        {
+          "name": "DrawBotBar",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 10
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "draw.h",
+          "specifiers": [
+            "draw.h"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cstring",
+          "specifiers": [
+            "cstring"
+          ]
+        }
+      ],
+      "exports": [
+        "DrawLeftPanel",
+        "DrawRightPanel",
+        "DrawTopBar",
+        "DrawBotBar"
+      ],
+      "totalLines": 691,
+      "hasStructuralAnalysis": true
+    },
+    "draw_world.cpp": {
+      "filePath": "draw_world.cpp",
+      "contentHash": "e5b48cb2f94b4ee753cc0f8b0619bd1239b26c101ec42e634e24b9a9a5b9fff7",
+      "functions": [
+        {
+          "name": "DrawEnemyTagColor",
+          "params": [
+            "tag"
+          ],
+          "returnType": "Color",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "LerpColor",
+          "params": [
+            "a",
+            "b",
+            "t"
+          ],
+          "returnType": "Color",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "RouteAdvanceDir",
+          "params": [
+            "side"
+          ],
+          "returnType": "Vector2",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "GetRouteTheme",
+          "params": [
+            "preset",
+            "laneSlot"
+          ],
+          "returnType": "RouteVisualTheme",
+          "exported": true,
+          "lineCount": 59
+        },
+        {
+          "name": "DrawRoundBox",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "r",
+            "fill",
+            "border",
+            "bw"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "DrawHex",
+          "params": [
+            "c",
+            "r",
+            "fill",
+            "border"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "DrawCornerBrackets",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "len",
+            "col"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 10
+        },
+        {
+          "name": "DrawScanSweep",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "phase",
+            "col"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "DrawMicroTicks",
+          "params": [
+            "x",
+            "y",
+            "w",
+            "h",
+            "col"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 7
+        },
+        {
+          "name": "DrawWorldBackdrop",
+          "params": [
+            "o"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 39
+        },
+        {
+          "name": "DrawStars",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "DrawPath",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 262
+        },
+        {
+          "name": "DrawThreatMap",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 38
+        },
+        {
+          "name": "DrawAIHints",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 32
+        },
+        {
+          "name": "DrawConnections",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 37
+        },
+        {
+          "name": "DrawPulses",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "DrawTower",
+          "params": [
+            "G",
+            "t",
+            "sel"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 159
+        },
+        {
+          "name": "DrawGhostTower",
+          "params": [
+            "G",
+            "gx",
+            "gy"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "DrawEnemies",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 143
+        },
+        {
+          "name": "DrawBullets",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "DrawParticles",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "DrawFloats",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 7
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "draw.h",
+          "specifiers": [
+            "draw.h"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cmath",
+          "specifiers": [
+            "cmath"
+          ]
+        }
+      ],
+      "exports": [
+        "LerpColor",
+        "GetRouteTheme",
+        "DrawRoundBox",
+        "DrawHex",
+        "DrawStars",
+        "DrawPath",
+        "DrawThreatMap",
+        "DrawAIHints",
+        "DrawConnections",
+        "DrawPulses",
+        "DrawTower",
+        "DrawGhostTower",
+        "DrawEnemies",
+        "DrawBullets",
+        "DrawParticles",
+        "DrawFloats"
+      ],
+      "totalLines": 1020,
+      "hasStructuralAnalysis": true
+    },
+    "draw.h": {
+      "filePath": "draw.h",
+      "contentHash": "97eecd9eb6abd41b778a8e7cdb754330be580e4669c6a428ab1bda6492add40f",
+      "functions": [],
+      "classes": [
+        {
+          "name": "RouteVisualTheme",
+          "methods": [],
+          "properties": [
+            "accent",
+            "glow",
+            "fill",
+            "fillSoft",
+            "text",
+            "sideLabel",
+            "shortLabel"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "imports": [
+        {
+          "source": "game.h",
+          "specifiers": [
+            "game.h"
+          ]
+        },
+        {
+          "source": "logic.h",
+          "specifiers": [
+            "logic.h"
+          ]
+        }
+      ],
+      "exports": [
+        "RouteVisualTheme"
+      ],
+      "totalLines": 52,
+      "hasStructuralAnalysis": true
+    },
+    "font.cpp": {
+      "filePath": "font.cpp",
+      "contentHash": "01ca9a183bc57a99968508fd2363f780b139c53bd1b90e4497e74b460612839b",
+      "functions": [
+        {
+          "name": "LoadChineseFont",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 41
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "font.h",
+          "specifiers": [
+            "font.h"
+          ]
+        },
+        {
+          "source": "vector",
+          "specifiers": [
+            "vector"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        }
+      ],
+      "exports": [
+        "LoadChineseFont"
+      ],
+      "totalLines": 55,
+      "hasStructuralAnalysis": true
+    },
+    "font.h": {
+      "filePath": "font.h",
+      "contentHash": "4e02febb912d064a9af673c7f76459a380bc60317a3725a26db3bf0d2ddb4681",
+      "functions": [
+        {
+          "name": "MCN",
+          "params": [
+            "t",
+            "sz"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "DTX",
+          "params": [
+            "t",
+            "x",
+            "y",
+            "sz",
+            "c"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "DTC",
+          "params": [
+            "t",
+            "x",
+            "y",
+            "sz",
+            "c"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "raylib.h",
+          "specifiers": [
+            "raylib.h"
+          ]
+        }
+      ],
+      "exports": [
+        "MCN",
+        "DTX",
+        "DTC"
+      ],
+      "totalLines": 31,
+      "hasStructuralAnalysis": true
+    },
+    "game.cpp": {
+      "filePath": "game.cpp",
+      "contentHash": "23d4d229cab7d2508c7160fc136d16b4d8f8ec9598db18ea66a97299aacd75b2",
+      "functions": [
+        {
+          "name": "RollEvent",
+          "params": [
+            "wave",
+            "rng"
+          ],
+          "returnType": "Game::WaveEvent",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "RollIncident",
+          "params": [
+            "wave",
+            "rng"
+          ],
+          "returnType": "Game::Incident",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "SegmentCoverage",
+          "params": [
+            "G",
+            "cells",
+            "seg"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 20
+        },
+        {
+          "name": "ComputeCoverageSegments",
+          "params": [
+            "G",
+            "cov"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "FindNearbyBuildSlot",
+          "params": [
+            "G",
+            "px",
+            "py",
+            "outX",
+            "outY"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "ScreenToGrid",
+          "params": [
+            "G",
+            "sp",
+            "gx",
+            "gy"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "WouldCycle",
+          "params": [
+            "src",
+            "dst"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "ValidateConnect",
+          "params": [
+            "src",
+            "dst"
+          ],
+          "returnType": "std::string",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "ApplyTowerStats",
+          "params": [
+            "t"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "UpgradeTower",
+          "params": [
+            "t"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "SpawnParticles",
+          "params": [
+            "pos",
+            "col",
+            "n",
+            "spd"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "AddFloat",
+          "params": [
+            "pos",
+            "txt",
+            "col"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "SetMsg",
+          "params": [
+            "m"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "Shake",
+          "params": [
+            "p",
+            "t"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "InitStars",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "GenerateAIHints",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 144
+        },
+        {
+          "name": "TrainPerceptrons",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 27
+        },
+        {
+          "name": "TrainDefenseNN",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 33
+        },
+        {
+          "name": "Reset",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 83
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "game.h",
+          "specifiers": [
+            "game.h"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "random",
+          "specifiers": [
+            "random"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        },
+        {
+          "source": "cstring",
+          "specifiers": [
+            "cstring"
+          ]
+        }
+      ],
+      "exports": [
+        "RollEvent",
+        "RollIncident",
+        "ScreenToGrid",
+        "WouldCycle",
+        "ValidateConnect",
+        "ApplyTowerStats",
+        "UpgradeTower",
+        "SpawnParticles",
+        "AddFloat",
+        "SetMsg",
+        "Shake",
+        "InitStars",
+        "GenerateAIHints",
+        "TrainPerceptrons",
+        "TrainDefenseNN",
+        "Reset"
+      ],
+      "totalLines": 545,
+      "hasStructuralAnalysis": true
+    },
+    "game.h": {
+      "filePath": "game.h",
+      "contentHash": "1346dc750d8a0e9cd863ab3ae9ec6c3d0b237561e6cb5a75c90485258c39498f",
+      "functions": [
+        {
+          "name": "MapOrigin",
+          "params": [],
+          "returnType": "Vector2",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "CC",
+          "params": [
+            "gx",
+            "gy"
+          ],
+          "returnType": "Vector2",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "CC",
+          "params": [
+            "gx",
+            "gy"
+          ],
+          "returnType": "Vector2",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "IsPath",
+          "params": [
+            "gx",
+            "gy"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "IsLaneActive",
+          "params": [
+            "laneSlot"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "ActiveLaneCount",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "ResolveLaneSlot",
+          "params": [
+            "laneSlot"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "LanePresetIdx",
+          "params": [
+            "laneSlot"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "IsLanePathCell",
+          "params": [
+            "laneSlot",
+            "gx",
+            "gy"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "EnemyWorld",
+          "params": [
+            "e"
+          ],
+          "returnType": "Vector2",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "EnemyGrid",
+          "params": [
+            "e"
+          ],
+          "returnType": "Vector2",
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [
+        {
+          "name": "Game",
+          "methods": [
+            "RollEvent",
+            "RollIncident",
+            "MapOrigin",
+            "CC",
+            "CC",
+            "IsPath",
+            "IsLaneActive",
+            "ActiveLaneCount",
+            "ResolveLaneSlot",
+            "LanePresetIdx",
+            "IsLanePathCell",
+            "EnemyWorld",
+            "EnemyGrid",
+            "WouldCycle",
+            "ValidateConnect",
+            "ApplyTowerStats",
+            "UpgradeTower",
+            "SpawnParticles",
+            "AddFloat",
+            "SetMsg",
+            "Shake",
+            "InitStars",
+            "GenerateAIHints",
+            "TrainDefenseNN",
+            "TrainPerceptrons",
+            "Reset"
+          ],
+          "properties": [
+            "towers",
+            "enemies",
+            "bullets",
+            "pulses",
+            "particles",
+            "floats",
+            "stars",
+            "threatMap",
+            "aiHints",
+            "intel",
+            "defNN",
+            "currentEvent",
+            "eventName",
+            "eventBannerTimer",
+            "currentIncident",
+            "incidentName",
+            "incidentTimer",
+            "incidentBannerTimer",
+            "incidentRollTimer",
+            "incidentTriggered",
+            "EventName",
+            "IncidentName",
+            "showThreat",
+            "showAIHints",
+            "dualPath",
+            "activeLaneCount",
+            "blackoutActive",
+            "nextPreviewPaths",
+            "nextPreviewLaneCount",
+            "hasPlannedRouteChange",
+            "lastEntrySideWave",
+            "lastPresetWave",
+            "buffOverfreq",
+            "buffArmorBreak",
+            "buffGlobalMark",
+            "nextId",
+            "credits",
+            "score",
+            "highScore",
+            "wave",
+            "lives",
+            "cpuHp",
+            "paused",
+            "showHelp",
+            "tutorial",
+            "phase",
+            "waveCount",
+            "spawned",
+            "spawnLaneCursor",
+            "spawnTimer",
+            "trainingTimer",
+            "TRAIN_TIME",
+            "placing",
+            "selectedId",
+            "connectSrc",
+            "msg",
+            "msgTimer",
+            "rng",
+            "btnY0",
+            "waveBtnY",
+            "BTN_H",
+            "BTN_GAP",
+            "waveKills",
+            "waveEscaped",
+            "waveDmg",
+            "combo",
+            "comboTimer",
+            "COMBO_WINDOW",
+            "comboSurgeTimer",
+            "COMBO_SURGE_TIME",
+            "COMBO_SURGE_THRESHOLD",
+            "waveTelegraphTimer",
+            "spawnPulseTimer",
+            "spawnPulsePath",
+            "trainingChoices",
+            "trainingChoiceCount",
+            "shakeT",
+            "shakePow",
+            "MAX_CONNS"
+          ],
+          "exported": true,
+          "lineCount": 238
+        }
+      ],
+      "imports": [
+        {
+          "source": "structs.h",
+          "specifiers": [
+            "structs.h"
+          ]
+        },
+        {
+          "source": "path.h",
+          "specifiers": [
+            "path.h"
+          ]
+        },
+        {
+          "source": "font.h",
+          "specifiers": [
+            "font.h"
+          ]
+        },
+        {
+          "source": "globals.h",
+          "specifiers": [
+            "globals.h"
+          ]
+        },
+        {
+          "source": "tutorial.h",
+          "specifiers": [
+            "tutorial.h"
+          ]
+        },
+        {
+          "source": "random",
+          "specifiers": [
+            "random"
+          ]
+        },
+        {
+          "source": "string",
+          "specifiers": [
+            "string"
+          ]
+        },
+        {
+          "source": "functional",
+          "specifiers": [
+            "functional"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "array",
+          "specifiers": [
+            "array"
+          ]
+        },
+        {
+          "source": "sstream",
+          "specifiers": [
+            "sstream"
+          ]
+        }
+      ],
+      "exports": [
+        "RollEvent",
+        "RollIncident",
+        "MapOrigin",
+        "CC",
+        "CC",
+        "IsPath",
+        "IsLaneActive",
+        "ActiveLaneCount",
+        "ResolveLaneSlot",
+        "LanePresetIdx",
+        "IsLanePathCell",
+        "EnemyWorld",
+        "EnemyGrid",
+        "WouldCycle",
+        "ValidateConnect",
+        "ApplyTowerStats",
+        "UpgradeTower",
+        "SpawnParticles",
+        "AddFloat",
+        "SetMsg",
+        "Shake",
+        "InitStars",
+        "GenerateAIHints",
+        "TrainDefenseNN",
+        "TrainPerceptrons",
+        "Reset",
+        "Game"
+      ],
+      "totalLines": 264,
+      "hasStructuralAnalysis": true
+    },
+    "globals.cpp": {
+      "filePath": "globals.cpp",
+      "contentHash": "b006167243bfbf8566dd96d3cf56e6739921023830331fab6cef100c96a71bc8",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "globals.h",
+          "specifiers": [
+            "globals.h"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 11,
+      "hasStructuralAnalysis": true
+    },
+    "globals.h": {
+      "filePath": "globals.h",
+      "contentHash": "77a38071169d3e28e7f4e2b215f6fb6ed6e3559dfda243acaebdd8e5bea87942",
+      "functions": [
+        {
+          "name": "VirtualMouse",
+          "params": [],
+          "returnType": "Vector2",
+          "exported": true,
+          "lineCount": 4
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "raylib.h",
+          "specifiers": [
+            "raylib.h"
+          ]
+        }
+      ],
+      "exports": [
+        "VirtualMouse"
+      ],
+      "totalLines": 19,
+      "hasStructuralAnalysis": true
+    },
+    "input.cpp": {
+      "filePath": "input.cpp",
+      "contentHash": "f8f0823166bb60782b085ee819ba4803eed32071fbe63d2b9817873c0e81546f",
+      "functions": [
+        {
+          "name": "HandleInput",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 377
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "input.h",
+          "specifiers": [
+            "input.h"
+          ]
+        },
+        {
+          "source": "constants.h",
+          "specifiers": [
+            "constants.h"
+          ]
+        },
+        {
+          "source": "globals.h",
+          "specifiers": [
+            "globals.h"
+          ]
+        },
+        {
+          "source": "path.h",
+          "specifiers": [
+            "path.h"
+          ]
+        },
+        {
+          "source": "logic.h",
+          "specifiers": [
+            "logic.h"
+          ]
+        },
+        {
+          "source": "tutorial.h",
+          "specifiers": [
+            "tutorial.h"
+          ]
+        },
+        {
+          "source": "raylib.h",
+          "specifiers": [
+            "raylib.h"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        }
+      ],
+      "exports": [
+        "HandleInput"
+      ],
+      "totalLines": 409,
+      "hasStructuralAnalysis": true
+    },
+    "input.h": {
+      "filePath": "input.h",
+      "contentHash": "00fb0875f7785edf5a0f6a0cfb69c0947ed66e2c3638d76bb48b3bc4301684b1",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "game.h",
+          "specifiers": [
+            "game.h"
+          ]
+        },
+        {
+          "source": "logic.h",
+          "specifiers": [
+            "logic.h"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 10,
+      "hasStructuralAnalysis": true
+    },
+    "logic.cpp": {
+      "filePath": "logic.cpp",
+      "contentHash": "9081167e1102d38ecb5d6eff43e7cca7029890d35ca26854037e43f358f84ac4",
+      "functions": [
+        {
+          "name": "EnemyTagColor",
+          "params": [
+            "tag"
+          ],
+          "returnType": "Color",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "EmitVfxRing",
+          "params": [
+            "G",
+            "pos",
+            "col",
+            "radius",
+            "life"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "EmitMuzzleVfx",
+          "params": [
+            "G",
+            "pos",
+            "dir",
+            "col",
+            "charged"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "EmitImpactVfx",
+          "params": [
+            "G",
+            "pos",
+            "col",
+            "heavy"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "AssignEnemyTag",
+          "params": [
+            "G",
+            "e"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "BuildTrainingChoices",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "WaveRotatesRoutes",
+          "params": [
+            "wave"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "IncidentDuration",
+          "params": [
+            "incident"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "IncidentColor",
+          "params": [
+            "incident"
+          ],
+          "returnType": "Color",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "TriggerIncident",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "DynamicLaneCountForWave",
+          "params": [
+            "wave"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "LaneCountForWave",
+          "params": [
+            "wave"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "RouteReplanCreditForLaneCount",
+          "params": [
+            "laneCount",
+            "wave"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "BalancedWaveCountForLanes",
+          "params": [
+            "event",
+            "wave",
+            "laneCount"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 24
+        },
+        {
+          "name": "SpawnIntervalForWave",
+          "params": [
+            "wave",
+            "laneCount",
+            "event"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "BlackoutSensorRangeMultiplier",
+          "params": [
+            "laneCount"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "RouteThresholdNotice",
+          "params": [
+            "wave",
+            "laneCount"
+          ],
+          "returnType": "std::string",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "RoutePoolSupportsAllEntrySides",
+          "params": [
+            "wave"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "RoutePoolOpensAtWave",
+          "params": [
+            "wave"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "EntrySideIndex",
+          "params": [
+            "side"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "EntrySideFromIndex",
+          "params": [
+            "sideIdx"
+          ],
+          "returnType": "PathEntrySide",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "CurrentRoutePlan",
+          "params": [
+            "G",
+            "laneCount"
+          ],
+          "returnType": "RoutePlan",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "RouteAllowedForWave",
+          "params": [
+            "presetIdx",
+            "wave"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 4
+        },
+        {
+          "name": "PlanContainsPreset",
+          "params": [
+            "plan",
+            "slot",
+            "presetIdx"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "PlanContainsEntrySide",
+          "params": [
+            "sidePlan",
+            "slot",
+            "sideIdx"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "PresetLastUsed",
+          "params": [
+            "G",
+            "presetIdx"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 6
+        },
+        {
+          "name": "HasPresetForSide",
+          "params": [
+            "plan",
+            "slot",
+            "sideIdx",
+            "targetWave",
+            "requireUnused"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 11
+        },
+        {
+          "name": "PickEntrySideForSlot",
+          "params": [
+            "G",
+            "plan",
+            "sidePlan",
+            "slot",
+            "laneCount",
+            "targetWave"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 45
+        },
+        {
+          "name": "PickPresetForSide",
+          "params": [
+            "G",
+            "plan",
+            "slot",
+            "sideIdx",
+            "targetWave",
+            "requireUnused"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 28
+        },
+        {
+          "name": "PlanNextRouteSet",
+          "params": [
+            "G",
+            "laneCount",
+            "targetWave"
+          ],
+          "returnType": "RoutePlan",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "UpdateUpcomingRoutePlan",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 17
+        },
+        {
+          "name": "ApplyRoutePlan",
+          "params": [
+            "G",
+            "plan",
+            "laneCount"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "DemolishTowersOnActivePaths",
+          "params": [
+            "G",
+            "laneCount"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 18
+        },
+        {
+          "name": "RemoveDanglingTowerConnections",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 9
+        },
+        {
+          "name": "ApplyTrainingChoice",
+          "params": [
+            "G",
+            "choiceIdx"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "CalcPCTLayer",
+          "params": [
+            "G",
+            "towerId",
+            "depth"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 15
+        },
+        {
+          "name": "ActivateSkill",
+          "params": [
+            "G",
+            "t"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 87
+        },
+        {
+          "name": "ConnDistance",
+          "params": [
+            "src",
+            "dst"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "PropagateSignals",
+          "params": [
+            "G",
+            "dt"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 121
+        },
+        {
+          "name": "CalcDamageMultiplier",
+          "params": [
+            "G",
+            "cannon",
+            "target"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 40
+        },
+        {
+          "name": "UpdateBossAI",
+          "params": [
+            "G",
+            "boss",
+            "dt"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 24
+        },
+        {
+          "name": "LaneOpeningThreat",
+          "params": [
+            "G",
+            "laneSlot"
+          ],
+          "returnType": "float",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "UpdateLegacyPathIntelThreat",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "NextSpawnLane",
+          "params": [
+            "G"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 23
+        },
+        {
+          "name": "SpawnEnemy",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 122
+        },
+        {
+          "name": "StartWave",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 109
+        },
+        {
+          "name": "Update",
+          "params": [
+            "G",
+            "dt"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 457
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "logic.h",
+          "specifiers": [
+            "logic.h"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cmath",
+          "specifiers": [
+            "cmath"
+          ]
+        }
+      ],
+      "exports": [
+        "ApplyTrainingChoice",
+        "CalcPCTLayer",
+        "ActivateSkill",
+        "PropagateSignals",
+        "CalcDamageMultiplier",
+        "UpdateBossAI",
+        "SpawnEnemy",
+        "StartWave",
+        "Update"
+      ],
+      "totalLines": 1610,
+      "hasStructuralAnalysis": true
+    },
+    "logic.h": {
+      "filePath": "logic.h",
+      "contentHash": "58391c4aa3434d701a34f1c01d872040e22c177adac049db613e99fdde21bbb2",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "game.h",
+          "specifiers": [
+            "game.h"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 24,
+      "hasStructuralAnalysis": true
+    },
+    "main.cpp": {
+      "filePath": "main.cpp",
+      "contentHash": "d9b220b68e98366435a644a114f9e091c46db601d5011c3c103863cdb781dea2",
+      "functions": [
+        {
+          "name": "main",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 129
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "raylib.h",
+          "specifiers": [
+            "raylib.h"
+          ]
+        },
+        {
+          "source": "constants.h",
+          "specifiers": [
+            "constants.h"
+          ]
+        },
+        {
+          "source": "globals.h",
+          "specifiers": [
+            "globals.h"
+          ]
+        },
+        {
+          "source": "font.h",
+          "specifiers": [
+            "font.h"
+          ]
+        },
+        {
+          "source": "path.h",
+          "specifiers": [
+            "path.h"
+          ]
+        },
+        {
+          "source": "game.h",
+          "specifiers": [
+            "game.h"
+          ]
+        },
+        {
+          "source": "logic.h",
+          "specifiers": [
+            "logic.h"
+          ]
+        },
+        {
+          "source": "draw.h",
+          "specifiers": [
+            "draw.h"
+          ]
+        },
+        {
+          "source": "input.h",
+          "specifiers": [
+            "input.h"
+          ]
+        }
+      ],
+      "exports": [
+        "main"
+      ],
+      "totalLines": 140,
+      "hasStructuralAnalysis": true
+    },
+    "path.cpp": {
+      "filePath": "path.cpp",
+      "contentHash": "031a9b3a7947405fa32a564efd046a48eaf9e5b35a6d1888f9ec0fd6dbf1ce76",
+      "functions": [
+        {
+          "name": "MakePreset",
+          "params": [
+            "count",
+            "xs",
+            "ys",
+            "name",
+            "entrySide",
+            "family",
+            "dualWeight"
+          ],
+          "returnType": "PathPreset",
+          "exported": false,
+          "lineCount": 19
+        },
+        {
+          "name": "NormalizeLaneSlot",
+          "params": [
+            "laneSlot"
+          ],
+          "returnType": "int",
+          "exported": false,
+          "lineCount": 5
+        },
+        {
+          "name": "BuildLaneCells",
+          "params": [
+            "preset",
+            "cells",
+            "mask"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 30
+        },
+        {
+          "name": "NormalizePathPresetIdx",
+          "params": [
+            "presetIdx"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "GetActiveLanePresetIdx",
+          "params": [
+            "laneSlot"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "IsActiveLaneCell",
+          "params": [
+            "laneSlot",
+            "gx",
+            "gy"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "IsAnyActivePathCell",
+          "params": [
+            "gx",
+            "gy",
+            "activeLaneCount"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "BuildPresetPathCells",
+          "params": [
+            "presetIdx"
+          ],
+          "returnType": "std::vector<PathCell>",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "SetActiveLanePreset",
+          "params": [
+            "laneSlot",
+            "presetIdx"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "BuildPath",
+          "params": [
+            "presetIdx"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "BuildDualPath",
+          "params": [
+            "presetIdx"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "path.h",
+          "specifiers": [
+            "path.h"
+          ]
+        },
+        {
+          "source": "cstring",
+          "specifiers": [
+            "cstring"
+          ]
+        },
+        {
+          "source": "initializer_list",
+          "specifiers": [
+            "initializer_list"
+          ]
+        }
+      ],
+      "exports": [
+        "NormalizePathPresetIdx",
+        "GetActiveLanePresetIdx",
+        "IsActiveLaneCell",
+        "IsAnyActivePathCell",
+        "BuildPresetPathCells",
+        "SetActiveLanePreset",
+        "BuildPath",
+        "BuildDualPath"
+      ],
+      "totalLines": 159,
+      "hasStructuralAnalysis": true
+    },
+    "path.h": {
+      "filePath": "path.h",
+      "contentHash": "091d115f824a9395da4a574ed3741d289f78a4bc462553d616627125607654f4",
+      "functions": [],
+      "classes": [
+        {
+          "name": "PathCell",
+          "methods": [],
+          "properties": [
+            "gx"
+          ],
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "PathPreset",
+          "methods": [],
+          "properties": [
+            "count",
+            "wx",
+            "wy",
+            "name",
+            "entrySide",
+            "family",
+            "dualWeight"
+          ],
+          "exported": true,
+          "lineCount": 9
+        }
+      ],
+      "imports": [
+        {
+          "source": "constants.h",
+          "specifiers": [
+            "constants.h"
+          ]
+        },
+        {
+          "source": "array",
+          "specifiers": [
+            "array"
+          ]
+        },
+        {
+          "source": "vector",
+          "specifiers": [
+            "vector"
+          ]
+        }
+      ],
+      "exports": [
+        "PathCell",
+        "PathPreset"
+      ],
+      "totalLines": 54,
+      "hasStructuralAnalysis": true
+    },
+    "structs.h": {
+      "filePath": "structs.h",
+      "contentHash": "add646dbf03e8224641bc0f6ee47556784a3b20a29958b312380cf2253924483",
+      "functions": [
+        {
+          "name": "Accumulate",
+          "params": [
+            "in1",
+            "in2",
+            "out"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Reset",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "Update",
+          "params": [
+            "target",
+            "w1",
+            "w2",
+            "bias"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 23
+        },
+        {
+          "name": "AddKill",
+          "params": [
+            "gx",
+            "gy"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "Get",
+          "params": [
+            "gx",
+            "gy"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "GetMax",
+          "params": [],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "Decay",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 5
+        },
+        {
+          "name": "Eval",
+          "params": [
+            "threatAhead",
+            "hpRatio",
+            "survRate"
+          ],
+          "returnType": "float",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "Learn",
+          "params": [
+            "threatAhead",
+            "hpRatio",
+            "survRate",
+            "target"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 29
+        },
+        {
+          "name": "EnemyIntel",
+          "params": [],
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "ClampLaneCount",
+          "params": [
+            "activeLaneCount"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "ResetWave",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "LearnFromWave",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 30
+        },
+        {
+          "name": "BrainPickPath",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "WeightedType",
+          "params": [
+            "rand01",
+            "wave"
+          ],
+          "returnType": "EType",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "PickPath",
+          "params": [
+            "rand01"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 22
+        },
+        {
+          "name": "PreferredPath",
+          "params": [],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "DefenseAdvisorNN",
+          "params": [],
+          "exported": true,
+          "lineCount": 17
+        },
+        {
+          "name": "Forward",
+          "params": [
+            "in",
+            "prob"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "Recommend",
+          "params": [
+            "in"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "Learn",
+          "params": [
+            "in",
+            "targetClass"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 50
+        },
+        {
+          "name": "SampleSignal",
+          "params": [
+            "in1",
+            "in2",
+            "out"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "FlushSample",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "TickBoss",
+          "params": [
+            "dt",
+            "threat",
+            "hpRatio"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 28
+        }
+      ],
+      "classes": [
+        {
+          "name": "PerceptronLearner",
+          "methods": [
+            "Accumulate",
+            "Reset",
+            "Update"
+          ],
+          "properties": [
+            "accInput1",
+            "accInput2",
+            "accOutput",
+            "samples",
+            "lastLoss",
+            "lrDecay"
+          ],
+          "exported": true,
+          "lineCount": 44
+        },
+        {
+          "name": "ThreatMap",
+          "methods": [
+            "AddKill",
+            "Get",
+            "GetMax",
+            "Decay"
+          ],
+          "properties": [
+            "cell"
+          ],
+          "exported": true,
+          "lineCount": 28
+        },
+        {
+          "name": "EnemyBrain",
+          "methods": [
+            "Eval",
+            "Learn"
+          ],
+          "properties": [
+            "wIH",
+            "bH",
+            "wHO",
+            "bO",
+            "lastLoss",
+            "trainCount"
+          ],
+          "exported": true,
+          "lineCount": 51
+        },
+        {
+          "name": "EnemyIntel",
+          "methods": [
+            "EnemyIntel",
+            "ClampLaneCount",
+            "ResetWave",
+            "LearnFromWave",
+            "BrainPickPath",
+            "WeightedType",
+            "PickPath",
+            "PreferredPath"
+          ],
+          "properties": [
+            "brain",
+            "typeSurvRate",
+            "pathSurvRate",
+            "typeSpawned",
+            "typeSurvived",
+            "pathSpawned",
+            "pathSurvived",
+            "pathAvgThreat",
+            "wavesLearned",
+            "adapted"
+          ],
+          "exported": true,
+          "lineCount": 127
+        },
+        {
+          "name": "DefenseAdvisorNN",
+          "methods": [
+            "DefenseAdvisorNN",
+            "Forward",
+            "Recommend",
+            "Learn"
+          ],
+          "properties": [
+            "wIH",
+            "bH",
+            "wHO",
+            "bO",
+            "lastProb",
+            "lastLoss",
+            "trainCount"
+          ],
+          "exported": true,
+          "lineCount": 107
+        },
+        {
+          "name": "AIHint",
+          "methods": [],
+          "properties": [
+            "gx",
+            "suggest",
+            "score",
+            "reason",
+            "flashT"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "Tower",
+          "methods": [
+            "SampleSignal",
+            "FlushSample"
+          ],
+          "properties": [
+            "id",
+            "type",
+            "gx",
+            "level",
+            "sig",
+            "w1",
+            "w2",
+            "bias",
+            "cooldown",
+            "anim",
+            "conns",
+            "range",
+            "damage",
+            "fireRateTicks",
+            "kills",
+            "totalDmg",
+            "upgradeFlash",
+            "pulseBurst",
+            "burstCount",
+            "activeCd",
+            "learner",
+            "pctTargetAcc",
+            "pctTargetSamples",
+            "sampledIn1",
+            "sampledIn2",
+            "sampledOut",
+            "sampleCount",
+            "lossHistory"
+          ],
+          "exported": true,
+          "lineCount": 58
+        },
+        {
+          "name": "Enemy",
+          "methods": [
+            "TickBoss"
+          ],
+          "properties": [
+            "id",
+            "type",
+            "pathPos",
+            "hp",
+            "maxHp",
+            "armor",
+            "spd",
+            "reward",
+            "angle",
+            "marked",
+            "markTimer",
+            "stealth",
+            "flashTimer",
+            "regenTimer",
+            "stunTimer",
+            "pathIdx",
+            "shielded",
+            "shieldHp",
+            "hasSplit",
+            "tag",
+            "spawnFx",
+            "bossState",
+            "bossStateTimer",
+            "evadeSpdMult",
+            "localThreat"
+          ],
+          "exported": true,
+          "lineCount": 63
+        },
+        {
+          "name": "Bullet",
+          "methods": [],
+          "properties": [
+            "pos",
+            "targetId",
+            "sourceId",
+            "dmg",
+            "crit",
+            "splash",
+            "splashR",
+            "col"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "SigPulse",
+          "methods": [],
+          "properties": [
+            "src",
+            "t",
+            "col"
+          ],
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "Particle",
+          "methods": [],
+          "properties": [
+            "pos",
+            "life",
+            "col"
+          ],
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "FloatText",
+          "methods": [],
+          "properties": [
+            "pos",
+            "text",
+            "col",
+            "life"
+          ],
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "Star",
+          "methods": [],
+          "properties": [
+            "x"
+          ],
+          "exported": true,
+          "lineCount": 1
+        }
+      ],
+      "imports": [
+        {
+          "source": "constants.h",
+          "specifiers": [
+            "constants.h"
+          ]
+        },
+        {
+          "source": "raylib.h",
+          "specifiers": [
+            "raylib.h"
+          ]
+        },
+        {
+          "source": "vector",
+          "specifiers": [
+            "vector"
+          ]
+        },
+        {
+          "source": "string",
+          "specifiers": [
+            "string"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cmath",
+          "specifiers": [
+            "cmath"
+          ]
+        },
+        {
+          "source": "random",
+          "specifiers": [
+            "random"
+          ]
+        },
+        {
+          "source": "array",
+          "specifiers": [
+            "array"
+          ]
+        }
+      ],
+      "exports": [
+        "Accumulate",
+        "Reset",
+        "Update",
+        "PerceptronLearner",
+        "AddKill",
+        "Get",
+        "GetMax",
+        "Decay",
+        "ThreatMap",
+        "Eval",
+        "Learn",
+        "EnemyBrain",
+        "EnemyIntel",
+        "ClampLaneCount",
+        "ResetWave",
+        "LearnFromWave",
+        "BrainPickPath",
+        "WeightedType",
+        "PickPath",
+        "PreferredPath",
+        "EnemyIntel",
+        "DefenseAdvisorNN",
+        "Forward",
+        "Recommend",
+        "Learn",
+        "DefenseAdvisorNN",
+        "AIHint",
+        "SampleSignal",
+        "FlushSample",
+        "Tower",
+        "TickBoss",
+        "Enemy",
+        "Bullet",
+        "SigPulse",
+        "Particle",
+        "FloatText",
+        "Star"
+      ],
+      "totalLines": 573,
+      "hasStructuralAnalysis": true
+    },
+    "tower_data.cpp": {
+      "filePath": "tower_data.cpp",
+      "contentHash": "a450c0ec3228dd9eaa7fa422b04aa0d2cf4ec30238d5d17cff945d08f2deda3b",
+      "functions": [],
+      "classes": [],
+      "imports": [
+        {
+          "source": "constants.h",
+          "specifiers": [
+            "constants.h"
+          ]
+        }
+      ],
+      "exports": [],
+      "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "tutorial.cpp": {
+      "filePath": "tutorial.cpp",
+      "contentHash": "926a4fe30df2794a0df973bdf051d93c91cd55317e037935a05bcfd93ea76252",
+      "functions": [
+        {
+          "name": "Obj",
+          "params": [
+            "kind"
+          ],
+          "returnType": "TutorialObjective",
+          "exported": false,
+          "lineCount": 13
+        },
+        {
+          "name": "IsTutorialTowerAllowed",
+          "params": [
+            "G",
+            "type"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 6
+        },
+        {
+          "name": "IsTutorialWaveStartAllowed",
+          "params": [
+            "G"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "ConnectTutorialTowers",
+          "params": [
+            "src",
+            "dst"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 3
+        },
+        {
+          "name": "ConfigureTutorialLanes",
+          "params": [
+            "G",
+            "laneCount"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 8
+        },
+        {
+          "name": "ClampTutorialLessonIndex",
+          "params": [
+            "index"
+          ],
+          "returnType": "int",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "ClearTutorialSessionWorld",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 36
+        },
+        {
+          "name": "EnterTutorialSelect",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "StartTutorial",
+          "params": [
+            "G",
+            "lessonId"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 26
+        },
+        {
+          "name": "RestartTutorialLesson",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 3
+        },
+        {
+          "name": "AdvanceTutorialStep",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 18
+        },
+        {
+          "name": "CompleteTutorialLesson",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "RecordTutorialTowerPlaced",
+          "params": [
+            "G",
+            "type"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "RecordTutorialTowerSelected",
+          "params": [
+            "G",
+            "type"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "RecordTutorialConnection",
+          "params": [
+            "G",
+            "srcType",
+            "dstType"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "RecordTutorialWaveStarted",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "RecordTutorialSkillUsed",
+          "params": [
+            "G",
+            "type"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 13
+        },
+        {
+          "name": "RecordTutorialEnemyKilled",
+          "params": [
+            "G",
+            "type"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "RecordTutorialSurvived",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 4
+        },
+        {
+          "name": "ExitTutorial",
+          "params": [
+            "G",
+            "target"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 12
+        },
+        {
+          "name": "HandleTutorialInput",
+          "params": [
+            "G"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 109
+        },
+        {
+          "name": "ObjectiveComplete",
+          "params": [
+            "G",
+            "step"
+          ],
+          "returnType": "bool",
+          "exported": false,
+          "lineCount": 31
+        },
+        {
+          "name": "UpdateTutorial",
+          "params": [
+            "G",
+            "dt"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "BuildTutorialScenario",
+          "params": [
+            "G",
+            "lessonId"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 110
+        },
+        {
+          "name": "SpawnTutorialEnemy",
+          "params": [
+            "G",
+            "type",
+            "laneSlot",
+            "pathPos"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 48
+        },
+        {
+          "name": "DrawTutorialCellHint",
+          "params": [
+            "G",
+            "gx",
+            "gy",
+            "col",
+            "label"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 15
+        },
+        {
+          "name": "DrawTutorialMapHints",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 48
+        },
+        {
+          "name": "SpawnTutorialWaveForLesson",
+          "params": [
+            "G",
+            "lessonId"
+          ],
+          "returnType": "void",
+          "exported": false,
+          "lineCount": 43
+        },
+        {
+          "name": "StartTutorialWave",
+          "params": [
+            "G"
+          ],
+          "returnType": "bool",
+          "exported": true,
+          "lineCount": 42
+        },
+        {
+          "name": "DrawTutorialSelect",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 73
+        },
+        {
+          "name": "DrawTutorialOverlay",
+          "params": [
+            "G"
+          ],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 61
+        }
+      ],
+      "classes": [],
+      "imports": [
+        {
+          "source": "tutorial.h",
+          "specifiers": [
+            "tutorial.h"
+          ]
+        },
+        {
+          "source": "draw.h",
+          "specifiers": [
+            "draw.h"
+          ]
+        },
+        {
+          "source": "algorithm",
+          "specifiers": [
+            "algorithm"
+          ]
+        },
+        {
+          "source": "cstdio",
+          "specifiers": [
+            "cstdio"
+          ]
+        }
+      ],
+      "exports": [
+        "IsTutorialTowerAllowed",
+        "IsTutorialWaveStartAllowed",
+        "ClampTutorialLessonIndex",
+        "EnterTutorialSelect",
+        "StartTutorial",
+        "RestartTutorialLesson",
+        "AdvanceTutorialStep",
+        "CompleteTutorialLesson",
+        "RecordTutorialTowerPlaced",
+        "RecordTutorialTowerSelected",
+        "RecordTutorialConnection",
+        "RecordTutorialWaveStarted",
+        "RecordTutorialSkillUsed",
+        "RecordTutorialEnemyKilled",
+        "RecordTutorialSurvived",
+        "ExitTutorial",
+        "HandleTutorialInput",
+        "UpdateTutorial",
+        "BuildTutorialScenario",
+        "SpawnTutorialEnemy",
+        "StartTutorialWave",
+        "DrawTutorialSelect",
+        "DrawTutorialOverlay"
+      ],
+      "totalLines": 998,
+      "hasStructuralAnalysis": true
+    },
+    "tutorial.h": {
+      "filePath": "tutorial.h",
+      "contentHash": "0e671b64339831d5b9b109e047b537c8860cc71d5bdaef6d84d9142f62671aa4",
+      "functions": [
+        {
+          "name": "TutorialLessonCardRect",
+          "params": [
+            "index"
+          ],
+          "returnType": "Rectangle",
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "TutorialExitPromptPanelRect",
+          "params": [],
+          "returnType": "Rectangle",
+          "exported": true,
+          "lineCount": 8
+        },
+        {
+          "name": "TutorialExitPromptButtonRect",
+          "params": [
+            "index"
+          ],
+          "returnType": "Rectangle",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "ResetObjectiveCounters",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 14
+        },
+        {
+          "name": "ResetTransient",
+          "params": [],
+          "returnType": "void",
+          "exported": true,
+          "lineCount": 11
+        }
+      ],
+      "classes": [
+        {
+          "name": "Game",
+          "methods": [],
+          "properties": [],
+          "exported": true,
+          "lineCount": 1
+        },
+        {
+          "name": "TutorialLessonInfo",
+          "methods": [],
+          "properties": [
+            "id",
+            "title",
+            "focus",
+            "enemy",
+            "duration",
+            "desc",
+            "col"
+          ],
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "TutorialObjective",
+          "methods": [],
+          "properties": [
+            "kind",
+            "towerType",
+            "enemyType",
+            "requiredCount",
+            "requiredSeconds"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "TutorialStep",
+          "methods": [],
+          "properties": [
+            "title",
+            "body",
+            "hint",
+            "objective",
+            "allowSkip"
+          ],
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "TutorialRuntime",
+          "methods": [
+            "ResetObjectiveCounters",
+            "ResetTransient"
+          ],
+          "properties": [
+            "active",
+            "lessonId",
+            "selectedLesson",
+            "stepIndex",
+            "stepTimer",
+            "exitPromptOpen",
+            "exitPromptChoice",
+            "returnToSelectOnExit",
+            "lessonComplete",
+            "lastPlacedType",
+            "lastSelectedType",
+            "lastSkillType",
+            "lastConnSrcType",
+            "lastConnDstType",
+            "placedCount",
+            "selectedCount",
+            "connectionCount",
+            "waveStartCount",
+            "skillUseCount",
+            "survivalCount",
+            "killCountByType",
+            "completedLessons"
+          ],
+          "exported": true,
+          "lineCount": 51
+        }
+      ],
+      "imports": [
+        {
+          "source": "constants.h",
+          "specifiers": [
+            "constants.h"
+          ]
+        },
+        {
+          "source": "array",
+          "specifiers": [
+            "array"
+          ]
+        }
+      ],
+      "exports": [
+        "Game",
+        "TutorialLessonCardRect",
+        "TutorialExitPromptPanelRect",
+        "TutorialExitPromptButtonRect",
+        "TutorialLessonInfo",
+        "TutorialObjective",
+        "TutorialStep",
+        "ResetObjectiveCounters",
+        "ResetTransient",
+        "TutorialRuntime"
+      ],
+      "totalLines": 198,
+      "hasStructuralAnalysis": true
+    }
+  }
+}

@@ -1,0 +1,13 @@
+[   42976ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://127.0.0.1:5173/node_modules/.vite/deps/react-dom_client.js?v=667a6a93:20102
+[   43533ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/diff-overlay.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43535ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/knowledge-graph.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43536ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/config.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43536ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/meta.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43536ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/domain-graph.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43537ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/diff-overlay.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43549ms] [ERROR] Knowledge graph validation failed: Missing or invalid project metadata @ http://127.0.0.1:5173/src/App.tsx:156
+[   43580ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/knowledge-graph.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43595ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/config.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43595ms] [ERROR] Knowledge graph validation failed: Missing or invalid project metadata @ http://127.0.0.1:5173/src/App.tsx:156
+[   43603ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/meta.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0
+[   43604ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://127.0.0.1:5173/domain-graph.json?token=33f37f3ed36c2e4597e7161c7fd0baed:0

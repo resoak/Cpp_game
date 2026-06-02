@@ -1,0 +1,208 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - heading "LogicGateDefense" [level=1] [ref=e6]
+      - generic [ref=e8]:
+        - button "Overview" [ref=e9]
+        - button "Learn" [ref=e10]
+        - button "Deep Dive" [ref=e11]
+    - generic [ref=e13]:
+      - button "Diff OFF" [disabled] [ref=e15]
+      - generic [ref=e17]:
+        - button "Files" [ref=e18]
+        - button "+Classes" [ref=e19]
+      - generic [ref=e20]:
+        - button "Code" [ref=e21]: Code
+        - button "Config" [ref=e23]: Config
+        - button "Docs" [ref=e25]: Docs
+        - button "Infra" [ref=e27]: Infra
+        - button "Data" [ref=e29]: Data
+        - button "Domain" [ref=e31]: Domain
+        - button "Knowledge" [ref=e33]: Knowledge
+      - generic [ref=e35]:
+        - generic [ref=e36]: 7 layers
+        - generic [ref=e37]:
+          - generic [ref=e40]:
+            - text: 文件與建置設定
+            - generic [ref=e41]: (4)
+          - generic [ref=e44]:
+            - text: 應用程式入口與全域基礎
+            - generic [ref=e45]: (5)
+          - generic [ref=e48]:
+            - text: 核心領域模型
+            - generic [ref=e49]: (5)
+          - generic [ref=e52]:
+            - text: 模擬、戰鬥與路徑系統
+            - generic [ref=e53]: (4)
+          - generic [ref=e56]:
+            - text: 輸入與互動控制
+            - generic [ref=e57]: (2)
+          - generic [ref=e60]:
+            - text: 繪圖與使用者介面
+            - generic [ref=e61]: (4)
+          - generic [ref=e64]:
+            - text: 教學系統
+            - generic [ref=e65]: (2)
+    - generic [ref=e66]:
+      - button "Filter" [ref=e68]:
+        - img [ref=e69]
+        - text: Filter
+      - button "Export" [ref=e72]:
+        - img [ref=e73]
+        - text: Export
+      - button "Path" [ref=e75]:
+        - img [ref=e76]
+        - generic [ref=e78]: Path
+      - button "Theme" [ref=e80]:
+        - img [ref=e81]
+        - generic [ref=e87]: Theme
+      - button "Show keyboard shortcuts" [ref=e88]:
+        - img [ref=e89]
+  - generic [ref=e92]:
+    - img [ref=e93]
+    - textbox "Search nodes by name, summary, or tags..." [ref=e95]
+    - generic [ref=e96]:
+      - button "Fuzzy" [ref=e97]
+      - button "Semantic" [ref=e98]
+  - button "Knowledge graph loaded with 368 auto-corrections click to expand" [ref=e100]:
+    - img [ref=e101]
+    - img [ref=e103]
+    - generic [ref=e105]: Knowledge graph loaded with 368 auto-corrections
+    - generic [ref=e106]: click to expand
+  - generic [ref=e107]:
+    - generic [ref=e108]:
+      - generic [ref=e109]:
+        - generic [ref=e111]: Project Overview
+        - application [ref=e112]:
+          - generic [ref=e114]:
+            - generic:
+              - generic:
+                - group [ref=e115]:
+                  - generic [ref=e119] [cursor=pointer]:
+                    - generic [ref=e120]:
+                      - generic [ref=e121]: Layer
+                      - generic [ref=e123]: simple
+                    - generic [ref=e124]: 文件與建置設定
+                    - generic [ref=e125]: 包含 README、CMake、版本控制忽略規則與執行時資源，定義如何理解、建置與執行專案。
+                    - generic [ref=e126]:
+                      - generic [ref=e127]: 4 files
+                      - generic [ref=e128]: Click to explore →
+                - group [ref=e130]:
+                  - generic [ref=e134] [cursor=pointer]:
+                    - generic [ref=e135]:
+                      - generic [ref=e136]: Layer
+                      - generic [ref=e138]: simple
+                    - generic [ref=e139]: 應用程式入口與全域基礎
+                    - generic [ref=e140]: 負責 raylib 初始化、主迴圈、字型載入、虛擬解析度與全域畫面狀態。
+                    - generic [ref=e141]:
+                      - generic [ref=e142]: 5 files
+                      - generic [ref=e143]: Click to explore →
+                - group [ref=e145]:
+                  - generic [ref=e149] [cursor=pointer]:
+                    - generic [ref=e150]:
+                      - generic [ref=e151]: Layer
+                      - generic [ref=e153]: complex
+                    - generic [ref=e154]: 核心領域模型
+                    - generic [ref=e155]: 定義遊戲常數、塔/敵人資料模型、Game 聚合狀態與塔 metadata。
+                    - generic [ref=e156]:
+                      - generic [ref=e157]: 5 files
+                      - generic [ref=e158]: Click to explore →
+                - group [ref=e160]:
+                  - generic [ref=e164] [cursor=pointer]:
+                    - generic [ref=e165]:
+                      - generic [ref=e166]: Layer
+                      - generic [ref=e168]: simple
+                    - generic [ref=e169]: 模擬、戰鬥與路徑系統
+                    - generic [ref=e170]: 處理訊號傳播、波次、戰鬥、Boss AI、技能、路線 preset 與多 lane 路徑。
+                    - generic [ref=e171]:
+                      - generic [ref=e172]: 4 files
+                      - generic [ref=e173]: Click to explore →
+                - group [ref=e175]:
+                  - generic [ref=e179] [cursor=pointer]:
+                    - generic [ref=e180]:
+                      - generic [ref=e181]: Layer
+                      - generic [ref=e183]: moderate
+                    - generic [ref=e184]: 輸入與互動控制
+                    - generic [ref=e185]: 處理玩家鍵盤滑鼠操作、建塔、連線、升級、技能與模式切換。
+                    - generic [ref=e186]:
+                      - generic [ref=e187]: 2 files
+                      - generic [ref=e188]: Click to explore →
+                - group [ref=e190]:
+                  - generic [ref=e194] [cursor=pointer]:
+                    - generic [ref=e195]:
+                      - generic [ref=e196]: Layer
+                      - generic [ref=e198]: complex
+                    - generic [ref=e199]: 繪圖與使用者介面
+                    - generic [ref=e200]: 負責世界物件、HUD、面板、選單、說明與結束畫面的呈現。
+                    - generic [ref=e201]:
+                      - generic [ref=e202]: 4 files
+                      - generic [ref=e203]: Click to explore →
+                - group [ref=e205]:
+                  - generic [ref=e209] [cursor=pointer]:
+                    - generic [ref=e210]:
+                      - generic [ref=e211]: Layer
+                      - generic [ref=e213]: complex
+                    - generic [ref=e214]: 教學系統
+                    - generic [ref=e215]: 提供教學 lesson、目標追蹤、教學情境、教學波次與 overlay UI。
+                    - generic [ref=e216]:
+                      - generic [ref=e217]: 2 files
+                      - generic [ref=e218]: Click to explore →
+          - img
+          - generic "Control Panel" [ref=e220]:
+            - button "Zoom In" [ref=e221] [cursor=pointer]:
+              - img [ref=e222]
+            - button "Zoom Out" [ref=e224] [cursor=pointer]:
+              - img [ref=e225]
+            - button "Fit View" [ref=e227] [cursor=pointer]:
+              - img [ref=e228]
+            - button "Toggle Interactivity" [ref=e230] [cursor=pointer]:
+              - img [ref=e231]
+          - img "Mini Map" [ref=e234]
+          - link "React Flow attribution" [ref=e243] [cursor=pointer]:
+            - /url: https://reactflow.dev
+            - text: React Flow
+      - generic: Press ? for keyboard shortcuts
+    - complementary [ref=e245]:
+      - generic [ref=e246]:
+        - generic [ref=e247]:
+          - button "Info" [ref=e248]
+          - button "Files" [ref=e249]
+        - generic [ref=e251]:
+          - generic [ref=e252]:
+            - heading "Project Tour" [level=2] [ref=e253]
+            - paragraph [ref=e254]: 7 steps · Guided walkthrough of the codebase
+          - button "Start Tour" [ref=e255]
+          - generic [ref=e256]:
+            - heading "steps" [level=3] [ref=e257]
+            - generic [ref=e258]:
+              - generic [ref=e259]: "1."
+              - generic [ref=e260]: 專案概覽與建置方式
+            - generic [ref=e261]:
+              - generic [ref=e262]: "2."
+              - generic [ref=e263]: 主迴圈與全域基礎
+            - generic [ref=e264]:
+              - generic [ref=e265]: "3."
+              - generic [ref=e266]: 核心遊戲狀態與資料模型
+            - generic [ref=e267]:
+              - generic [ref=e268]: "4."
+              - generic [ref=e269]: 戰鬥模擬與路線規劃
+            - generic [ref=e270]:
+              - generic [ref=e271]: "5."
+              - generic [ref=e272]: 玩家輸入到遊戲行為
+            - generic [ref=e273]:
+              - generic [ref=e274]: "6."
+              - generic [ref=e275]: 畫面呈現與 HUD
+            - generic [ref=e276]:
+              - generic [ref=e277]: "7."
+              - generic [ref=e278]: 教學流程
+  - dialog "Welcome to the knowledge graph" [ref=e280]:
+    - generic [ref=e281]:
+      - generic [ref=e282]: "01"
+      - generic [ref=e283]: / 05
+      - generic [ref=e285]: UNDERSTAND-ANYTHING · GET STARTED
+    - heading "Welcome to the knowledge graph" [level=2] [ref=e286]
+    - paragraph [ref=e287]: The dots and lines you see are entities and relations Understand-Anything extracted from this project. A node can be a file, class, or function from the code — or a concept, entity, or claim from a knowledge wiki.
+    - blockquote [ref=e288]: ·Five steps to cover the core operations
+    - generic [ref=e295]:
+      - button "Don't show again" [ref=e296] [cursor=pointer]
+      - button "Next" [ref=e297] [cursor=pointer]
