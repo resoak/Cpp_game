@@ -20,6 +20,11 @@ int main() {
 
     LoadChineseFont();
     BuildPath(0);
+#if !defined(NDEBUG)
+    if (!ValidatePathSafety()) {
+        TraceLog(LOG_WARNING, "Path safety validation failed");
+    }
+#endif
 
     bool borderlessFS = false;
     int  savedW = WIN_W, savedH = WIN_H;

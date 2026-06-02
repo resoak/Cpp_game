@@ -47,6 +47,7 @@ bool                           IsActiveLaneCell(int laneSlot, int gx, int gy);
 bool                           IsAnyActivePathCell(int gx, int gy, int activeLaneCount = 1);
 std::vector<PathCell>          BuildPresetPathCells(int presetIdx);
 void                           SetActiveLanePreset(int laneSlot, int presetIdx);
+bool                           ValidatePathSafety();
 
 // ── 建置函式 ─────────────────────────────────────────────────────
 void BuildPath(int presetIdx = 0);

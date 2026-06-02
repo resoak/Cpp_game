@@ -215,7 +215,7 @@ void HandleInput(Game& G) {
     // ── 技能觸發 [Q] ─────────────────────────────────────────────
     if (IsKeyPressed(KEY_Q) && G.selectedId >= 0) {
         Tower* st = G.FindTower(G.selectedId);
-        if (st && st->type != TType::CPU) {
+        if (st && HasTowerSkillSlot(st->type)) {
             if (st->activeCd > 0.f) {
                 char b2[48];
                 snprintf(b2, 48, "技能冷卻中...%.0f 秒", st->activeCd);
@@ -223,8 +223,9 @@ void HandleInput(Game& G) {
             } else {
                 ActivateSkill(G, *st);
                 RecordTutorialSkillUsed(G, st->type);
+                int ti = (int)st->type;
                 char b2[48];
-                snprintf(b2, 48, "[%s] %s！", TDef(st->type).sym, SKILL_NAME[(int)st->type]);
+                snprintf(b2, 48, "[%s] %s！", TDef(st->type).sym, SKILL_NAME[ti]);
                 G.SetMsg(b2);
             }
         }
@@ -311,7 +312,10 @@ void HandleInput(Game& G) {
 
         // 放置新塔
         if (G.placing != TType::NONE) {
-            if (G.IsPath(hgx, hgy)) {
+            if (!IsBuildableTowerType(G.placing)) {
+                G.placing = TType::NONE;
+                G.SetMsg("[錯誤] 無效元件類型");
+            } else if (G.IsPath(hgx, hgy)) {
                 G.SetMsg("[錯誤] 不能放在路徑上！");
             } else if (G.credits >= TDef(G.placing).baseCost) {
                 Tower nt;

@@ -2,8 +2,15 @@
 //  path.cpp — 路徑預設資料與建置函式
 // ================================================================
 #include "path.h"
+#include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <initializer_list>
+
+namespace {
+constexpr int SAFE_FALLBACK_PRESET = 0;
+constexpr int MAX_PATH_STEPS = COLS * ROWS * 2;
+}
 
 static PathPreset MakePreset(int count,
                              std::initializer_list<int> xs,
@@ -37,7 +44,7 @@ const PathPreset PATH_PRESETS[] = {
     MakePreset(9,  {11,11,6,6,15,15,10,10,11},         {-1,3,3,9,9,13,13,8,8},           "天井折返", PathEntrySide::TOP,    5, 4),
     MakePreset(9,  {18,18,9,9,14,14,7,7,11},           {-1,2,2,11,11,5,5,8,8},           "北側橫切", PathEntrySide::TOP,    6, 3),
     MakePreset(9,  {24,20,20,14,14,18,18,11,11},       {8,8,3,3,12,12,15,15,8},          "東線鉤擊", PathEntrySide::RIGHT,  7, 4),
-    MakePreset(9,  {24,19,19,13,13,9,9,12,11},         {5,5,14,14,6,6,11,11,8},          "右側夾攻", PathEntrySide::RIGHT,  8, 3),
+    MakePreset(10, {24,19,19,13,13,9,9,12,11,11},       {5,5,14,14,6,6,11,11,11,8},       "右側夾攻", PathEntrySide::RIGHT,  8, 3),
     MakePreset(9,  {11,11,4,4,17,17,12,12,11},         {20,15,15,9,9,4,4,8,8},           "南線迴轉", PathEntrySide::BOTTOM, 9, 4),
     MakePreset(9,  {18,18,8,8,14,14,10,10,11},         {20,14,14,5,5,11,11,8,8},         "底部穿插", PathEntrySide::BOTTOM, 10, 3),
 };
@@ -59,34 +66,82 @@ static int NormalizeLaneSlot(int laneSlot) {
     return laneSlot;
 }
 
-static void BuildLaneCells(const PathPreset& preset,
-                           std::vector<PathCell>& cells,
-                           bool mask[24][20]) {
+static bool IsReachableSegment(int x0, int y0, int x1, int y1) {
+    int dx = std::abs(x1 - x0);
+    int dy = std::abs(y1 - y0);
+    return dx == 0 || dy == 0 || dx == dy;
+}
+
+static bool IsInGrid(int gx, int gy) {
+    return gx >= 0 && gx < COLS && gy >= 0 && gy < ROWS;
+}
+
+static bool EndsNearCpu(const std::vector<PathCell>& cells) {
+    if (cells.empty()) return false;
+    const PathCell& last = cells.back();
+    return std::abs(last.gx - CPU_GX) <= 1 &&
+           std::abs(last.gy - CPU_GY) <= 1;
+}
+
+static bool IsPathResultSafe(const std::vector<PathCell>& cells, bool mask[24][20]) {
+    return !cells.empty() && mask[CPU_GX][CPU_GY] && EndsNearCpu(cells);
+}
+
+static void PushPathCell(std::vector<PathCell>& cells, bool mask[24][20], int gx, int gy) {
+    if (!IsInGrid(gx, gy)) return;
+    bool notDup = cells.empty() ||
+                  cells.back().gx != gx ||
+                  cells.back().gy != gy;
+    if (!notDup) return;
+    mask[gx][gy] = true;
+    cells.push_back({gx, gy});
+}
+
+static bool BuildLaneCellsChecked(const PathPreset& preset,
+                                  std::vector<PathCell>& cells,
+                                  bool mask[24][20]) {
     cells.clear();
     memset(mask, 0, sizeof(bool) * 24 * 20);
+
+    if (preset.count < 2 || preset.count > 16) return false;
 
     for (int wi = 0; wi + 1 < preset.count; wi++) {
         int x0 = preset.wx[wi],   y0 = preset.wy[wi];
         int x1 = preset.wx[wi+1], y1 = preset.wy[wi+1];
+        if (!IsReachableSegment(x0, y0, x1, y1)) return false;
+
         int dx = (x1 > x0) ? 1 : (x1 < x0) ? -1 : 0;
         int dy = (y1 > y0) ? 1 : (y1 < y0) ? -1 : 0;
         int cx = x0, cy = y0;
+        int steps = 0;
 
         while (cx != x1 || cy != y1) {
-            if (cx >= 0 && cx < COLS && cy >= 0 && cy < ROWS) {
-                bool notDup = cells.empty() ||
-                              cells.back().gx != cx ||
-                              cells.back().gy != cy;
-                if (notDup) {
-                    mask[cx][cy] = true;
-                    cells.push_back({cx, cy});
-                }
-            }
+            PushPathCell(cells, mask, cx, cy);
             cx += dx;
             cy += dy;
+            if (++steps > MAX_PATH_STEPS) return false;
         }
     }
 
+    mask[CPU_GX][CPU_GY] = true;
+    return IsPathResultSafe(cells, mask) &&
+           preset.wx[preset.count - 1] == CPU_GX &&
+           preset.wy[preset.count - 1] == CPU_GY;
+}
+
+static void BuildLaneCellsOrFallback(int presetIdx,
+                                     std::vector<PathCell>& cells,
+                                     bool mask[24][20],
+                                     int& appliedPresetIdx) {
+    appliedPresetIdx = NormalizePathPresetIdx(presetIdx);
+    if (BuildLaneCellsChecked(GetPathPreset(appliedPresetIdx), cells, mask)) return;
+
+    appliedPresetIdx = SAFE_FALLBACK_PRESET;
+    if (BuildLaneCellsChecked(GetPathPreset(appliedPresetIdx), cells, mask)) return;
+
+    cells.clear();
+    memset(mask, 0, sizeof(bool) * 24 * 20);
+    PushPathCell(cells, mask, CPU_GX, CPU_GY);
     mask[CPU_GX][CPU_GY] = true;
 }
 
@@ -129,18 +184,62 @@ bool IsAnyActivePathCell(int gx, int gy, int activeLaneCount) {
 std::vector<PathCell> BuildPresetPathCells(int presetIdx) {
     std::vector<PathCell> cells;
     bool mask[24][20] = {};
-    BuildLaneCells(GetPathPreset(presetIdx), cells, mask);
+    int appliedPresetIdx = 0;
+    BuildLaneCellsOrFallback(presetIdx, cells, mask, appliedPresetIdx);
     return cells;
 }
 
 void SetActiveLanePreset(int laneSlot, int presetIdx) {
     int lane = NormalizeLaneSlot(laneSlot);
-    int normalized = NormalizePathPresetIdx(presetIdx);
-    const PathPreset& preset = GetPathPreset(normalized);
+    int appliedPresetIdx = 0;
+    BuildLaneCellsOrFallback(presetIdx, PATH_CELLS[lane], IS_PATH[lane], appliedPresetIdx);
+    const PathPreset& preset = GetPathPreset(appliedPresetIdx);
 
-    CURRENT_PATH_IDX[lane] = normalized;
+    CURRENT_PATH_IDX[lane] = appliedPresetIdx;
     CUR_PRESET[lane] = &preset;
-    BuildLaneCells(preset, PATH_CELLS[lane], IS_PATH[lane]);
+}
+
+bool ValidatePathSafety() {
+    if (PATH_PRESET_COUNT <= 0) return false;
+
+    bool ok = true;
+    std::vector<PathCell> cells;
+    bool mask[24][20] = {};
+
+    for (int presetIdx = 0; presetIdx < PATH_PRESET_COUNT; presetIdx++) {
+        ok = BuildLaneCellsChecked(PATH_PRESETS[presetIdx], cells, mask) &&
+             IsPathResultSafe(cells, mask) && ok;
+
+        int appliedPresetIdx = 0;
+        BuildLaneCellsOrFallback(presetIdx, cells, mask, appliedPresetIdx);
+        ok = IsPathResultSafe(cells, mask) && ok;
+    }
+
+    for (int presetIdx : {-1, PATH_PRESET_COUNT, PATH_PRESET_COUNT * 3 + 1}) {
+        int appliedPresetIdx = 0;
+        BuildLaneCellsOrFallback(presetIdx, cells, mask, appliedPresetIdx);
+        ok = IsPathResultSafe(cells, mask) && ok;
+    }
+
+    auto savedIdx    = CURRENT_PATH_IDX;
+    auto savedPreset = CUR_PRESET;
+    auto savedCells  = PATH_CELLS;
+    bool savedMask[MAX_LANES][24][20] = {};
+    memcpy(savedMask, IS_PATH, sizeof(IS_PATH));
+
+    for (int lane = 0; lane < MAX_LANES; lane++) {
+        for (int presetIdx = 0; presetIdx < PATH_PRESET_COUNT; presetIdx++) {
+            SetActiveLanePreset(lane, presetIdx);
+            ok = IsPathResultSafe(PATH_CELLS[lane], IS_PATH[lane]) && ok;
+        }
+    }
+
+    CURRENT_PATH_IDX = savedIdx;
+    CUR_PRESET       = savedPreset;
+    PATH_CELLS       = savedCells;
+    memcpy(IS_PATH, savedMask, sizeof(IS_PATH));
+
+    return ok;
 }
 
 // ══════════════════════════════════════════════════════════════════

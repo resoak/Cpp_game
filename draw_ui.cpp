@@ -403,7 +403,7 @@ void DrawRightPanel(Game& G) {
     DTX(def.desc,                          (float)rx+10,(float)y,FS_TINY,AlphaOf(WHITE,160));    y+=22;
     DTX(def.tiers[sel->level-1].ability,   (float)rx+10,(float)y,FS_TINY,AlphaOf(def.col,200));  y+=22;
 
-    if (sel->type != TType::CPU && sel->level < 3) {
+    if (IsBuildableTowerType(sel->type) && sel->level < 3) {
         int  ucost=TDef(sel->type).tiers[sel->level].cost;
         bool canUp=(G.credits>=ucost);
         Color uc=canUp?COL_PERC:AlphaOf(COL_PERC,60);
@@ -461,7 +461,7 @@ void DrawRightPanel(Game& G) {
     }
 
     // ── 主動技能資訊 ─────────────────────────────────────────────
-    if (sel->type != TType::CPU) {
+    if (HasTowerSkillSlot(sel->type)) {
         int   ti=  (int)sel->type;
         float maxCd=SKILL_CD[ti];
         if (maxCd > 0.f) {

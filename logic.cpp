@@ -408,6 +408,17 @@ static RoutePlan PlanNextRouteSet(Game& G, int laneCount, int targetWave) {
     return plan;
 }
 
+static void RefreshPreviewCells(Game& G) {
+    int count = std::max(1, std::min(MAX_LANES, G.nextPreviewLaneCount));
+    for (int lane = 0; lane < MAX_LANES; lane++) {
+        if (lane < count && G.nextPreviewPaths[lane] >= 0) {
+            G.nextPreviewCells[lane] = BuildPresetPathCells(G.nextPreviewPaths[lane]);
+        } else {
+            G.nextPreviewCells[lane].clear();
+        }
+    }
+}
+
 static void UpdateUpcomingRoutePlan(Game& G) {
     int nextWave = G.wave + 1;
     G.nextPreviewLaneCount = LaneCountForWave(nextWave);
@@ -419,11 +430,13 @@ static void UpdateUpcomingRoutePlan(Game& G) {
     if (!mustReplan) {
         G.hasPlannedRouteChange = false;
         G.nextPreviewPaths = CurrentRoutePlan(G, G.nextPreviewLaneCount);
+        for (auto& cells : G.nextPreviewCells) cells.clear();
         return;
     }
 
     G.hasPlannedRouteChange = true;
     G.nextPreviewPaths = PlanNextRouteSet(G, G.nextPreviewLaneCount, nextWave);
+    RefreshPreviewCells(G);
 }
 
 static void ApplyRoutePlan(Game& G, const RoutePlan& plan, int laneCount) {
@@ -572,7 +585,7 @@ int CalcPCTLayer(Game& G, int towerId, int depth) {
 // ══════════════════════════════════════════════════════════════════
 void ActivateSkill(Game& G, Tower& t) {
     if (t.activeCd > 0.f) return;
-    if (t.type == TType::CPU) return;
+    if (!HasTowerSkillSlot(t.type)) return;
 
     int     ti  = (int)t.type;
     Vector2 pos = G.CC(t.gx, t.gy);
@@ -886,7 +899,7 @@ static void UpdateLegacyPathIntelThreat(Game& G) {
 
 static int NextSpawnLane(Game& G) {
     int laneCount = G.ActiveLaneCount();
-    if (laneCount <= 1) return 0;
+    if (laneCount <= 1) return G.LaneCells(0).empty() ? -1 : 0;
 
     if (G.spawnLaneCursor < laneCount) {
         int lane = G.spawnLaneCursor++;
@@ -905,7 +918,7 @@ static int NextSpawnLane(Game& G) {
         if (!G.LaneCells(lane).empty()) return lane;
     }
 
-    return 0;
+    return G.LaneCells(0).empty() ? -1 : 0;
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -947,6 +960,9 @@ void SpawnEnemy(Game& G) {
         }
     }
 
+    int spawnLane = NextSpawnLane(G);
+    if (spawnLane < 0) return;
+
     Enemy e;
     e.id           = G.nextId++;
     e.type         = et;
@@ -954,7 +970,7 @@ void SpawnEnemy(Game& G) {
     e.angle        = 0.f;
     e.bossState    = BossState::CHARGE;
     e.evadeSpdMult = 1.f;
-    e.pathIdx      = NextSpawnLane(G);
+    e.pathIdx      = spawnLane;
 
     switch (et) {
         case EType::BASIC:
@@ -1373,6 +1389,9 @@ void Update(Game& G, float dt) {
         }
     }
     G.bullets = remainBullets;
+    if (G.bullets.size() > Game::MAX_BULLETS) {
+        G.bullets.erase(G.bullets.begin(), G.bullets.begin() + (G.bullets.size() - Game::MAX_BULLETS));
+    }
 
     // ── 擊殺結算 ─────────────────────────────────────────────────
     for (auto it = G.enemies.begin(); it != G.enemies.end();) {
@@ -1468,6 +1487,12 @@ void Update(Game& G, float dt) {
         if (e.spawnFx > 0)    e.spawnFx    -= dt;
         if (e.marked) { e.markTimer -= dt; if (e.markTimer <= 0) e.marked = false; }
 
+        const auto& pathRef = G.EnemyLaneCells(e);
+        if (pathRef.size() < 2) {
+            e.hp = 0.f;
+            continue;
+        }
+
         if (e.type == EType::ELITE) {
             e.regenTimer += dt;
             if (e.regenTimer >= 2.f) { e.regenTimer = 0.f; e.hp = std::min(e.maxHp, e.hp + e.maxHp * 0.05f); }
@@ -1485,8 +1510,7 @@ void Update(Game& G, float dt) {
         if (G.currentIncident == Game::Incident::ROUTE_SURGE && G.incidentTimer > 0.f) speed *= 1.22f;
         e.pathPos += speed * dt;
 
-        const auto& pathRef = G.EnemyLaneCells(e);
-        if (e.pathPos >= (float)(pathRef.size() - 1)) {
+        if (e.pathPos >= (float)((int)pathRef.size() - 1)) {
             int   liveDmg = (e.type == EType::BOSS) ? 5 : 1;
             float cpuDmg  = (e.type == EType::BOSS) ? 25.f : 8.f;
             G.lives  -= liveDmg;
@@ -1522,10 +1546,16 @@ void Update(Game& G, float dt) {
         p.vel.y += 55.f * dt; p.life -= dt;
     }
     G.particles.erase(std::remove_if(G.particles.begin(), G.particles.end(), [](const Particle& p) { return p.life <= 0; }), G.particles.end());
+    if (G.particles.size() > Game::MAX_PARTICLES) {
+        G.particles.erase(G.particles.begin(), G.particles.begin() + (G.particles.size() - Game::MAX_PARTICLES));
+    }
 
     // ── 浮動文字更新 ─────────────────────────────────────────────
     for (auto& f : G.floats) { f.pos.y -= 28.f * dt; f.life -= dt; }
     G.floats.erase(std::remove_if(G.floats.begin(), G.floats.end(), [](const FloatText& f) { return f.life <= 0; }), G.floats.end());
+    if (G.floats.size() > Game::MAX_FLOATS) {
+        G.floats.erase(G.floats.begin(), G.floats.begin() + (G.floats.size() - Game::MAX_FLOATS));
+    }
 
     // ── 波次結束 ─────────────────────────────────────────────────
     bool waveFinished = (G.phase == Game::FIGHT) && G.enemies.empty() && (G.spawned >= G.waveCount);

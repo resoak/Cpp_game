@@ -182,6 +182,7 @@ void Game::ApplyTowerStats(Tower& t) {
 }
 
 bool Game::UpgradeTower(Tower& t) {
+    if (!IsBuildableTowerType(t.type)) return false;
     if (t.type == TType::CPU || t.level >= 3) return false;
     int cost = TDef(t.type).tiers[t.level].cost;
     if (credits < cost) return false;
@@ -209,10 +210,16 @@ void Game::SpawnParticles(Vector2 pos, Color col, int n, float spd) {
         float s = sp(rng);
         particles.push_back({ pos, {cosf(a) * s, sinf(a) * s}, 0.7f, 0.7f, 5.f, col });
     }
+    if (particles.size() > MAX_PARTICLES) {
+        particles.erase(particles.begin(), particles.begin() + (particles.size() - MAX_PARTICLES));
+    }
 }
 
 void Game::AddFloat(Vector2 pos, const std::string& txt, Color col) {
     floats.push_back({ pos, txt, col, 2.f });
+    if (floats.size() > MAX_FLOATS) {
+        floats.erase(floats.begin(), floats.begin() + (floats.size() - MAX_FLOATS));
+    }
 }
 
 void Game::SetMsg(const std::string& m) {
@@ -518,6 +525,7 @@ void Game::Reset() {
     activeLaneCount = 1;
     blackoutActive  = false;
     nextPreviewPaths = {{1, -1, -1, -1, -1, -1}};
+    for (auto& cells : nextPreviewCells) cells.clear();
     nextPreviewLaneCount = 1;
     hasPlannedRouteChange = false;
     lastEntrySideWave.fill(-100000);

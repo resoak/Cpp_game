@@ -94,4 +94,19 @@ struct TowerDef {
 // 定義在 tower_data.cpp，此處宣告
 extern TowerDef TDEFS[8];
 
-inline TowerDef& TDef(TType t) { return TDEFS[(int)t]; }
+inline bool IsValidTowerTypeForDef(TType t) {
+    int idx = (int)t;
+    return idx >= (int)TType::SENSOR && idx <= (int)TType::NAND;
+}
+
+inline bool IsBuildableTowerType(TType t) {
+    return IsValidTowerTypeForDef(t) && t != TType::CPU;
+}
+
+inline bool HasTowerSkillSlot(TType t) {
+    return IsBuildableTowerType(t);
+}
+
+inline TowerDef& TDef(TType t) {
+    return TDEFS[IsValidTowerTypeForDef(t) ? (int)t : (int)TType::CPU];
+}

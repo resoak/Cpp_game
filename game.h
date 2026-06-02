@@ -65,6 +65,7 @@ struct Game {
     int   activeLaneCount{1};
     bool  blackoutActive{false};
     std::array<int, MAX_LANES> nextPreviewPaths{{1, -1, -1, -1, -1, -1}};
+    std::array<std::vector<PathCell>, MAX_LANES> nextPreviewCells;
     int   nextPreviewLaneCount{1};
     bool  hasPlannedRouteChange{false};
     std::array<int, ENTRY_SIDE_COUNT> lastEntrySideWave{};
@@ -95,6 +96,9 @@ struct Game {
     float spawnTimer{0.f};
     float trainingTimer{0.f};
     constexpr static float TRAIN_TIME = 15.f;
+    constexpr static size_t MAX_PARTICLES = 1400;
+    constexpr static size_t MAX_FLOATS    = 160;
+    constexpr static size_t MAX_BULLETS   = 420;
 
     TType placing{TType::NONE};
     int   selectedId{-1};
