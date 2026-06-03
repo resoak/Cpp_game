@@ -3,7 +3,7 @@
 //  draw.h — 所有繪圖函式宣告
 // ================================================================
 #include "game.h"
-#include "logic.h"   // 需要 SKILL_CD/SKILL_NAME 和 CalcPCTLayer
+#include "logic.h"   // 需要 SKILL_CD/SKILL_NAME、CalcPCTLayer 和 PCT 增幅
 
 // ── 繪圖輔助 ─────────────────────────────────────────────────────
 void DrawRoundBox(float x, float y, float w, float h, float r,

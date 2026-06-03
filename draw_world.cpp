@@ -706,6 +706,11 @@ void DrawTower(Game& G, Tower& t, bool sel) {
             float rr = CELL * (0.34f + i * 0.085f) + 2.f * sinf(time * 2.6f + i + t.id);
             DrawCircleLinesV(ctr, rr, AlphaOf(layerCol, 54 - i * 10));
         }
+        if (t.sig > 0.08f) {
+            float amp = Clamp(t.sig, 0.f, 1.f);
+            DrawCircleLinesV(ctr, CELL * (0.58f + amp * 0.20f), AlphaOf(COL_PERC, 70 + (int)(amp * 115.f)));
+            DrawCircleV(ctr, CELL * (0.18f + amp * 0.18f), AlphaOf(COL_PERC, 18 + (int)(amp * 45.f)));
+        }
     } else {
         DrawRoundBox(px+8,py+8,(float)CELL-16,(float)CELL-16,8,fill,border,2.f);
         DrawRoundBox(px+14,py+14,(float)CELL-28,(float)CELL-28,6,AlphaOf(BG, 190),AlphaOf(def.col, 92),1.f);
@@ -719,6 +724,12 @@ void DrawTower(Game& G, Tower& t, bool sel) {
     }
 
     if (t.type == TType::CANNON) {
+        float pctBoost = CalcPCTSynapseBoost(G, t);
+        if (pctBoost > 0.f) {
+            float p = 0.65f + 0.35f * sinf(time * 5.2f + t.id);
+            DrawCircleLinesV(ctr, CELL * (0.58f + pctBoost * 0.35f + p * 0.04f), AlphaOf(COL_PERC, 55 + (int)(pctBoost * 210.f)));
+            DTX("PCT+", px + 7.f, py + 5.f, FS_TINY, AlphaOf(COL_PERC, 150 + (int)(pctBoost * 90.f)));
+        }
         Vector2 aim = { cosf(time * 0.7f + t.id), sinf(time * 0.7f + t.id) };
         float best = 9999.f;
         for (auto& e : G.enemies) {

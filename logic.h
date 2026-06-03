@@ -11,6 +11,7 @@ extern const char* const SKILL_DESC[];
 
 // ── 函式宣告 ─────────────────────────────────────────────────────
 int   CalcPCTLayer(Game& G, int towerId, int depth = 0);
+float CalcPCTSynapseBoost(Game& G, Tower& cannon);
 void  ActivateSkill(Game& G, Tower& t);
 
 void  PropagateSignals(Game& G, float dt);

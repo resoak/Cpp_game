@@ -88,7 +88,7 @@ static const TutorialStep NAND_STEPS[] = {
 
 static const TutorialStep PCT_STEPS[] = {
     {"感知器教學", "感知器接收多個輸入，輸出連續訊號。", "先看完這段提示。", Obj(TutorialObjectiveKind::WAIT_SECONDS, TType::NONE, EType::BASIC, 1, 1.0f), true},
-    {"放置 PCT", "感知器會在後續章節接上學習目標。", "點左側感知器並放置。", Obj(TutorialObjectiveKind::PLACE_TOWER, TType::PERCEPTRON)},
+    {"放置 PCT", "感知器會學習射擊時機，輸出高時強化下游砲塔。", "點左側感知器並放置。", Obj(TutorialObjectiveKind::PLACE_TOWER, TType::PERCEPTRON)},
     {"啟動觀察", "Phase 4 會加入 mixed 敵人情境。", "先啟動一次短波次。", Obj(TutorialObjectiveKind::START_WAVE)},
 };
 

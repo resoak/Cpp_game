@@ -337,7 +337,7 @@ void HandleInput(Game& G) {
                 RecordTutorialTowerPlaced(G, placedType);
 
                 if (G.placing == TType::PERCEPTRON) {
-                    G.SetMsg("感知器已放置，每波結束會自動學習！");
+                    G.SetMsg("感知器已放置：接到砲塔後會學習時機並增幅火力！");
                 } else {
                     char b2[48];
                     snprintf(b2, 48, "已放置 %s", TDef(G.placing).label);

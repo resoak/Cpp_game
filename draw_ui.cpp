@@ -420,7 +420,7 @@ void DrawRightPanel(Game& G) {
 
     // ── 感知器學習狀態 ───────────────────────────────────────────
     if (sel->type == TType::PERCEPTRON) {
-        DrawRoundBox((float)rx+8,(float)y,(float)PANEL_R-16,110,6,AlphaOf(COL_AI,10),AlphaOf(COL_AI,80),1.5f);
+        DrawRoundBox((float)rx+8,(float)y,(float)PANEL_R-16,140,6,AlphaOf(COL_AI,10),AlphaOf(COL_AI,80),1.5f);
         DTC("神經元學習狀態",cx,y+14,FS_TINY,AlphaOf(COL_AI,220)); y+=28;
         char w1b[32],w2b[32],bib[32];
         snprintf(w1b,32,"w1  = %+.3f",sel->w1);
@@ -437,6 +437,17 @@ void DrawRightPanel(Game& G) {
         snprintf(lrd,36,"lr衰減= %.3f",sel->learner.lrDecay);
         DTX(lb2,(float)rx+14,(float)y,FS_TINY,lc);                    y+=18;
         DTX(lrd,(float)rx+14,(float)y,FS_TINY,AlphaOf(WHITE,140));    y+=20;
+
+        float targetRatio = (sel->pctTargetSamples > 0)
+            ? sel->pctTargetAcc / sel->pctTargetSamples
+            : 0.5f;
+        float boostCap = (sel->level == 3) ? 0.34f : (sel->level == 2) ? 0.26f : 0.18f;
+        float synBoost = Clamp(sel->sig, 0.f, 1.f) * boostCap;
+        char trb[48], boostb[52];
+        snprintf(trb,48,"目標熱度 %.0f%%",targetRatio*100.f);
+        snprintf(boostb,52,"下游火力 +%.0f%% / 冷卻 -%.0f%%",synBoost*100.f,synBoost*35.f);
+        DTX(trb,(float)rx+14,(float)y,FS_TINY,AlphaOf(COL_SENSOR,180)); y+=18;
+        DTX(boostb,(float)rx+14,(float)y,FS_TINY,AlphaOf(COL_PERC,210)); y+=20;
 
         if (!sel->lossHistory.empty()) {
             y+=4;
@@ -457,6 +468,18 @@ void DrawRightPanel(Game& G) {
                 DrawRectangle(bxi,byi,std::min(bwi-1,8),hh,AlphaOf(bc,180));
             }
             y+=sparH+6;
+        }
+    }
+
+    if (sel->type == TType::CANNON) {
+        float pctBoost = CalcPCTSynapseBoost(G, *sel);
+        if (pctBoost > 0.f) {
+            DrawRoundBox((float)rx+8,(float)y,(float)PANEL_R-16,48,6,AlphaOf(COL_PERC,12),AlphaOf(COL_PERC,86),1.3f);
+            DTC("PCT 突觸增幅",cx,y+13,FS_TINY,AlphaOf(COL_PERC,220));
+            char pb[64];
+            snprintf(pb,64,"火力 +%.0f%%  冷卻 -%.0f%%",pctBoost*100.f,pctBoost*35.f);
+            DTC(pb,cx,y+33,FS_TINY,AlphaOf(WHITE,165));
+            y+=58;
         }
     }
 

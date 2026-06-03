@@ -136,7 +136,7 @@ void DrawMenu(Game& G) {
     };
     MenuFeature feats[] = {
         {"訊號鏈防線", "SENSOR → 邏輯閘 → 砲塔", COL_SENSOR},
-        {"感知器學習", "跨波調整權重與 loss", COL_PERC},
+        {"感知器學習", "跨波調權重並強化下游砲塔", COL_PERC},
         {"多線路口", "輪換路線與入口壓力", COL_AI},
         {"主動技能", "EMP、超頻、破甲、標記", COL_CANNON},
     };
@@ -279,7 +279,7 @@ void DrawHelp() {
         {"[F11]", "切換全螢幕", WHITE},
     };
     HelpBullet systemRows[] = {
-        {"感知器", "每波依覆蓋率更新權重，右側可看 loss", COL_PERC},
+        {"感知器", "學習射擊時機，輸出高時增幅砲塔", COL_PERC},
         {"多層網路", "感知器可串接成多層訊號鏈", COL_AI},
         {"熱圖", "擊殺熱度會累積，跨波逐漸衰減", COL_CANNON},
         {"路線", "每 3 波輪換；Wave 7 開放入口，10/16/30 逐步多線", COL_SENSOR},

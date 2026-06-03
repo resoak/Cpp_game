@@ -581,6 +581,28 @@ int CalcPCTLayer(Game& G, int towerId, int depth) {
 }
 
 // ══════════════════════════════════════════════════════════════════
+//  CalcPCTSynapseBoost  —  感知器下游砲塔增幅
+// ══════════════════════════════════════════════════════════════════
+float CalcPCTSynapseBoost(Game& G, Tower& cannon) {
+    float boost = 0.f;
+
+    for (auto& src : G.towers) {
+        if (src.type != TType::PERCEPTRON) continue;
+
+        bool feedsCannon = false;
+        for (int cid : src.conns) {
+            if (cid == cannon.id) { feedsCannon = true; break; }
+        }
+        if (!feedsCannon) continue;
+
+        float levelScale = (src.level == 3) ? 0.34f : (src.level == 2) ? 0.26f : 0.18f;
+        boost += Clamp(src.sig, 0.f, 1.f) * levelScale;
+    }
+
+    return std::min(boost, 0.45f);
+}
+
+// ══════════════════════════════════════════════════════════════════
 //  ActivateSkill  —  觸發主動技能
 // ══════════════════════════════════════════════════════════════════
 void ActivateSkill(Game& G, Tower& t) {
@@ -1255,6 +1277,8 @@ void Update(Game& G, float dt) {
                 if (cid == cannon.id && src.type == TType::OR && src.level >= 2) hasOrL2 = true;
         if (hasOrL2)            effectiveCd = (int)(effectiveCd * 0.7f);
         if (G.buffOverfreq > 0) effectiveCd = (int)(effectiveCd * 0.5f);
+        float pctBoost = CalcPCTSynapseBoost(G, cannon);
+        if (pctBoost > 0.f) effectiveCd = std::max(3, (int)(effectiveCd * (1.f - pctBoost * 0.35f)));
 
         Enemy* tgt  = nullptr;
         float  best = cannon.range;
@@ -1266,6 +1290,7 @@ void Update(Game& G, float dt) {
 
         cannon.cooldown = effectiveCd;
         float dmg = cannon.damage * CalcDamageMultiplier(G, cannon, *tgt);
+        if (pctBoost > 0.f) dmg *= (1.f + pctBoost);
         bool surgeShot = (G.comboSurgeTimer > 0.f);
         if (surgeShot) dmg *= 1.35f;
 
@@ -1286,7 +1311,7 @@ void Update(Game& G, float dt) {
         Vector2 sp  = G.CC(cannon.gx, cannon.gy);
         Vector2 dir = Vector2Normalize(Vector2Subtract(tp, sp));
         bool hasSplash = (cannon.level == 3);
-        Color bcol = crit ? YELLOW : (surgeShot ? Color{255, 140, 90, 255} : COL_CANNON);
+        Color bcol = crit ? YELLOW : (pctBoost > 0.02f ? COL_PERC : (surgeShot ? Color{255, 140, 90, 255} : COL_CANNON));
         G.bullets.push_back({ sp, {dir.x * 420.f, dir.y * 420.f},
                                tgt->id, cannon.id, dmg, crit, hasSplash, hasSplash ? 55.f : 0.f, bcol });
         EmitMuzzleVfx(G, sp, dir, bcol, crit || surgeShot || hasSplash);
