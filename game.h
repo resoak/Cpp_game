@@ -7,6 +7,7 @@
 #include "font.h"
 #include "globals.h"
 #include "tutorial.h"
+#include "highscore.h"
 #include <random>
 #include <string>
 #include <functional>
@@ -81,6 +82,9 @@ struct Game {
     int   score{0};
     int   highScore{0};
     int   wave{0};
+
+    // ── 高分系統（檔案 I/O + 資料結構）───────────────────────────
+    HighScoreManager highScoreMgr;
     int   lives{20};
     float cpuHp{100.f};
     bool  paused{false};

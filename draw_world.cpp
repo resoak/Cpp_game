@@ -135,7 +135,7 @@ void DrawRoundBox(float x, float y, float w, float h, float r,
                   Color fill, Color border, float bw) {
     float rr = r / std::min(w, h) * 2;
     DrawRectangleRounded({x, y, w, h}, rr, 8, fill);
-    DrawRectangleRoundedLines({x, y, w, h}, rr, 8, bw, border);
+    DrawRectangleRoundedLines({x, y, w, h}, rr, 8, border);
 }
 
 void DrawHex(Vector2 c, float r, Color fill, Color border) {
@@ -340,7 +340,7 @@ void DrawPath(Game& G) {
             float py = o.y + pc.gy * CELL;
             DrawRectangleRounded({px + 1.f, py + 1.f, (float)CELL - 2.f, (float)CELL - 2.f}, 0.18f, 8, AlphaOf(theme.fill, 215));
             DrawRectangleRounded({px + 5.f, py + 5.f, (float)CELL - 10.f, (float)CELL - 10.f}, 0.20f, 8, AlphaOf(theme.fillSoft, 245));
-            DrawRectangleRoundedLines({px + 6.f, py + 6.f, (float)CELL - 12.f, (float)CELL - 12.f}, 0.22f, 8, 1.f, AlphaOf(theme.glow, 40));
+            DrawRectangleRoundedLines({px + 6.f, py + 6.f, (float)CELL - 12.f, (float)CELL - 12.f}, 0.22f, 8, AlphaOf(theme.glow, 40));
 
             switch (preset.entrySide) {
                 case PathEntrySide::LEFT:
@@ -661,7 +661,7 @@ void DrawTower(Game& G, Tower& t, bool sel) {
             DrawRectangleRounded({px+3.f-ext,py+3.f-ext,(float)CELL-6+ext*2,(float)CELL-6+ext*2},0.25f,8,gc);
         }
         DrawRectangleRounded({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,Color{6,20,35,255});
-        DrawRectangleRoundedLines({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,1.f,cpuCol);
+        DrawRectangleRoundedLines({px+4,py+4,(float)CELL-8,(float)CELL-8},0.2f,8,cpuCol);
         DrawMicroTicks(px + 4.f, py + 4.f, (float)CELL - 8.f, (float)CELL - 8.f, cpuCol);
         DTC("CPU",(int)ctr.x,(int)ctr.y-8,FS_MED,cpuCol);
         char buf[8]; snprintf(buf,8,"%.0f%%",G.cpuHp);

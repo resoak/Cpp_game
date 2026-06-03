@@ -2,6 +2,7 @@
 //  draw_screens.cpp — DrawMenu, DrawHelp, DrawGameOver
 // ================================================================
 #include "draw.h"
+#include "highscore.h"
 #include <cstdio>
 #include <algorithm>
 #include <cmath>
@@ -172,6 +173,14 @@ void DrawMenu(Game& G) {
     }
 
     DTX("v3.0+AI  Powered by Raylib",16,(float)(VIRT_H-28),FS_TINY,AlphaOf(WHITE,50));
+
+    // ── 高分排行榜（右下角小框，由 HighScoreManager 提供）────────
+    if (G.highScoreMgr.Size() > 0) {
+        int lbW = 540, lbH = 280;
+        int lbX = VIRT_W - lbW - 32;
+        int lbY = VIRT_H - lbH - 32;
+        G.highScoreMgr.DrawLeaderboard(G, lbX, lbY, lbW, lbH);
+    }
 
     // ── 底部神經網路動畫 ─────────────────────────────────────────
     static float nodeT = 0.f;

@@ -548,5 +548,7 @@ void Game::Reset() {
     cpu.sig   = 1.f;
     towers.push_back(cpu);
 
+    highScoreMgr.LoadFromFile();
+
     SetMsg("目標：感測器→邏輯閘→砲塔！按[空白鍵]發動第一波。");
 }

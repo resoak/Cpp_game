@@ -1633,6 +1633,14 @@ void Update(Game& G, float dt) {
         }
         G.lives = 0; G.cpuHp = 0; G.phase = Game::GAMEOVER;
         if (G.score > G.highScore) G.highScore = G.score;
+
+        int totalKills = 0;
+        for (const auto& tower : G.towers) {
+            totalKills += tower.kills;
+        }
+        G.highScoreMgr.AddScore(TowerDefenseScore("Player", G.wave, totalKills, 0.f));
+        G.highScoreMgr.SaveToFile();
+
         G.SetMsg("防線崩潰 — 遊戲結束！");
         G.Shake(25.f, 1.f);
     }

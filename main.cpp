@@ -36,6 +36,7 @@ int main() {
 
     Game G;
     G.InitStars();
+    G.highScoreMgr.LoadFromFile();
     G.phase = Game::MENU;
 
     while (!WindowShouldClose()) {
