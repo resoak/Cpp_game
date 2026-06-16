@@ -302,10 +302,10 @@ void Game::GenerateAIHints() {
             if (FindNearbyBuildSlot(*this, cells[midIdx].gx, cells[midIdx].gy, sx, sy)) {
                 char buf[80];
                 snprintf(buf, 80, "%s（信心%.0f%%）",
-                    NN_REASON[nnClass], defNN.lastProb[nnClass] * 100.f);
+                    NN_REASON[nnClass], defNN.Probability(nnClass) * 100.f);
                 AIHint h;
                 h.gx = sx; h.gy = sy; h.suggest = nnSuggest;
-                h.score = defNN.lastProb[nnClass]; h.reason = buf;
+                h.score = defNN.Probability(nnClass); h.reason = buf;
                 aiHints.push_back(h);
             }
         }
@@ -408,7 +408,7 @@ void Game::TrainPerceptrons() {
         t.FlushSample();
         t.learner.Update(target, t.w1, t.w2, t.bias);
 
-        t.lossHistory.push_back(t.learner.lastLoss);
+        t.lossHistory.push_back(t.learner.LastLoss());
         if ((int)t.lossHistory.size() > 14)
             t.lossHistory.erase(t.lossHistory.begin());
 
@@ -417,7 +417,7 @@ void Game::TrainPerceptrons() {
         t.pctTargetSamples = 0;
 
         char buf[80];
-        snprintf(buf, 80, "PCT[%d] target=%.2f loss=%.3f", t.id, target, t.learner.lastLoss);
+        snprintf(buf, 80, "PCT[%d] target=%.2f loss=%.3f", t.id, target, t.learner.LastLoss());
         AddFloat(CC(t.gx, t.gy), buf, COL_AI);
     }
 }

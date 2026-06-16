@@ -799,8 +799,8 @@ void DrawTower(Game& G, Tower& t, bool sel) {
         }
     }
 
-    if (t.type==TType::PERCEPTRON && t.learner.lastLoss > 0.f) {
-        Color lossCol=(t.learner.lastLoss<0.05f)?GREEN:(t.learner.lastLoss<0.15f)?YELLOW:RED;
+    if (t.type==TType::PERCEPTRON && t.learner.LastLoss() > 0.f) {
+        Color lossCol=(t.learner.LastLoss()<0.05f)?GREEN:(t.learner.LastLoss()<0.15f)?YELLOW:RED;
         DrawCircle((int)(px+CELL-9),(int)(py+9),5.f,lossCol);
         DrawCircleLines((int)(px+CELL-9),(int)(py+9),5.f,AlphaOf(WHITE,120));
     }

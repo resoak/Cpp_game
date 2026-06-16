@@ -348,7 +348,7 @@ void DrawRightPanel(Game& G) {
         }
 
         // ── 防禦建議神經網路輸出機率 ─────────────────────────────
-        if (G.defNN.trainCount > 0) {
+        if (G.defNN.TrainCount() > 0) {
             DrawRoundBox((float)rx+8, (float)iy, (float)PANEL_R-16, 88, 6,
                          AlphaOf({60,180,255,255}, 8), AlphaOf({60,180,255,255}, 50), 1.f);
             DTC("防禦建議NN", cx, iy+13, FS_TINY, AlphaOf({100,200,255,255}, 220)); iy += 26;
@@ -356,7 +356,7 @@ void DrawRightPanel(Game& G) {
             static const char* NN_LABELS[] = { "感測器", "AND閘", "XOR閘", "砲塔" };
             static const Color NN_COLS[]   = { COL_SENSOR, COL_AND, COL_XOR, COL_CANNON };
             for (int k = 0; k < 4; k++) {
-                float p   = G.defNN.lastProb[k];
+                float p   = G.defNN.Probability(k);
                 int   bw  = (int)((PANEL_R - 56) * p);
                 Color bc  = NN_COLS[k];
                 DTX(NN_LABELS[k], (float)rx+12, (float)iy, FS_TINY, AlphaOf(WHITE,160));
@@ -366,20 +366,20 @@ void DrawRightPanel(Game& G) {
                 DTX(pb, (float)(rx+PANEL_R-26), (float)iy, FS_TINY, AlphaOf(bc,220));
                 iy += 15;
             }
-            char tlb[32]; snprintf(tlb, 32, "loss=%.3f 訓練%d次", G.defNN.lastLoss, G.defNN.trainCount);
+            char tlb[32]; snprintf(tlb, 32, "loss=%.3f 訓練%d次", G.defNN.LastLoss(), G.defNN.TrainCount());
             DTX(tlb, (float)rx+12, (float)iy, FS_TINY, AlphaOf(WHITE, 110)); iy += 14;
         }
 
         // ── 敵方神經網路權重 ─────────────────────────────────────
-        if (I.brain.trainCount > 0) {
+        if (I.brain.TrainCount() > 0) {
             DrawRoundBox((float)rx+8, (float)iy, (float)PANEL_R-16, 72, 6,
                          AlphaOf({200,60,60,255}, 8), AlphaOf({200,60,60,255}, 50), 1.f);
             DTC("敵方神經網路", cx, iy+13, FS_TINY, AlphaOf({255,80,80,255}, 200)); iy += 26;
 
             char w0[40], w1[40], lossb[40];
-            snprintf(w0,   40, "路線w: [%.2f, %.2f]", I.brain.wHO[0], I.brain.wHO[1]);
-            snprintf(w1,   40, "隱藏b: [%.2f, %.2f]", I.brain.bH[0],  I.brain.bH[1]);
-            snprintf(lossb,40, "loss=%.3f  訓練%d次", I.brain.lastLoss, I.brain.trainCount);
+            snprintf(w0,   40, "路線w: [%.2f, %.2f]", I.brain.OutputWeight(0), I.brain.OutputWeight(1));
+            snprintf(w1,   40, "隱藏b: [%.2f, %.2f]", I.brain.HiddenBias(0),  I.brain.HiddenBias(1));
+            snprintf(lossb,40, "loss=%.3f  訓練%d次", I.brain.LastLoss(), I.brain.TrainCount());
             DTX(w0,    (float)rx+12, (float)iy, FS_TINY, AlphaOf({255,120,120,255}, 180)); iy += 16;
             DTX(w1,    (float)rx+12, (float)iy, FS_TINY, AlphaOf({255,120,120,255}, 160)); iy += 16;
             DTX(lossb, (float)rx+12, (float)iy, FS_TINY, AlphaOf(WHITE, 130));
@@ -430,11 +430,11 @@ void DrawRightPanel(Game& G) {
         DTX(w2b,(float)rx+14,(float)y,FS_TINY,AlphaOf(COL_PERC,200)); y+=18;
         DTX(bib,(float)rx+14,(float)y,FS_TINY,AlphaOf(COL_OR,200));   y+=18;
 
-        float loss=sel->learner.lastLoss;
+        float loss=sel->learner.LastLoss();
         Color lc=(loss<0.05f)?GREEN:(loss<0.15f)?YELLOW:RED;
         char  lb2[32],lrd[36];
         snprintf(lb2,32,"loss= %.4f",loss);
-        snprintf(lrd,36,"lr衰減= %.3f",sel->learner.lrDecay);
+        snprintf(lrd,36,"lr衰減= %.3f",sel->learner.LearningRateDecay());
         DTX(lb2,(float)rx+14,(float)y,FS_TINY,lc);                    y+=18;
         DTX(lrd,(float)rx+14,(float)y,FS_TINY,AlphaOf(WHITE,140));    y+=20;
 

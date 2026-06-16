@@ -431,7 +431,7 @@ void DrawGameOver(Game& G) {
     int   pctCount=0;
     float avgLoss=0.f;
     for (auto& tw : G.towers) {
-        if (tw.type==TType::PERCEPTRON) { pctCount++; avgLoss+=tw.learner.lastLoss; }
+        if (tw.type==TType::PERCEPTRON) { pctCount++; avgLoss+=tw.learner.LastLoss(); }
     }
     int aiY = routeY + 36;
     DrawRoundBox((float)px + 32, (float)aiY, (float)panelW - 64, 78.f, 10.f,

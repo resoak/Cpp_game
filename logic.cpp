@@ -630,7 +630,7 @@ void ActivateSkill(Game& G, Tower& t) {
         case TType::PERCEPTRON: {
             t.w1 = std::min(2.f, t.w1 + 0.15f);
             t.w2 = std::min(2.f, t.w2 + 0.15f);
-            t.learner.lrDecay = std::min(1.f, t.learner.lrDecay + 0.2f);
+            t.learner.BoostLearningRate(0.2f);
             G.SpawnParticles(pos, COL_AI, 16, 110.f);
             G.AddFloat(pos, "突觸強化！", COL_AI);
             break;
@@ -1560,24 +1560,21 @@ void Update(Game& G, float dt) {
         G.enemies.end()
     );
 
-    // ── 脈衝更新 ─────────────────────────────────────────────────
-    for (auto& p : G.pulses) p.t += dt * 3.5f;
-    G.pulses.erase(std::remove_if(G.pulses.begin(), G.pulses.end(), [](const SigPulse& p) { return p.t >= 1.f; }), G.pulses.end());
+    // ── 脈衝更新（多型：SigPulse::Update）─────────────────────────
+    for (auto& p : G.pulses) p.Update(dt);
+    G.pulses.erase(std::remove_if(G.pulses.begin(), G.pulses.end(), [](const SigPulse& p) { return !p.IsAlive(); }), G.pulses.end());
     if (G.pulses.size() > 500) G.pulses.erase(G.pulses.begin(), G.pulses.begin() + G.pulses.size() - 500);
 
-    // ── 粒子更新 ─────────────────────────────────────────────────
-    for (auto& p : G.particles) {
-        p.pos.x += p.vel.x * dt; p.pos.y += p.vel.y * dt;
-        p.vel.y += 55.f * dt; p.life -= dt;
-    }
-    G.particles.erase(std::remove_if(G.particles.begin(), G.particles.end(), [](const Particle& p) { return p.life <= 0; }), G.particles.end());
+    // ── 粒子更新（多型：Particle::Update）─────────────────────────
+    for (auto& p : G.particles) p.Update(dt);
+    G.particles.erase(std::remove_if(G.particles.begin(), G.particles.end(), [](const Particle& p) { return !p.IsAlive(); }), G.particles.end());
     if (G.particles.size() > Game::MAX_PARTICLES) {
         G.particles.erase(G.particles.begin(), G.particles.begin() + (G.particles.size() - Game::MAX_PARTICLES));
     }
 
-    // ── 浮動文字更新 ─────────────────────────────────────────────
-    for (auto& f : G.floats) { f.pos.y -= 28.f * dt; f.life -= dt; }
-    G.floats.erase(std::remove_if(G.floats.begin(), G.floats.end(), [](const FloatText& f) { return f.life <= 0; }), G.floats.end());
+    // ── 浮動文字更新（多型：FloatText::Update）────────────────────
+    for (auto& f : G.floats) f.Update(dt);
+    G.floats.erase(std::remove_if(G.floats.begin(), G.floats.end(), [](const FloatText& f) { return !f.IsAlive(); }), G.floats.end());
     if (G.floats.size() > Game::MAX_FLOATS) {
         G.floats.erase(G.floats.begin(), G.floats.begin() + (G.floats.size() - Game::MAX_FLOATS));
     }

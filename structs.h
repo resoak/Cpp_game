@@ -10,38 +10,40 @@
 #include <cmath>
 #include <random>
 #include <array>
+#include <utility>
 
 // ══════════════════════════════════════════════════════════════════
 //  PerceptronLearner（Delta Rule 梯度更新）
 // ══════════════════════════════════════════════════════════════════
 class PerceptronLearner {
 public:
-    float accInput1{0.f};
-    float accInput2{0.f};
-    float accOutput{0.f};
-    int   samples{0};
-    float lastLoss{0.f};
-    float lrDecay{1.f};
+    float LastLoss() const { return lastLoss_; }
+    float LearningRateDecay() const { return lrDecay_; }
+    int SampleCount() const { return samples_; }
+
+    void BoostLearningRate(float amount) {
+        lrDecay_ = std::min(1.f, lrDecay_ + amount);
+    }
 
     void Accumulate(float in1, float in2, float out) {
-        accInput1 += in1;
-        accInput2 += in2;
-        accOutput += out;
-        samples++;
+        accInput1_ += in1;
+        accInput2_ += in2;
+        accOutput_ += out;
+        samples_++;
     }
 
     void Reset() {
-        accInput1 = accInput2 = accOutput = 0.f;
-        samples = 0;
+        accInput1_ = accInput2_ = accOutput_ = 0.f;
+        samples_ = 0;
     }
 
     void Update(float target, float& w1, float& w2, float& bias, float baseLR = 0.15f) {
-        if (samples == 0) return;
+        if (samples_ == 0) return;
 
-        float i1  = accInput1 / samples;
-        float i2  = accInput2 / samples;
-        float out = accOutput / samples;
-        float lr  = baseLR * lrDecay;
+        float i1  = accInput1_ / samples_;
+        float i2  = accInput2_ / samples_;
+        float out = accOutput_ / samples_;
+        float lr  = baseLR * lrDecay_;
 
         float error = target - out;
         float delta = error * SigmoidDeriv(out);
@@ -54,10 +56,18 @@ public:
         w2   = std::max(-2.f, std::min(2.f, w2));
         bias = std::max(-2.f, std::min(2.f, bias));
 
-        lastLoss  = error * error;
-        lrDecay  *= 0.92f;
+        lastLoss_ = error * error;
+        lrDecay_ *= 0.92f;
         Reset();
     }
+
+private:
+    float accInput1_{0.f};
+    float accInput2_{0.f};
+    float accOutput_{0.f};
+    int   samples_{0};
+    float lastLoss_{0.f};
+    float lrDecay_{1.f};
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -65,16 +75,14 @@ public:
 // ══════════════════════════════════════════════════════════════════
 class ThreatMap {
 public:
-    float cell[24][20]{};
-
     void AddKill(int gx, int gy, float value = 1.f) {
         if (gx >= 0 && gx < 24 && gy >= 0 && gy < 20) {
-            cell[gx][gy] += value;
+            cell_[gx][gy] += value;
         }
     }
 
     float Get(int gx, int gy) const {
-        if (gx >= 0 && gx < 24 && gy >= 0 && gy < 20) return cell[gx][gy];
+        if (gx >= 0 && gx < 24 && gy >= 0 && gy < 20) return cell_[gx][gy];
         return 0.f;
     }
 
@@ -82,15 +90,18 @@ public:
         float mx = 0.f;
         for (int x = 0; x < 24; x++)
             for (int y = 0; y < 20; y++)
-                mx = std::max(mx, cell[x][y]);
+                mx = std::max(mx, cell_[x][y]);
         return mx;
     }
 
     void Decay(float factor = 0.85f) {
         for (int x = 0; x < 24; x++)
             for (int y = 0; y < 20; y++)
-                cell[x][y] *= factor;
+                cell_[x][y] *= factor;
     }
+
+private:
+    float cell_[24][20]{};
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -105,23 +116,21 @@ public:
 // ══════════════════════════════════════════════════════════════════
 class EnemyBrain {
 public:
-    float wIH[3][2] = {{ 0.5f,-0.3f},{-0.4f, 0.6f},{ 0.2f,-0.1f}};
-    float bH[2]     = { 0.f,  0.f };
-    float wHO[2]    = { 0.6f,-0.4f };
-    float bO        = 0.f;
-    float lastLoss  = 0.f;
-    int   trainCount= 0;
+    float LastLoss() const { return lastLoss_; }
+    int TrainCount() const { return trainCount_; }
+    float OutputWeight(int index) const { return (index >= 0 && index < 2) ? wHO_[index] : 0.f; }
+    float HiddenBias(int index) const { return (index >= 0 && index < 2) ? bH_[index] : 0.f; }
 
     float Eval(float threatAhead, float hpRatio, float survRate) const {
         float in[3] = { threatAhead, hpRatio, survRate };
         float h[2];
         for (int j = 0; j < 2; j++) {
-            float s = bH[j];
-            for (int i = 0; i < 3; i++) s += wIH[i][j] * in[i];
+            float s = bH_[j];
+            for (int i = 0; i < 3; i++) s += wIH_[i][j] * in[i];
             h[j] = 1.f / (1.f + expf(-s));
         }
-        float o = bO;
-        for (int j = 0; j < 2; j++) o += wHO[j] * h[j];
+        float o = bO_;
+        for (int j = 0; j < 2; j++) o += wHO_[j] * h[j];
         return 1.f / (1.f + expf(-o));
     }
 
@@ -129,31 +138,39 @@ public:
         float in[3] = { threatAhead, hpRatio, survRate };
         float h[2];
         for (int j = 0; j < 2; j++) {
-            float s = bH[j];
-            for (int i = 0; i < 3; i++) s += wIH[i][j] * in[i];
+            float s = bH_[j];
+            for (int i = 0; i < 3; i++) s += wIH_[i][j] * in[i];
             h[j] = 1.f / (1.f + expf(-s));
         }
-        float o_raw = bO;
-        for (int j = 0; j < 2; j++) o_raw += wHO[j] * h[j];
+        float o_raw = bO_;
+        for (int j = 0; j < 2; j++) o_raw += wHO_[j] * h[j];
         float o  = 1.f / (1.f + expf(-o_raw));
         float dO = (target - o) * o * (1.f - o);
-        lastLoss = (target - o) * (target - o);
-        trainCount++;
-        for (int j = 0; j < 2; j++) wHO[j] += lr * dO * h[j];
-        bO += lr * dO;
+        lastLoss_ = (target - o) * (target - o);
+        trainCount_++;
+        for (int j = 0; j < 2; j++) wHO_[j] += lr * dO * h[j];
+        bO_ += lr * dO;
         for (int j = 0; j < 2; j++) {
-            float dH = dO * wHO[j] * h[j] * (1.f - h[j]);
-            bH[j] += lr * dH;
-            for (int i = 0; i < 3; i++) wIH[i][j] += lr * dH * in[i];
+            float dH = dO * wHO_[j] * h[j] * (1.f - h[j]);
+            bH_[j] += lr * dH;
+            for (int i = 0; i < 3; i++) wIH_[i][j] += lr * dH * in[i];
         }
         auto clamp3 = [](float v){ return v<-3.f?-3.f:(v>3.f?3.f:v); };
         auto clamp2 = [](float v){ return v<-2.f?-2.f:(v>2.f?2.f:v); };
         for (int j = 0; j < 2; j++) {
-            wHO[j] = clamp3(wHO[j]); bH[j] = clamp2(bH[j]);
-            for (int i = 0; i < 3; i++) wIH[i][j] = clamp3(wIH[i][j]);
+            wHO_[j] = clamp3(wHO_[j]); bH_[j] = clamp2(bH_[j]);
+            for (int i = 0; i < 3; i++) wIH_[i][j] = clamp3(wIH_[i][j]);
         }
-        bO = clamp2(bO);
+        bO_ = clamp2(bO_);
     }
+
+private:
+    float wIH_[3][2] = {{ 0.5f,-0.3f},{-0.4f, 0.6f},{ 0.2f,-0.1f}};
+    float bH_[2]     = { 0.f,  0.f };
+    float wHO_[2]    = { 0.6f,-0.4f };
+    float bO_        = 0.f;
+    float lastLoss_  = 0.f;
+    int   trainCount_= 0;
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -307,13 +324,12 @@ public:
 // ══════════════════════════════════════════════════════════════════
 class DefenseAdvisorNN {
 public:
-    float wIH[6][4]{};    // 輸入 → 隱藏
-    float bH[4]{};
-    float wHO[4][4]{};    // 隱藏 → 輸出
-    float bO[4]{};
-    float lastProb[4]{ 0.25f, 0.25f, 0.25f, 0.25f };
-    float lastLoss{ 0.f };
-    int   trainCount{ 0 };
+    float Probability(int index) const {
+        return (index >= 0 && index < 4) ? lastProb_[index] : 0.f;
+    }
+
+    float LastLoss() const { return lastLoss_; }
+    int TrainCount() const { return trainCount_; }
 
     DefenseAdvisorNN() {
         // 固定小值初始化（不依賴 <random>）
@@ -327,24 +343,24 @@ public:
         };
         for (int i = 0; i < 6; i++)
             for (int j = 0; j < 4; j++)
-                wIH[i][j] = K[(i * 4 + j) % 24] * 0.5f;
+                wIH_[i][j] = K[(i * 4 + j) % 24] * 0.5f;
         for (int i = 0; i < 4; i++)
             for (int j = 0; j < 4; j++)
-                wHO[i][j] = K[(i * 4 + j) % 24] * 0.3f;
+                wHO_[i][j] = K[(i * 4 + j) % 24] * 0.3f;
     }
 
     // ── 前向傳播（tanh 隱藏層 + softmax 輸出）───────────────────
     void Forward(const float in[6], float prob[4]) const {
         float h[4];
         for (int j = 0; j < 4; j++) {
-            float s = bH[j];
-            for (int i = 0; i < 6; i++) s += wIH[i][j] * in[i];
+            float s = bH_[j];
+            for (int i = 0; i < 6; i++) s += wIH_[i][j] * in[i];
             h[j] = tanhf(s);
         }
         float mx = -1e9f;
         for (int j = 0; j < 4; j++) {
-            float s = bO[j];
-            for (int i = 0; i < 4; i++) s += wHO[i][j] * h[i];
+            float s = bO_[j];
+            for (int i = 0; i < 4; i++) s += wHO_[i][j] * h[i];
             prob[j] = s;
             if (s > mx) mx = s;
         }
@@ -355,9 +371,9 @@ public:
 
     // ── 推薦：回傳最高機率的類型索引 ────────────────────────────
     int Recommend(const float in[6]) {
-        Forward(in, lastProb);
+        Forward(in, lastProb_);
         int best = 0;
-        for (int j = 1; j < 4; j++) if (lastProb[j] > lastProb[best]) best = j;
+        for (int j = 1; j < 4; j++) if (lastProb_[j] > lastProb_[best]) best = j;
         return best;
     }
 
@@ -365,23 +381,23 @@ public:
     void Learn(const float in[6], int targetClass, float lr = 0.08f) {
         float h[4];
         for (int j = 0; j < 4; j++) {
-            float s = bH[j];
-            for (int i = 0; i < 6; i++) s += wIH[i][j] * in[i];
+            float s = bH_[j];
+            for (int i = 0; i < 6; i++) s += wIH_[i][j] * in[i];
             h[j] = tanhf(s);
         }
         float prob[4], mx = -1e9f;
         for (int j = 0; j < 4; j++) {
-            float s = bO[j];
-            for (int i = 0; i < 4; i++) s += wHO[i][j] * h[i];
+            float s = bO_[j];
+            for (int i = 0; i < 4; i++) s += wHO_[i][j] * h[i];
             prob[j] = s;
             if (s > mx) mx = s;
         }
         float sum = 0.f;
         for (int j = 0; j < 4; j++) { prob[j] = expf(prob[j] - mx); sum += prob[j]; }
-        for (int j = 0; j < 4; j++) { prob[j] /= sum; lastProb[j] = prob[j]; }
+        for (int j = 0; j < 4; j++) { prob[j] /= sum; lastProb_[j] = prob[j]; }
 
-        lastLoss = -logf(prob[targetClass] + 1e-7f);
-        trainCount++;
+        lastLoss_ = -logf(prob[targetClass] + 1e-7f);
+        trainCount_++;
 
         // 輸出層梯度（softmax + 交叉熵）
         float dO[4];
@@ -389,29 +405,80 @@ public:
 
         // 更新輸出層
         for (int j = 0; j < 4; j++) {
-            bO[j] -= lr * dO[j];
-            for (int i = 0; i < 4; i++) wHO[i][j] -= lr * dO[j] * h[i];
+            bO_[j] -= lr * dO[j];
+            for (int i = 0; i < 4; i++) wHO_[i][j] -= lr * dO[j] * h[i];
         }
 
         // 隱藏層梯度（tanh 導數）
         float dH[4] = {};
         for (int i = 0; i < 4; i++) {
-            for (int j = 0; j < 4; j++) dH[i] += dO[j] * wHO[i][j];
+            for (int j = 0; j < 4; j++) dH[i] += dO[j] * wHO_[i][j];
             dH[i] *= (1.f - h[i] * h[i]);
         }
         for (int i = 0; i < 4; i++) {
-            bH[i] -= lr * dH[i];
-            for (int k = 0; k < 6; k++) wIH[k][i] -= lr * dH[i] * in[k];
+            bH_[i] -= lr * dH[i];
+            for (int k = 0; k < 6; k++) wIH_[k][i] -= lr * dH[i] * in[k];
         }
 
         // 權重裁剪
         auto cl = [](float v, float m){ return v < -m ? -m : (v > m ? m : v); };
         for (int i = 0; i < 4; i++) {
-            bO[i] = cl(bO[i], 3.f); bH[i] = cl(bH[i], 2.f);
-            for (int j = 0; j < 4; j++) { wHO[j][i] = cl(wHO[j][i], 3.f); }
-            for (int j = 0; j < 6; j++) { wIH[j][i] = cl(wIH[j][i], 3.f); }
+            bO_[i] = cl(bO_[i], 3.f); bH_[i] = cl(bH_[i], 2.f);
+            for (int j = 0; j < 4; j++) { wHO_[j][i] = cl(wHO_[j][i], 3.f); }
+            for (int j = 0; j < 6; j++) { wIH_[j][i] = cl(wIH_[j][i], 3.f); }
         }
     }
+
+private:
+    float wIH_[6][4]{};    // 輸入 → 隱藏
+    float bH_[4]{};
+    float wHO_[4][4]{};    // 隱藏 → 輸出
+    float bO_[4]{};
+    float lastProb_[4]{ 0.25f, 0.25f, 0.25f, 0.25f };
+    float lastLoss_{ 0.f };
+    int   trainCount_{ 0 };
+};
+
+// ══════════════════════════════════════════════════════════════════
+//  遊戲物件繼承架構：格子物件、路徑物件與視覺特效共用基底
+// ══════════════════════════════════════════════════════════════════
+class GameEntity {
+public:
+    virtual ~GameEntity() = default;
+};
+
+class GridEntity : public GameEntity {
+public:
+    Vector2 GridCenter() const {
+        return { static_cast<float>(gx), static_cast<float>(gy) };
+    }
+
+    int GridX() const { return gx; }
+    int GridY() const { return gy; }
+
+protected:
+    int gx{0};
+    int gy{0};
+};
+
+class PathEntity : public GameEntity {
+public:
+    float PathPosition() const { return pathPos; }
+    int LaneIndex() const { return pathIdx; }
+
+protected:
+    float pathPos{0.f};
+    int   pathIdx{0};
+};
+
+class VisualEffect : public GameEntity {
+public:
+    virtual ~VisualEffect() = default;
+    virtual void Update(float dt) { life -= dt; }
+    bool IsAlive() const { return life > 0.f; }
+
+protected:
+    float life{0.f};
 };
 
 // ── AI 顧問提示 ───────────────────────────────────────────────────
@@ -427,11 +494,12 @@ public:
 // ══════════════════════════════════════════════════════════════════
 //  Tower（防禦塔）
 // ══════════════════════════════════════════════════════════════════
-class Tower {
+class Tower : public GridEntity {
 public:
     int   id;
     TType type;
-    int   gx, gy;
+    using GridEntity::gx;
+    using GridEntity::gy;
     int   level{1};
 
     float sig{0.f};
@@ -497,12 +565,13 @@ enum class EnemyTag {
 // ══════════════════════════════════════════════════════════════════
 //  Enemy（敵人）
 // ══════════════════════════════════════════════════════════════════
-class Enemy {
+class Enemy : public PathEntity {
 public:
     int   id;
     EType type;
 
-    float pathPos{0.f};
+    using PathEntity::pathIdx;
+    using PathEntity::pathPos;
     float hp;
     float maxHp;
     float armor{0.f};
@@ -517,8 +586,6 @@ public:
     float regenTimer{0.f};
 
     float stunTimer{0.f};
-    int   pathIdx{0};
-
     bool  shielded{false};
     float shieldHp{0.f};
 
@@ -563,8 +630,15 @@ public:
 };
 
 // ── 其他小型結構 ─────────────────────────────────────────────────
-class Bullet {
+class Bullet : public GameEntity {
 public:
+    Bullet() = default;
+
+    Bullet(Vector2 position, Vector2 velocity, int target, int source, float damageValue,
+           bool isCrit, bool hasSplash, float splashRadius, Color color)
+        : pos(position), vel(velocity), targetId(target), sourceId(source), dmg(damageValue),
+          crit(isCrit), splash(hasSplash), splashR(splashRadius), col(color) {}
+
     Vector2 pos, vel;
     int     targetId;
     int     sourceId{-1};
@@ -575,7 +649,63 @@ public:
     Color   col;
 };
 
-class SigPulse  { public: Vector2 src, dst; float t; Color col; };
-class Particle  { public: Vector2 pos, vel; float life, maxLife, radius; Color col; };
-class FloatText { public: Vector2 pos; std::string text; Color col; float life; };
-class Star      { public: float x, y, r, bright; };
+class SigPulse : public VisualEffect {
+public:
+    SigPulse() = default;
+    SigPulse(Vector2 source, Vector2 destination, float progress, Color color)
+        : src(source), dst(destination), t(progress), col(color) { life = 1.f - progress; }
+
+    void Update(float dt) override {
+        t += dt * 3.5f;
+        if (t >= 1.f) life = 0.f;
+    }
+
+    Vector2 src, dst;
+    float t;
+    Color col;
+};
+
+class Particle : public VisualEffect {
+public:
+    Particle() = default;
+    Particle(Vector2 position, Vector2 velocity, float currentLife, float fullLife, float effectRadius, Color color)
+        : pos(position), vel(velocity), maxLife(fullLife), radius(effectRadius), col(color) { life = currentLife; }
+
+    void Update(float dt) override {
+        pos.x += vel.x * dt;
+        pos.y += vel.y * dt;
+        vel.y += 55.f * dt;  // 重力
+        life -= dt;
+    }
+
+    using VisualEffect::life;
+    Vector2 pos, vel;
+    float maxLife, radius;
+    Color col;
+};
+
+class FloatText : public VisualEffect {
+public:
+    FloatText() = default;
+    FloatText(Vector2 position, std::string value, Color color, float currentLife)
+        : pos(position), text(std::move(value)), col(color) { life = currentLife; }
+
+    void Update(float dt) override {
+        pos.y -= 28.f * dt;
+        life -= dt;
+    }
+
+    using VisualEffect::life;
+    Vector2 pos;
+    std::string text;
+    Color col;
+};
+
+class Star : public GameEntity {
+public:
+    Star() = default;
+    Star(float xPos, float yPos, float radius, float brightness)
+        : x(xPos), y(yPos), r(radius), bright(brightness) {}
+
+    float x, y, r, bright;
+};
