@@ -1233,7 +1233,7 @@ void Update(Game& G, float dt) {
     if (G.phase == Game::TRAINING && G.trainingTimer > 0.f) {
         G.trainingTimer -= dt;
         if (G.trainingTimer <= 0.f && G.trainingChoiceCount > 0) {
-            ApplyTrainingChoice(G, 0);
+            G.ApplyTrainingChoice(0);
         }
     }
 
@@ -1250,12 +1250,12 @@ void Update(Game& G, float dt) {
         float interval = SpawnIntervalForWave(G.wave, G.ActiveLaneCount(), G.currentEvent);
         if (G.spawnTimer >= interval) {
             G.spawnTimer = 0.f;
-            SpawnEnemy(G);
+            G.SpawnEnemy();
             G.spawned++;
         }
     }
 
-    if (G.phase == Game::FIGHT) PropagateSignals(G, dt);
+    if (G.phase == Game::FIGHT) G.PropagateSignals(dt);
 
     // ── 塔動畫計時 ───────────────────────────────────────────────
     for (auto& t : G.towers) {
@@ -1669,4 +1669,24 @@ void Update(Game& G, float dt) {
         G.SetMsg("防線崩潰 — 遊戲結束！");
         G.Shake(25.f, 1.f);
     }
+}
+
+void Game::StartWave() {
+    ::StartWave(*this);
+}
+
+void Game::SpawnEnemy() {
+    ::SpawnEnemy(*this);
+}
+
+void Game::ApplyTrainingChoice(int choiceIdx) {
+    ::ApplyTrainingChoice(*this, choiceIdx);
+}
+
+void Game::PropagateSignals(float dt) {
+    ::PropagateSignals(*this, dt);
+}
+
+void Game::Update(float dt) {
+    ::Update(*this, dt);
 }

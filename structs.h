@@ -14,7 +14,8 @@
 // ══════════════════════════════════════════════════════════════════
 //  PerceptronLearner（Delta Rule 梯度更新）
 // ══════════════════════════════════════════════════════════════════
-struct PerceptronLearner {
+class PerceptronLearner {
+public:
     float accInput1{0.f};
     float accInput2{0.f};
     float accOutput{0.f};
@@ -62,7 +63,8 @@ struct PerceptronLearner {
 // ══════════════════════════════════════════════════════════════════
 //  ThreatMap（擊殺密度熱圖）
 // ══════════════════════════════════════════════════════════════════
-struct ThreatMap {
+class ThreatMap {
+public:
     float cell[24][20]{};
 
     void AddKill(int gx, int gy, float value = 1.f) {
@@ -101,7 +103,8 @@ struct ThreatMap {
 //  輸出：路線安全分數 [0,1]
 //  學習：波末根據實際存活率做梯度下降
 // ══════════════════════════════════════════════════════════════════
-struct EnemyBrain {
+class EnemyBrain {
+public:
     float wIH[3][2] = {{ 0.5f,-0.3f},{-0.4f, 0.6f},{ 0.2f,-0.1f}};
     float bH[2]     = { 0.f,  0.f };
     float wHO[2]    = { 0.6f,-0.4f };
@@ -156,7 +159,8 @@ struct EnemyBrain {
 // ══════════════════════════════════════════════════════════════════
 //  EnemyIntel  —  敵方整體學習系統
 // ══════════════════════════════════════════════════════════════════
-struct EnemyIntel {
+class EnemyIntel {
+public:
     EnemyBrain brain;
 
     float typeSurvRate[5]{ 0.2f, 0.2f, 0.2f, 0.2f, 0.2f };
@@ -301,7 +305,8 @@ struct EnemyIntel {
 //
 //  學習：波末以「最危險的敵種對應的剋制塔」為目標，交叉熵反向傳播
 // ══════════════════════════════════════════════════════════════════
-struct DefenseAdvisorNN {
+class DefenseAdvisorNN {
+public:
     float wIH[6][4]{};    // 輸入 → 隱藏
     float bH[4]{};
     float wHO[4][4]{};    // 隱藏 → 輸出
@@ -410,7 +415,8 @@ struct DefenseAdvisorNN {
 };
 
 // ── AI 顧問提示 ───────────────────────────────────────────────────
-struct AIHint {
+class AIHint {
+public:
     int         gx, gy;
     TType       suggest;
     float       score;
@@ -421,7 +427,8 @@ struct AIHint {
 // ══════════════════════════════════════════════════════════════════
 //  Tower（防禦塔）
 // ══════════════════════════════════════════════════════════════════
-struct Tower {
+class Tower {
+public:
     int   id;
     TType type;
     int   gx, gy;
@@ -490,7 +497,8 @@ enum class EnemyTag {
 // ══════════════════════════════════════════════════════════════════
 //  Enemy（敵人）
 // ══════════════════════════════════════════════════════════════════
-struct Enemy {
+class Enemy {
+public:
     int   id;
     EType type;
 
@@ -555,7 +563,8 @@ struct Enemy {
 };
 
 // ── 其他小型結構 ─────────────────────────────────────────────────
-struct Bullet {
+class Bullet {
+public:
     Vector2 pos, vel;
     int     targetId;
     int     sourceId{-1};
@@ -566,7 +575,7 @@ struct Bullet {
     Color   col;
 };
 
-struct SigPulse  { Vector2 src, dst; float t; Color col; };
-struct Particle  { Vector2 pos, vel; float life, maxLife, radius; Color col; };
-struct FloatText { Vector2 pos; std::string text; Color col; float life; };
-struct Star      { float x, y, r, bright; };
+class SigPulse  { public: Vector2 src, dst; float t; Color col; };
+class Particle  { public: Vector2 pos, vel; float life, maxLife, radius; Color col; };
+class FloatText { public: Vector2 pos; std::string text; Color col; float life; };
+class Star      { public: float x, y, r, bright; };

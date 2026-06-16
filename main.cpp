@@ -69,8 +69,8 @@ int main() {
         gOffX  = (wW - VIRT_W * gScale) * .5f;
         gOffY  = (wH - VIRT_H * gScale) * .5f;
 
-        HandleInput(G);
-        Update(G, dt);
+        G.HandleInput();
+        G.Update(dt);
 
         Vector2 vmp = VirtualMouse();
         int hgx = -1, hgy = -1;

@@ -18,7 +18,8 @@
 // ══════════════════════════════════════════════════════════════════
 //  Game
 // ══════════════════════════════════════════════════════════════════
-struct Game {
+class Game {
+public:
     // ── 實體容器 ───────────────────────────────────────────────────
     std::vector<Tower>     towers;
     std::vector<Enemy>     enemies;
@@ -261,6 +262,12 @@ struct Game {
     void GenerateAIHints();
     void TrainDefenseNN();
     void TrainPerceptrons();
+    void StartWave();
+    void SpawnEnemy();
+    void ApplyTrainingChoice(int choiceIdx);
+    void PropagateSignals(float dt);
+    void Update(float dt);
+    void HandleInput();
     void Reset();
 };
 

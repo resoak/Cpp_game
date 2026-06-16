@@ -20,7 +20,7 @@
 #include <ctime>
 
 // 前向宣告 Game，避免 include 循環
-struct Game;
+class Game;
 
 // ══════════════════════════════════════════════════════════════════
 //  ScoreEntry  —  分數項目的「抽象基類」

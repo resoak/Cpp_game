@@ -5,7 +5,7 @@
 #include "constants.h"
 #include <array>
 
-struct Game;
+class Game;
 
 enum class TutorialLessonId {
     BASIC_DEFENSE,
@@ -90,7 +90,8 @@ inline Rectangle TutorialExitPromptButtonRect(int index) {
     };
 }
 
-struct TutorialLessonInfo {
+class TutorialLessonInfo {
+public:
     TutorialLessonId id;
     const char*      title;
     const char*      focus;
@@ -100,7 +101,8 @@ struct TutorialLessonInfo {
     Color            col;
 };
 
-struct TutorialObjective {
+class TutorialObjective {
+public:
     TutorialObjectiveKind kind{TutorialObjectiveKind::NONE};
     TType                 towerType{TType::NONE};
     EType                 enemyType{EType::BASIC};
@@ -108,7 +110,8 @@ struct TutorialObjective {
     float                 requiredSeconds{0.f};
 };
 
-struct TutorialStep {
+class TutorialStep {
+public:
     const char*       title{""};
     const char*       body{""};
     const char*       hint{""};
@@ -116,7 +119,8 @@ struct TutorialStep {
     bool              allowSkip{false};
 };
 
-struct TutorialRuntime {
+class TutorialRuntime {
+public:
     bool             active{false};
     TutorialLessonId lessonId{TutorialLessonId::BASIC_DEFENSE};
     int              selectedLesson{0};

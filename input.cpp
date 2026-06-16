@@ -17,7 +17,7 @@ static void DebugJumpToWave(Game& G, int targetWave) {
     G.credits = 5000;
     G.lives = 50;
     G.cpuHp = 100.f;
-    StartWave(G);
+    G.StartWave();
 
     char msg[128];
     snprintf(msg, 128, "DEBUG Wave %d：%d lanes / %d enemies",
@@ -194,9 +194,9 @@ void HandleInput(Game& G) {
     if (G.paused) return;
 
     if (G.phase == Game::TRAINING) {
-        if (IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_KP_1)) { ApplyTrainingChoice(G, 0); return; }
-        if (IsKeyPressed(KEY_TWO) || IsKeyPressed(KEY_KP_2)) { ApplyTrainingChoice(G, 1); return; }
-        if (IsKeyPressed(KEY_THREE) || IsKeyPressed(KEY_KP_3)) { ApplyTrainingChoice(G, 2); return; }
+        if (IsKeyPressed(KEY_ONE) || IsKeyPressed(KEY_KP_1)) { G.ApplyTrainingChoice(0); return; }
+        if (IsKeyPressed(KEY_TWO) || IsKeyPressed(KEY_KP_2)) { G.ApplyTrainingChoice(1); return; }
+        if (IsKeyPressed(KEY_THREE) || IsKeyPressed(KEY_KP_3)) { G.ApplyTrainingChoice(2); return; }
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
             mp.x >= LEFT_CTRL_X && mp.x < LEFT_CTRL_X + LEFT_CTRL_W) {
@@ -204,7 +204,7 @@ void HandleInput(Game& G) {
             for (int i = 0; i < G.trainingChoiceCount; i++) {
                 int by = startY + i * (TRAIN_CARD_H + TRAIN_CARD_GAP);
                 if (mp.y >= by && mp.y < by + TRAIN_CARD_H) {
-                    ApplyTrainingChoice(G, i);
+                    G.ApplyTrainingChoice(i);
                     return;
                 }
             }
@@ -267,7 +267,7 @@ void HandleInput(Game& G) {
                 G.SetMsg("教學提示：請先完成目前步驟，再發動短波次。");
                 return;
             }
-            StartWave(G);
+            G.StartWave();
             return;
         }
     }
@@ -358,7 +358,7 @@ void HandleInput(Game& G) {
         if (G.tutorial.active && !IsTutorialWaveStartAllowed(G)) {
             G.SetMsg("教學提示：請先完成目前步驟，再發動短波次。");
         } else {
-            StartWave(G);
+            G.StartWave();
         }
     }
     if (IsKeyPressed(KEY_ESCAPE)) {
@@ -409,4 +409,8 @@ void HandleInput(Game& G) {
             G.SetMsg(b3);
         }
     }
+}
+
+void Game::HandleInput() {
+    ::HandleInput(*this);
 }
